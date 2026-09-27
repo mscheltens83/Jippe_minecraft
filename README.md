@@ -1,0 +1,89 @@
+# JippeCraft
+
+Een Minecraft-achtig bouwspel voor Jippe (6 jaar). Het draait in Safari op de iPad
+en je hoeft niets te installeren. Het plan staat in [`PLAN.md`](PLAN.md).
+
+![App-icoon](icons/icon-192.png)
+
+## Hoe speel je?
+
+| Wat | Hoe |
+|---|---|
+| **Lopen** | Duim linksonder neerzetten en schuiven (joystick) |
+| **Rondkijken** | Met je vinger over het scherm vegen |
+| **Bouwen** | Groene knop bovenin aan, dan op een blok tikken. Het nieuwe blok komt tegen dat vlak aan |
+| **Slopen** | Rode knop (houweel) bovenin aan, dan op een blok tikken |
+| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft álle blokken |
+| **Springen** | Grote pijl rechtsonder. Tegen een opstapje lopen springt vanzelf |
+| **Vliegen** | Veertje-knop. Pijl omhoog en omlaag om te stijgen en te dalen |
+| **Oeps!** | De terug-pijl rechtsboven zet de laatste acties terug |
+| **Menu** | Huisje linksboven: geluid, nieuwe wereld, vorige wereld terug |
+
+Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
+**klikken** bouwt of sloopt (rechtermuisknop doet het omgekeerde), **spatie** springt,
+**Shift** daalt, **F** vliegen, **E** kist, **Q** wisselen tussen bouwen en slopen,
+**1–9** blok kiezen, **Ctrl+Z** terug, **Esc** menu.
+
+### Veilig voor kinderen
+- Geen monsters, geen schade, geen honger. Altijd dag.
+- Je kunt niet uit de wereld vallen (onbreekbare bodem, onzichtbare rand).
+- De wereld wordt vanzelf bewaard. Bij "nieuwe wereld" blijft de oude bewaard als "vorige wereld".
+- Geen reclame, geen internet nodig tijdens het spelen, geen gegevens die ergens heen gaan.
+
+## Op de iPad zetten
+
+Het spel bestaat uit gewone webbestanden. Het moet op een website staan (via `https://`).
+
+### Optie 1: claude.ai-link (snelst)
+Open de link naar het JippeCraft-artifact op de iPad in Safari (log in op claude.ai).
+De wereld wordt daar ook in de artifact-database bewaard.
+
+### Optie 2: als echte app op het beginscherm (aanrader)
+1. Zet de bestanden op een gratis webhost, bijvoorbeeld:
+   - **GitHub Pages**: kan bij een privé-repository alleen met een betaald GitHub-abonnement.
+     Anders de repository openbaar maken. Daarna: *Settings → Pages → Deploy from a branch → `main` / root*.
+   - **Netlify Drop** (<https://app.netlify.com/drop>): sleep de hele map erin.
+   - **Cloudflare Pages**: koppel de repository.
+2. Open de website op de iPad in **Safari**.
+3. Tik op **Deel** (vierkantje met pijl) → **Zet op beginscherm**.
+4. Nu staat er een JippeCraft-icoon. Het opent schermvullend en werkt ook zonder internet.
+
+> Tip voor ouders: met **Begeleide toegang** (Instellingen → Toegankelijkheid) kun je de
+> iPad vastzetten in het spel.
+
+## Zelf aanpassen / testen
+
+Geen bouwstap nodig: het zijn gewone HTML-, CSS- en JavaScript-bestanden.
+
+```bash
+npm start          # start een lokale webserver op http://localhost:8080
+npm install        # eenmalig, voor de test
+npm test           # speelt het spel automatisch in een gesimuleerde iPad
+npm run icons      # maakt de app-iconen opnieuw
+```
+
+### Bestanden
+| Bestand | Wat doet het? |
+|---|---|
+| `index.html` | De startpagina |
+| `artifact.html` | Dezelfde pagina, maar dan voor een claude.ai-artifact |
+| `css/style.css` | De opmaak van knoppen en menu's |
+| `js/main.js` | Opstarten, de spel-lus, bouwen en slopen |
+| `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
+| `js/textures.js` | De pixel-art texturen, getekend met code |
+| `js/world.js` | Wereld maken (eiland of plat), bewaren en laden |
+| `js/mesher.js` | Blokken omzetten naar 3D-vlakken, met zachte schaduwen |
+| `js/scene.js` | Lucht, zon, wolken en de zee rondom |
+| `js/player.js` | Lopen, springen, vliegen, zwemmen en botsen |
+| `js/raycast.js` | Welk blok tik je aan? |
+| `js/input.js` | Touch, muis en toetsenbord |
+| `js/ui.js`, `js/icons.js` | Knoppen, onderbalk, kist en menu |
+| `js/audio.js` | Zelfgemaakte geluidjes |
+| `js/particles.js` | Brokjes bij het slopen |
+| `js/storage.js` | Bewaren in de browser (en op claude.ai in de database) |
+| `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
+| `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |
+
+### Een blok toevoegen
+1. Teken een textuur in `js/textures.js` (een functie in `GEN`, 16×16 pixels).
+2. Voeg het blok toe in `js/blocks.js` met `def(...)` en zet het in `PALETTE`.
