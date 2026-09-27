@@ -446,7 +446,7 @@ function start() {
     window.__jippecraft = new Game(root);
   } catch (e) {
     console.error(e);
-    root.innerHTML = '<div class="error"><h1>Oeps!</h1><p>Dit apparaat kan het spel niet laten zien. Probeer Safari of Chrome.</p></div>';
+    root.innerHTML = '<div class="error"><h1>Oeps!</h1><p>Dit apparaat kan het spel niet laten zien. Werk de iPad bij via Instellingen &rarr; Algemeen &rarr; Software-update.</p></div>';
   }
   // Offline spelen (alleen als het spel op een eigen website staat)
   if ('serviceWorker' in navigator && window.top === window && !window.claude &&

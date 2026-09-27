@@ -37,11 +37,15 @@ Het spel bestaat uit gewone webbestanden. Het moet op een website staan (via `ht
 ### Optie 1: claude.ai-link (snelst)
 Open de link naar het JippeCraft-artifact op de iPad in Safari (log in op claude.ai).
 De wereld wordt daar ook in de artifact-database bewaard.
+Zie je "This browser isn't supported"? Dan is Safari te oud voor claude.ai: werk de iPad bij
+(Instellingen → Algemeen → Software-update) of gebruik optie 2. Het spel zelf werkt vanaf iPadOS 15.
 
 ### Optie 2: als echte app op het beginscherm (aanrader)
 1. Zet de bestanden op een gratis webhost, bijvoorbeeld:
    - **GitHub Pages**: kan bij een privé-repository alleen met een betaald GitHub-abonnement.
-     Anders de repository openbaar maken. Daarna: *Settings → Pages → Deploy from a branch → `main` / root*.
+     Anders de repository openbaar maken. Daarna: *Settings → Pages → Deploy from a branch →*
+     kies de branch met het spel en map `/ (root)`. Na een minuutje staat het op
+     `https://mscheltens83.github.io/Jippe_minecraft/`.
    - **Netlify Drop** (<https://app.netlify.com/drop>): sleep de hele map erin.
    - **Cloudflare Pages**: koppel de repository.
 2. Open de website op de iPad in **Safari**.
