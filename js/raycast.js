@@ -3,7 +3,8 @@
 
 import { AIR, B } from './blocks.js';
 
-export function raycast(world, origin, dir, maxDist) {
+// `stop(id)` bepaalt welke blokken de straal tegenhouden (standaard: alles behalve lucht)
+export function raycast(world, origin, dir, maxDist, stop = null) {
   let x = Math.floor(origin.x), y = Math.floor(origin.y), z = Math.floor(origin.z);
   const stepX = dir.x > 0 ? 1 : -1, stepY = dir.y > 0 ? 1 : -1, stepZ = dir.z > 0 ? 1 : -1;
   const tDeltaX = Math.abs(1 / dir.x), tDeltaY = Math.abs(1 / dir.y), tDeltaZ = Math.abs(1 / dir.z);
@@ -26,7 +27,7 @@ export function raycast(world, origin, dir, maxDist) {
     if (t > maxDist) break;
     if (y < 0 && stepY < 0) break;
     const id = world.get(x, y, z);
-    if (id !== AIR && !(skipWater && id === B.WATER)) {
+    if (stop ? stop(id) : id !== AIR && !(skipWater && id === B.WATER)) {
       return { x, y, z, nx, ny, nz, id, dist: t };
     }
   }

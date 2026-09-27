@@ -306,7 +306,72 @@ const GEN = {
     t.noise([84, 84, 86], 0.4);
     t.specks([40, 40, 42], 0.25);
   },
+  bounce(t) {
+    // groen stuiterblok (net als slijm): lichte rand, donkerder kern, glimmertjes
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      const edge = x === 0 || y === 0 || x === 15 || y === 15;
+      const inner = x >= 4 && x <= 11 && y >= 4 && y <= 11;
+      let c = edge ? [88, 170, 70] : inner ? [104, 196, 84] : [140, 226, 110];
+      t.set(x, y, shade(c, 1 + (t.r() - 0.5) * 0.08));
+    }
+    for (const [x, y] of [[2, 2], [3, 2], [2, 3], [6, 5], [5, 6]]) t.set(x, y, [214, 255, 196]);
+  },
+  firework_side(t) {
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      const stripe = (x + y) % 6 < 2;
+      t.set(x, y, shade(stripe ? [246, 240, 230] : [212, 44, 54], 1 + (t.r() - 0.5) * 0.08));
+    }
+    // sterretjes
+    for (const [cx, cy] of [[4, 4], [11, 10]]) {
+      for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) t.set(cx + dx, cy + dy, [255, 214, 60]);
+    }
+  },
+  firework_top(t) {
+    t.noise([180, 36, 44], 0.1);
+    for (let i = 0; i < TILE; i++) { t.set(i, 0, [120, 20, 28]); t.set(i, 15, [120, 20, 28]); t.set(0, i, [120, 20, 28]); t.set(15, i, [120, 20, 28]); }
+    // lontje in het midden
+    for (let y = 5; y < 11; y++) { t.set(7, y, [90, 80, 70]); t.set(8, y, [110, 100, 90]); }
+    t.set(7, 4, [255, 210, 60]); t.set(8, 4, [255, 150, 40]); t.set(8, 3, [255, 240, 150]);
+  },
+  door_lower(t) {
+    doorWood(t);
+    // paneeltje en deurklink
+    for (let x = 4; x <= 11; x++) { t.set(x, 3, shade(WOOD, 0.68)); t.set(x, 12, shade(WOOD, 0.68)); }
+    for (let y = 3; y <= 12; y++) { t.set(4, y, shade(WOOD, 0.68)); t.set(11, y, shade(WOOD, 0.68)); }
+    t.set(12, 1, [230, 200, 80]); t.set(13, 1, [200, 170, 60]);
+  },
+  door_upper(t) {
+    doorWood(t);
+    // raampje met vier ruitjes
+    for (let y = 3; y <= 11; y++) for (let x = 3; x <= 12; x++) {
+      const bar = x === 3 || x === 12 || y === 3 || y === 11 || x === 7 || x === 8 || y === 7;
+      t.set(x, y, bar ? shade(WOOD, 0.7) : [178, 224, 246]);
+    }
+    t.set(4, 4, [255, 255, 255]); t.set(9, 4, [255, 255, 255]); t.set(4, 8, [240, 250, 255]);
+  },
 };
+
+const STAINED = {
+  red: [224, 64, 64], yellow: [248, 216, 64], green: [96, 196, 76], blue: [72, 116, 232], purple: [156, 84, 214],
+};
+for (const [name, c] of Object.entries(STAINED)) {
+  GEN['glass_' + name] = (t) => {
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      const edge = x === 0 || y === 0 || x === 15 || y === 15;
+      t.set(x, y, edge ? shade(c, 0.8) : c, edge ? 235 : 120);
+    }
+    for (const [x, y] of [[3, 2], [2, 3], [4, 2], [2, 4], [3, 3]]) t.set(x, y, [255, 255, 255], 200);
+  };
+}
+
+function doorWood(t) {
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    let c = shade(WOOD, 0.95 * (1 + (t.r() - 0.5) * 0.08));
+    if (x % 5 === 0) c = shade(WOOD, 0.78);
+    if (x === 0 || x === 15 || y === 0 || y === 15) c = shade(WOOD, 0.6);
+    t.set(x, y, c);
+  }
+}
 
 for (const [name, c] of Object.entries(WOOL)) {
   GEN['wool_' + name] = (t) => {
@@ -378,34 +443,105 @@ export function createAtlas() {
   return { canvas, index, faceTiles, particleColors };
 }
 
-// Teken een klein 3D-blokje (voor de onderbalk en de kist)
+// Teken een klein 3D-blokje (voor de onderbalk en de kist).
+// Werkt met kleine blokjes (0..1), zodat ook een trap er als trap uitziet.
 export function drawBlockIcon(atlas, id, size = 96) {
   const c = document.createElement('canvas');
   c.width = c.height = size;
   const ctx = c.getContext('2d');
   ctx.imageSmoothingEnabled = false;
   const b = BLOCKS[id];
-  const [top, , side] = atlas.faceTiles[id];
-  const src = (tile) => [(tile % ATLAS_COLS) * TILE, Math.floor(tile / ATLAS_COLS) * TILE];
   const k = size / 64;
+  const src = (tile) => [(tile % ATLAS_COLS) * TILE, Math.floor(tile / ATLAS_COLS) * TILE];
+
   if (b.render === 'cross') {
-    const [sx, sy] = src(side);
+    const [sx, sy] = src(atlas.faceTiles[id][2]);
     ctx.drawImage(atlas.canvas, sx, sy, TILE, TILE, 6 * k, 6 * k, 52 * k, 52 * k);
     return c;
   }
-  const face = (tile, a, bb, cc, d, e, f, dark) => {
+  if (b.shape === 'door') {
+    // plat deurtje: bovenste helft met raampje, onderste helft met klink
+    const up = src(atlas.index.door_upper), low = src(atlas.index.door_lower);
+    ctx.drawImage(atlas.canvas, up[0], up[1], TILE, TILE, 18 * k, 4 * k, 28 * k, 28 * k);
+    ctx.drawImage(atlas.canvas, low[0], low[1], TILE, TILE, 18 * k, 32 * k, 28 * k, 28 * k);
+    return c;
+  }
+
+  // Isometrische projectie: x naar rechtsonder, z naar linksonder, y omhoog
+  const P = (x, y, z) => [(32 + (x - z) * 28) * k, (32 + (x + z) * 14 - y * 28) * k];
+  const [top, , side] = atlas.faceTiles[id];
+  const darken = b.render === 'solid' || b.render === 'shape';
+  const face = (tile, tl, tr, bl, u0, v0, u1, v1, dark) => {
     const [sx, sy] = src(tile);
-    ctx.setTransform(a * k, bb * k, cc * k, d * k, e * k, f * k);
-    ctx.drawImage(atlas.canvas, sx, sy, TILE, TILE, 0, 0, TILE, TILE);
-    if (dark && b.render !== 'cutout') {
+    ctx.setTransform(tr[0] - tl[0], tr[1] - tl[1], bl[0] - tl[0], bl[1] - tl[1], tl[0], tl[1]);
+    ctx.drawImage(atlas.canvas, sx + u0 * TILE, sy + v0 * TILE, Math.max(0.01, (u1 - u0) * TILE), Math.max(0.01, (v1 - v0) * TILE), 0, 0, 1.01, 1.01);
+    if (dark && darken) {
       ctx.fillStyle = `rgba(0,0,0,${dark})`;
-      ctx.fillRect(0, 0, TILE, TILE);
+      ctx.fillRect(0, 0, 1.01, 1.01);
     }
   };
-  const s = 1.75, h = 0.875;
-  face(side, s, h, 0, s, 4, 18, 0.18);      // links
-  face(side, s, -h, 0, s, 32, 32, 0.34);    // rechts
-  face(top, s, h, -s, h, 32, 4, 0);         // boven
+  const boxes = b.boxes || [[0, 0, 0, 1, 1, 1]];
+  for (const [x0, y0, z0, x1, y1, z1] of boxes) {
+    // voorkant links (+z), voorkant rechts (+x), bovenkant
+    face(side, P(x0, y1, z1), P(x1, y1, z1), P(x0, y0, z1), x0, 1 - y1, x1, 1 - y0, 0.18);
+    face(side, P(x1, y1, z1), P(x1, y1, z0), P(x1, y0, z1), 1 - z1, 1 - y1, 1 - z0, 1 - y0, 0.34);
+    face(top, P(x0, y1, z0), P(x1, y1, z0), P(x0, y1, z1), x0, z0, x1, z1, 0);
+  }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
+  return c;
+}
+
+// Scheurtjes die je ziet terwijl je een blok vasthoudt om te slopen (4 stapjes)
+export function createCrackCanvases() {
+  const r = rng(4242);
+  const stages = [];
+  const lines = [];
+  for (let i = 0; i < 12; i++) {
+    let x = 8, y = 8;
+    const pts = [[x, y]];
+    const ang = r() * Math.PI * 2;
+    for (let k = 0; k < 6; k++) {
+      x += Math.cos(ang + (r() - 0.5) * 1.2) * 1.4;
+      y += Math.sin(ang + (r() - 0.5) * 1.2) * 1.4;
+      pts.push([x, y]);
+    }
+    lines.push(pts);
+  }
+  for (let s = 0; s < 4; s++) {
+    const c = document.createElement('canvas');
+    c.width = c.height = TILE;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = 'rgba(20,20,20,0.9)';
+    const n = 3 + s * 3;
+    for (let i = 0; i < n; i++) {
+      const pts = lines[i];
+      const len = Math.min(pts.length, 2 + s * 2);
+      for (let k = 0; k < len; k++) ctx.fillRect(Math.floor(pts[k][0]), Math.floor(pts[k][1]), 1, 1);
+    }
+    stages.push(c);
+  }
+  return stages;
+}
+
+// Pixel-hartje voor als je een dier aait
+export function createHeartCanvas() {
+  const rows = [
+    '..XX..XX..',
+    '.XWWXXRRX.',
+    'XWRRRRRRRX',
+    'XRRRRRRRRX',
+    'XRRRRRRRRX',
+    '.XRRRRRRX.',
+    '..XRRRRX..',
+    '...XRRX...',
+    '....XX....',
+  ];
+  const c = document.createElement('canvas');
+  c.width = 10; c.height = 9;
+  const ctx = c.getContext('2d');
+  const col = { X: '#8a1a2a', R: '#f0445c', W: '#ffd0d8' };
+  rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (col[ch]) { ctx.fillStyle = col[ch]; ctx.fillRect(x, y, 1, 1); }
+  }));
   return c;
 }

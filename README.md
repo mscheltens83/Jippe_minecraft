@@ -12,23 +12,39 @@ en je hoeft niets te installeren. Het plan staat in [`PLAN.md`](PLAN.md).
 | **Lopen** | Duim linksonder neerzetten en schuiven (joystick) |
 | **Rondkijken** | Met je vinger over het scherm vegen |
 | **Bouwen** | Groene knop bovenin aan, dan op een blok tikken. Het nieuwe blok komt tegen dat vlak aan |
-| **Slopen** | Rode knop (houweel) bovenin aan, dan op een blok tikken |
-| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft álle blokken |
-| **Springen** | Grote pijl rechtsonder. Tegen een opstapje lopen springt vanzelf |
+| **Toren bouwen** | Recht naar beneden kijken en op de grond onder je tikken: je wipt vanzelf op het nieuwe blok |
+| **Slopen** | Rode knop (houweel) bovenin aan, dan je vinger op een blok **vasthouden** tot het rondje vol is. Blijf je vasthouden, dan graaf je verder |
+| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft drie tabbladen: blokken, stempels en dieren |
+| **Stempels** | Kies een huisje, boom, toren of brug uit de kist en tik op de grond. Het staat er in één keer |
+| **Dieren** | Varkentjes, kippen en schaapjes lopen rond. Tik erop om ze te aaien (hartjes!). Uit de kist zet je er zelf meer neer |
+| **Deur** | Tik op een deur om hem open of dicht te doen |
+| **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
+| **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
+| **Springen** | Grote pijl rechtsonder. Tegen een opstapje of trap lopen gaat vanzelf |
 | **Vliegen** | Veertje-knop. Pijl omhoog en omlaag om te stijgen en te dalen |
-| **Oeps!** | De terug-pijl rechtsboven zet de laatste acties terug |
-| **Menu** | Huisje linksboven: geluid, nieuwe wereld, vorige wereld terug |
+| **Poppetje** | Knop rechtsboven: de camera gaat achter je hangen, zodat je jezelf ziet |
+| **Oeps!** | De terug-pijl rechtsboven zet de laatste acties terug (ook een hele stempel) |
+| **Menu** | Huisje linksboven: geluid, muziek en de drie werelden |
+
+In het menu onder **Werelden** staan drie plekken, elk met een plaatje van je wereld.
+Tik op een wereld om erheen te gaan, op een lege plek (+) om een nieuwe te maken,
+of op het rondje-pijltje om een wereld opnieuw te beginnen (dat vraagt eerst of je het zeker weet).
 
 Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
-**klikken** bouwt of sloopt (rechtermuisknop doet het omgekeerde), **spatie** springt,
-**Shift** daalt, **F** vliegen, **E** kist, **Q** wisselen tussen bouwen en slopen,
-**1–9** blok kiezen, **Ctrl+Z** terug, **Esc** menu.
+**klikken** bouwt (in de sloop-stand: muisknop vasthouden), **rechtermuisknop** doet het omgekeerde,
+**spatie** springt, **Shift** daalt, **F** vliegen, **C** poppetje, **M** muziek, **E** kist,
+**Q** wisselen tussen bouwen en slopen, **1–9** blok kiezen, **Ctrl+Z** terug, **Esc** menu.
 
 ### Veilig voor kinderen
-- Geen monsters, geen schade, geen honger. Altijd dag.
+- Geen monsters, geen schade, geen honger. Altijd dag. De dieren zijn lief en gaan niet dood.
 - Je kunt niet uit de wereld vallen (onbreekbare bodem, onzichtbare rand).
-- De wereld wordt vanzelf bewaard. Bij "nieuwe wereld" blijft de oude bewaard als "vorige wereld".
+- Slopen moet je even vasthouden, dus je sloopt niet per ongeluk je huis.
+- De werelden worden vanzelf bewaard. Een wereld weggooien vraagt altijd eerst om bevestiging.
 - Geen reclame, geen internet nodig tijdens het spelen, geen gegevens die ergens heen gaan.
+
+### Op een oudere iPad
+Het spel begint op een tablet iets minder scherp en past zich aan: haalt de iPad het niet,
+dan tekent hij nog wat minder scherp; is de iPad snel, dan juist scherper.
 
 ## Op de iPad zetten
 
@@ -82,12 +98,20 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/raycast.js` | Welk blok tik je aan? |
 | `js/input.js` | Touch, muis en toetsenbord |
 | `js/ui.js`, `js/icons.js` | Knoppen, onderbalk, kist en menu |
-| `js/audio.js` | Zelfgemaakte geluidjes |
-| `js/particles.js` | Brokjes bij het slopen |
-| `js/storage.js` | Bewaren in de browser (en op claude.ai in de database) |
+| `js/audio.js` | Zelfgemaakte geluidjes (ook dierengeluidjes en vuurwerk) |
+| `js/music.js` | Het rustige muziekje, met code gemaakt |
+| `js/animals.js` | De dieren: rondlopen, huppelen en aaien |
+| `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
+| `js/stamps.js` | De stempels: huisje, boom, toren en brug |
+| `js/particles.js` | Brokjes bij het slopen, vuurwerk, hartjes en glitters |
+| `js/storage.js` | Bewaren van de drie werelden in de browser (en op claude.ai in de database) |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
 | `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |
 
 ### Een blok toevoegen
 1. Teken een textuur in `js/textures.js` (een functie in `GEN`, 16×16 pixels).
-2. Voeg het blok toe in `js/blocks.js` met `def(...)` en zet het in `PALETTE`.
+2. Voeg het blok toe in `js/blocks.js` met `def(...)` en zet het in `PALETTE_GROUPS`.
+
+### Een stempel toevoegen
+Schrijf in `js/stamps.js` een nieuw stuk bij `buildStamp` (met `put(links, omhoog, vooruit, blok)`),
+voeg in `js/blocks.js` een regel toe aan `ITEM` en `SPECIALS`, en geef het een plaatje in `js/icons.js`.

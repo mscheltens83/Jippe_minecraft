@@ -1,9 +1,14 @@
-// Brokjes die wegspringen als je een blok sloopt (en een wolkje bij bouwen).
+// Brokjes die wegspringen als je een blok sloopt, wolkjes bij bouwen,
+// vuurwerk dat de lucht in gaat en hartjes bij de dieren.
 
 import * as THREE from '../lib/three.module.min.js';
 import { BLOCKS } from './blocks.js';
+import { createHeartCanvas } from './textures.js';
 
-const MAX = 240;
+const MAX = 700;
+const FIREWORK_COLORS = [
+  [1, 0.3, 0.35], [1, 0.8, 0.2], [0.35, 0.9, 0.4], [0.35, 0.65, 1], [0.8, 0.45, 1], [1, 0.55, 0.85], [1, 1, 1],
+];
 
 export class Particles {
   constructor(scene) {
@@ -17,15 +22,29 @@ export class Particles {
     this.mesh.count = 0;
     scene.add(this.mesh);
     this.list = [];
+    this.rockets = [];
     this.m = new THREE.Matrix4();
     this.c = new THREE.Color();
+    this.onBang = null;
+
+    // hartjes zijn plaatjes die altijd naar je toe kijken
+    const heart = new THREE.CanvasTexture(createHeartCanvas());
+    heart.magFilter = THREE.NearestFilter;
+    heart.minFilter = THREE.NearestFilter;
+    heart.colorSpace = THREE.SRGBColorSpace;
+    this.heartMat = new THREE.SpriteMaterial({ map: heart, transparent: true, depthWrite: false });
+    this.hearts = [];
+    this.scene = scene;
+  }
+
+  add(p) {
+    if (this.list.length >= MAX) this.list.shift();
+    this.list.push(p);
   }
 
   burst(x, y, z, colors, n = 16, puff = false) {
     for (let i = 0; i < n; i++) {
-      if (this.list.length >= MAX) this.list.shift();
-      const col = colors[Math.floor(Math.random() * colors.length)];
-      this.list.push({
+      this.add({
         x: x + 0.2 + Math.random() * 0.6,
         y: y + 0.2 + Math.random() * 0.6,
         z: z + 0.2 + Math.random() * 0.6,
@@ -33,21 +52,102 @@ export class Particles {
         vy: puff ? 0.5 + Math.random() * 1.5 : 2 + Math.random() * 3,
         vz: (Math.random() - 0.5) * (puff ? 2 : 4),
         g: puff ? 1.5 : 14,
+        drag: 1,
         life: 0,
         max: puff ? 0.45 : 0.55 + Math.random() * 0.35,
         size: puff ? 0.1 + Math.random() * 0.08 : 0.07 + Math.random() * 0.08,
-        col,
+        col: colors[Math.floor(Math.random() * colors.length)],
+        collide: true,
       });
     }
   }
 
+  // Toverglitters rond een stempel
+  sparkle(x0, y0, z0, x1, y1, z1, n = 60) {
+    for (let i = 0; i < n; i++) {
+      this.add({
+        x: x0 + Math.random() * (x1 - x0), y: y0 + Math.random() * (y1 - y0), z: z0 + Math.random() * (z1 - z0),
+        vx: (Math.random() - 0.5) * 0.6, vy: 0.6 + Math.random() * 1.2, vz: (Math.random() - 0.5) * 0.6,
+        g: 0, drag: 1, life: 0, max: 0.6 + Math.random() * 0.6, size: 0.08 + Math.random() * 0.07,
+        col: Math.random() < 0.5 ? [1, 0.95, 0.5] : [1, 1, 1], collide: false,
+      });
+    }
+  }
+
+  // Vuurpijl: gaat omhoog en knalt dan uit elkaar
+  firework(x, y, z) {
+    this.rockets.push({ x, y, z, vy: 15, life: 0, max: 0.75 + Math.random() * 0.3, trail: 0 });
+  }
+
+  explode(r) {
+    const a = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+    const b = FIREWORK_COLORS[Math.floor(Math.random() * FIREWORK_COLORS.length)];
+    for (let i = 0; i < 120; i++) {
+      const th = Math.random() * Math.PI * 2, ph = Math.acos(2 * Math.random() - 1);
+      const sp = 5 + Math.random() * 3;
+      this.add({
+        x: r.x, y: r.y, z: r.z,
+        vx: Math.sin(ph) * Math.cos(th) * sp, vy: Math.cos(ph) * sp, vz: Math.sin(ph) * Math.sin(th) * sp,
+        g: 2.5, drag: 0.97, life: 0, max: 1.2 + Math.random() * 0.8, size: 0.12 + Math.random() * 0.06,
+        col: i % 2 ? a : b, collide: false,
+      });
+    }
+    this.onBang?.(r.x, r.y, r.z);
+  }
+
+  heartsAt(x, y, z) {
+    for (let i = 0; i < 4; i++) {
+      let s = this.hearts.find((h) => !h.alive);
+      if (!s) {
+        if (this.hearts.length > 24) return;
+        s = { sprite: new THREE.Sprite(this.heartMat.clone()), alive: false };
+        this.scene.add(s.sprite);
+        this.hearts.push(s);
+      }
+      s.alive = true;
+      s.life = -i * 0.15;
+      s.sprite.visible = false;
+      s.sprite.position.set(x + (Math.random() - 0.5) * 0.5, y, z + (Math.random() - 0.5) * 0.5);
+      s.sprite.scale.set(0.35, 0.32, 1);
+    }
+  }
+
   update(dt, world) {
+    // vuurpijlen
+    for (const r of this.rockets) {
+      r.life += dt;
+      r.y += r.vy * dt;
+      r.trail -= dt;
+      if (r.trail <= 0) {
+        r.trail = 0.02;
+        this.add({
+          x: r.x + (Math.random() - 0.5) * 0.1, y: r.y, z: r.z + (Math.random() - 0.5) * 0.1,
+          vx: 0, vy: -1, vz: 0, g: 0, drag: 1, life: 0, max: 0.35, size: 0.09,
+          col: Math.random() < 0.5 ? [1, 0.75, 0.3] : [1, 0.95, 0.7], collide: false,
+        });
+      }
+      if (r.life >= r.max) this.explode(r);
+    }
+    this.rockets = this.rockets.filter((r) => r.life < r.max);
+
+    // hartjes zweven omhoog en vervagen
+    for (const h of this.hearts) {
+      if (!h.alive) continue;
+      h.life += dt;
+      if (h.life < 0) continue;
+      h.sprite.visible = true;
+      h.sprite.position.y += dt * 1.1;
+      h.sprite.material.opacity = Math.max(0, 1 - h.life / 1.3);
+      if (h.life > 1.3) { h.alive = false; h.sprite.visible = false; }
+    }
+
     let n = 0;
     this.list = this.list.filter((p) => (p.life += dt) < p.max);
     for (const p of this.list) {
       p.vy -= p.g * dt;
+      if (p.drag !== 1) { const d = Math.pow(p.drag, dt * 60); p.vx *= d; p.vy *= d; p.vz *= d; }
       const nx = p.x + p.vx * dt, ny = p.y + p.vy * dt, nz = p.z + p.vz * dt;
-      if (BLOCKS[world.get(Math.floor(nx), Math.floor(ny), Math.floor(nz))]?.solid) {
+      if (p.collide && BLOCKS[world.get(Math.floor(nx), Math.floor(ny), Math.floor(nz))]?.solid) {
         p.vx *= 0.4; p.vz *= 0.4; p.vy = Math.abs(p.vy) * 0.25;
       } else { p.x = nx; p.y = ny; p.z = nz; }
       const s = p.size * (1 - Math.pow(p.life / p.max, 3));

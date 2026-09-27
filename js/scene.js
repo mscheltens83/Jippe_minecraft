@@ -3,17 +3,23 @@
 import * as THREE from '../lib/three.module.min.js';
 import { SX, SZ, SY, CHUNK, SEA } from './world.js';
 import { buildChunk } from './mesher.js';
+import { createCrackCanvases } from './textures.js';
 
 const SKY = new THREE.Color('#9ad8ff');
 
 export class GameScene {
   constructor(canvas, atlas) {
+    const dpr = window.devicePixelRatio || 1;
+    const touch = window.matchMedia?.('(pointer: coarse)').matches;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
-      antialias: (window.devicePixelRatio || 1) < 2,
+      antialias: dpr < 2 && !touch,
       powerPreference: 'high-performance',
     });
-    this.pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    // Op een tablet beginnen we iets minder scherp: dat scheelt veel rekenwerk
+    // en je ziet het bij pixel-art nauwelijks. Is de iPad snel, dan gaat het vanzelf omhoog.
+    this.maxPixelRatio = Math.min(dpr, 2);
+    this.pixelRatio = touch ? Math.min(this.maxPixelRatio, 1.5) : this.maxPixelRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -34,6 +40,7 @@ export class GameScene {
     this.materials = {
       solid: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true }),
       cutout: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide }),
+      glass: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, depthWrite: false }),
       water: new THREE.MeshBasicMaterial({
         map: tex, vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide,
       }),
@@ -44,6 +51,44 @@ export class GameScene {
     this.buildSea();
     this.buildClouds();
     this.buildHighlight();
+    this.buildCrack();
+  }
+
+  buildCrack() {
+    this.crackTex = createCrackCanvases().map((c) => {
+      const t = new THREE.CanvasTexture(c);
+      t.magFilter = THREE.NearestFilter;
+      t.minFilter = THREE.NearestFilter;
+      t.generateMipmaps = false;
+      return t;
+    });
+    this.crack = new THREE.Mesh(
+      new THREE.BoxGeometry(1.01, 1.01, 1.01),
+      new THREE.MeshBasicMaterial({
+        map: this.crackTex[0], transparent: true, depthWrite: false,
+        polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2,
+      }),
+    );
+    this.crack.visible = false;
+    this.crack.renderOrder = 3;
+    this.scene.add(this.crack);
+  }
+
+  // Alles wat later pas zichtbaar wordt alvast klaarzetten, zodat het spel dan niet even hapert
+  precompile() {
+    this.crack.visible = true;
+    this.highlight.visible = true;
+    this.renderer.compile(this.scene, this.camera);
+    this.crack.visible = false;
+    this.highlight.visible = false;
+  }
+
+  // Scheurtjes op het blok dat je aan het slopen bent (stage 0..3)
+  showCrack(hit, stage) {
+    if (!hit) { this.crack.visible = false; return; }
+    this.crack.position.set(hit.x + 0.5, hit.y + 0.5, hit.z + 0.5);
+    this.crack.material.map = this.crackTex[Math.max(0, Math.min(3, stage))];
+    this.crack.visible = true;
   }
 
   buildSky() {
@@ -169,7 +214,7 @@ export class GameScene {
     if (old) for (const m of old) { this.scene.remove(m); m.geometry.dispose(); }
     const data = buildChunk(world, this.atlas, cx, cz);
     const meshes = [];
-    for (const kind of ['solid', 'cutout', 'water']) {
+    for (const kind of ['solid', 'cutout', 'glass', 'water']) {
       const d = data[kind];
       if (!d) continue;
       const geo = new THREE.BufferGeometry();
@@ -181,7 +226,7 @@ export class GameScene {
         new THREE.Vector3(cx * CHUNK + CHUNK / 2, SY / 2, cz * CHUNK + CHUNK / 2), Math.hypot(CHUNK, SY, CHUNK) / 2 + 1,
       );
       const mesh = new THREE.Mesh(geo, this.materials[kind]);
-      if (kind === 'water') mesh.renderOrder = 1;
+      if (kind === 'water' || kind === 'glass') mesh.renderOrder = 1;
       this.scene.add(mesh);
       meshes.push(mesh);
     }

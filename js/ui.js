@@ -1,8 +1,14 @@
 // Alles wat je op het scherm ziet bovenop de 3D-wereld: knoppen, onderbalk, kist en menu.
 
-import { ICONS } from './icons.js';
-import { BLOCKS, PALETTE } from './blocks.js';
+import { ICONS, iconURL } from './icons.js';
+import { ITEM, PALETTE_GROUPS, itemName, isSpecial } from './blocks.js';
 import { drawBlockIcon } from './textures.js';
+
+const SPECIAL_ICONS = {
+  [ITEM.HOUSE]: 'house', [ITEM.TREE]: 'tree', [ITEM.TOWER]: 'tower', [ITEM.BRIDGE]: 'bridge',
+  [ITEM.PIG]: 'pig', [ITEM.CHICKEN]: 'chicken', [ITEM.SHEEP]: 'sheep',
+};
+const GROUP_ICONS = { Blokken: 'build', Stempels: 'house', Dieren: 'pig' };
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -47,11 +53,21 @@ function onHold(elm, down, up) {
   elm.addEventListener('lostpointercapture', end);
 }
 
+function labeled(btn, text) {
+  const w = el('div', 'labeled');
+  w.append(btn, el('span', '', text));
+  return w;
+}
+
 export class UI {
   constructor(root, atlas, h) {
     this.h = h;
     this.icons = {};
-    for (const id of PALETTE) this.icons[id] = drawBlockIcon(atlas, id, 96).toDataURL();
+    for (const g of PALETTE_GROUPS) {
+      for (const id of g.items) {
+        this.icons[id] = isSpecial(id) ? iconURL(SPECIAL_ICONS[id]) : drawBlockIcon(atlas, id, 96).toDataURL();
+      }
+    }
 
     // --- spelknoppen ---
     this.hud = el('div', 'hud');
@@ -74,9 +90,13 @@ export class UI {
     mode.append(this.buildBtn, this.breakBtn);
     this.hud.appendChild(mode);
 
+    const topRight = el('div', 'top-right');
+    this.camBtn = button('cam-btn', 'person', 'Poppetje');
+    onPress(this.camBtn, () => h.onCamera());
     this.undoBtn = button('undo-btn', 'undo', 'Terug');
     onPress(this.undoBtn, () => h.onUndo());
-    this.hud.appendChild(this.undoBtn);
+    topRight.append(this.camBtn, this.undoBtn);
+    this.hud.appendChild(topRight);
 
     const right = el('div', 'right');
     this.jumpBtn = button('jump-btn', 'jump', 'Springen');
@@ -91,101 +111,159 @@ export class UI {
     this.hotbar = el('div', 'hotbar');
     this.hud.appendChild(this.hotbar);
 
-    // --- de kist met alle blokken ---
-    this.palette = el('div', 'overlay palette');
-    this.palette.hidden = true;
-    const pcard = el('div', 'palette-card');
-    const phead = el('div', 'palette-head');
-    phead.appendChild(el('div', 'palette-title', ICONS.chest));
-    const pclose = button('close-btn', 'close', 'Sluiten');
-    onPress(pclose, () => this.closePalette());
-    phead.appendChild(pclose);
-    const grid = el('div', 'palette-grid');
-    for (const id of PALETTE) {
-      const b = el('button', 'pal-item');
-      b.type = 'button';
-      b.setAttribute('aria-label', BLOCKS[id].name);
-      b.innerHTML = `<img src="${this.icons[id]}" alt=""><span>${BLOCKS[id].name}</span>`;
-      // 'click' in plaats van meteen bij aanraken, zodat je de kist ook kunt scrollen
-      b.addEventListener('click', () => { h.onPick(id); this.closePalette(); });
-      grid.appendChild(b);
-    }
-    pcard.append(phead, grid);
-    this.palette.appendChild(pcard);
-    this.palette.addEventListener('pointerdown', (e) => { if (e.target === this.palette) this.closePalette(); });
-    root.appendChild(this.palette);
+    // rondje dat vol loopt terwijl je vasthoudt om te slopen
+    this.holdEl = el('div', 'hold-ring', '<svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="24" class="track"/><circle cx="30" cy="30" r="24" class="fill"/></svg>');
+    this.holdEl.hidden = true;
+    this.holdFill = this.holdEl.querySelector('.fill');
+    root.appendChild(this.holdEl);
 
-    // --- menu / startscherm ---
-    this.menu = el('div', 'overlay menu');
-    const card = el('div', 'menu-card');
-    card.appendChild(el('h1', 'logo', 'Jippe<span>Craft</span>'));
-
-    this.mainPanel = el('div', 'panel');
-    this.playBtn = button('play-btn', 'play', 'Spelen');
-    onPress(this.playBtn, () => h.onPlay());
-    const row = el('div', 'menu-row');
-    this.soundBtn = button('small', 'soundOn', 'Geluid');
-    onPress(this.soundBtn, () => h.onToggleSound());
-    const newBtn = button('small', 'island', 'Nieuwe wereld');
-    onPress(newBtn, () => this.showPanel('new'));
-    this.restoreBtn = button('small', 'restore', 'Vorige wereld');
-    onPress(this.restoreBtn, () => this.showPanel('restore'));
-    row.append(labeled(this.soundBtn, 'Geluid'), labeled(newBtn, 'Nieuwe wereld'), labeled(this.restoreBtn, 'Vorige wereld'));
-    this.restoreWrap = this.restoreBtn.parentElement;
-    this.mainPanel.append(this.playBtn, row);
-
-    this.newPanel = el('div', 'panel');
-    this.newPanel.appendChild(el('p', 'hint', 'Wat voor wereld wil je?'));
-    const choices = el('div', 'menu-row');
-    for (const [type, icon, label] of [['island', 'island', 'Eiland'], ['flat', 'flat', 'Plat']]) {
-      const b = button('choice', icon, label);
-      onPress(b, () => { this.pendingType = type; this.showPanel('confirm'); });
-      choices.appendChild(labeled(b, label));
-    }
-    const back1 = button('small', 'close', 'Terug');
-    onPress(back1, () => this.showPanel('main'));
-    this.newPanel.append(choices, labeled(back1, 'Terug'));
-
-    this.confirmPanel = el('div', 'panel');
-    this.confirmText = el('p', 'hint');
-    const yesNo = el('div', 'menu-row');
-    const yes = button('yes', 'check', 'Ja');
-    const no = button('no', 'close', 'Nee');
-    onPress(yes, () => {
-      if (this.confirmAction === 'restore') h.onRestore();
-      else h.onNewWorld(this.pendingType);
-    });
-    onPress(no, () => this.showPanel('main'));
-    yesNo.append(labeled(yes, 'Ja'), labeled(no, 'Nee'));
-    this.confirmPanel.append(this.confirmText, yesNo);
-
-    card.append(this.mainPanel, this.newPanel, this.confirmPanel);
-    this.menu.appendChild(card);
-    root.appendChild(this.menu);
-    this.showPanel('main');
+    this.buildPalette(root);
+    this.buildMenu(root);
 
     this.tapLayer = el('div', 'taps');
     root.appendChild(this.tapLayer);
   }
 
-  showPanel(which) {
-    if (which === 'restore') {
-      this.confirmAction = 'restore';
-      this.confirmText.textContent = 'Wil je je vorige wereld terug? Deze wereld wordt dan de vorige.';
-      which = 'confirm';
-    } else if (which === 'confirm') {
-      this.confirmAction = 'new';
-      this.confirmText.textContent = 'Een nieuwe wereld maken? Je huidige wereld wordt bewaard als "vorige wereld".';
-    }
-    this.mainPanel.hidden = which !== 'main';
-    this.newPanel.hidden = which !== 'new';
-    this.confirmPanel.hidden = which !== 'confirm';
+  // --- de kist met alle blokken, stempels en dieren (drie tabbladen) ---
+  buildPalette(root) {
+    const h = this.h;
+    this.palette = el('div', 'overlay palette');
+    this.palette.hidden = true;
+    const pcard = el('div', 'palette-card');
+    const phead = el('div', 'palette-head');
+    const tabs = el('div', 'pal-tabs');
+    this.palScroll = el('div', 'palette-grid');
+    this.palGroups = PALETTE_GROUPS.map((g, gi) => {
+      const tab = el('button', 'pal-tab', `${ICONS[GROUP_ICONS[g.title]]}<span>${g.title}</span>`);
+      tab.type = 'button';
+      tab.setAttribute('aria-label', g.title);
+      onPress(tab, () => this.showGroup(gi));
+      tabs.appendChild(tab);
+      const grid = el('div', 'pal-items');
+      for (const id of g.items) {
+        const b = el('button', 'pal-item' + (isSpecial(id) ? ' special' : ''));
+        b.type = 'button';
+        b.setAttribute('aria-label', itemName(id));
+        b.innerHTML = `<img src="${this.icons[id]}" alt=""><span>${itemName(id)}</span>`;
+        // 'click' in plaats van meteen bij aanraken, zodat je de kist ook kunt scrollen
+        b.addEventListener('click', () => { h.onPick(id); this.closePalette(); });
+        grid.appendChild(b);
+      }
+      this.palScroll.appendChild(grid);
+      return { tab, grid, items: g.items };
+    });
+    const pclose = button('close-btn', 'close', 'Sluiten');
+    onPress(pclose, () => this.closePalette());
+    phead.append(tabs, pclose);
+    pcard.append(phead, this.palScroll);
+    this.palette.appendChild(pcard);
+    this.palette.addEventListener('pointerdown', (e) => { if (e.target === this.palette) this.closePalette(); });
+    root.appendChild(this.palette);
+    this.showGroup(0);
   }
 
-  setBackupAvailable(has) { this.restoreWrap.hidden = !has; }
+  showGroup(i) {
+    this.palGroups.forEach((g, j) => { g.tab.classList.toggle('on', i === j); g.grid.hidden = i !== j; });
+    this.palScroll.scrollTop = 0;
+  }
 
-  showMenu(hasBackup) {
-    this.setBackupAvailable(hasBackup);
+  // --- menu / startscherm ---
+  buildMenu(root) {
+    const h = this.h;
+    this.menu = el('div', 'overlay menu');
+    const card = el('div', 'menu-card');
+    card.appendChild(el('h1', 'logo', 'Jippe<span>Craft</span>'));
+
+    this.panels = {};
+    const main = this.panels.main = el('div', 'panel');
+    this.playBtn = button('play-btn', 'play', 'Spelen');
+    onPress(this.playBtn, () => h.onPlay());
+    const row = el('div', 'menu-row');
+    this.soundBtn = button('small', 'soundOn', 'Geluid');
+    onPress(this.soundBtn, () => h.onToggleSound());
+    this.musicBtn = button('small', 'music', 'Muziek');
+    onPress(this.musicBtn, () => h.onToggleMusic());
+    const worldsBtn = button('small worlds-btn', 'worlds', 'Werelden');
+    onPress(worldsBtn, () => this.showPanel('worlds'));
+    row.append(labeled(this.soundBtn, 'Geluid'), labeled(this.musicBtn, 'Muziek'), labeled(worldsBtn, 'Werelden'));
+    main.append(this.playBtn, row);
+
+    const worlds = this.panels.worlds = el('div', 'panel');
+    this.slotRow = el('div', 'slots');
+    const back1 = button('small', 'close', 'Terug');
+    onPress(back1, () => this.showPanel('main'));
+    worlds.append(this.slotRow, labeled(back1, 'Terug'));
+
+    const type = this.panels.type = el('div', 'panel');
+    type.appendChild(el('p', 'hint', 'Wat voor wereld wil je?'));
+    const choices = el('div', 'menu-row');
+    for (const [t, icon, label] of [['island', 'island', 'Eiland'], ['flat', 'flat', 'Plat']]) {
+      const b = button('choice', icon, label);
+      onPress(b, () => {
+        this.pendingType = t;
+        if (this.pendingEmpty) h.onNewWorld(this.pendingSlot, t);
+        else this.showPanel('confirm');
+      });
+      choices.appendChild(labeled(b, label));
+    }
+    const back2 = button('small', 'close', 'Terug');
+    onPress(back2, () => this.showPanel('worlds'));
+    type.append(choices, labeled(back2, 'Terug'));
+
+    const confirm = this.panels.confirm = el('div', 'panel');
+    this.confirmThumb = el('div', 'confirm-thumb');
+    const text = el('p', 'hint', 'Deze wereld weggooien en een nieuwe maken?');
+    const yesNo = el('div', 'menu-row');
+    const yes = button('yes', 'check', 'Ja');
+    const no = button('no', 'close', 'Nee');
+    onPress(yes, () => h.onNewWorld(this.pendingSlot, this.pendingType));
+    onPress(no, () => this.showPanel('worlds'));
+    yesNo.append(labeled(yes, 'Ja'), labeled(no, 'Nee'));
+    confirm.append(this.confirmThumb, text, yesNo);
+
+    card.append(main, worlds, type, confirm);
+    this.menu.appendChild(card);
+    root.appendChild(this.menu);
+    this.showPanel('main');
+  }
+
+  renderSlots() {
+    const slots = this.h.getSlots();
+    this.slotRow.textContent = '';
+    for (const s of slots) {
+      const wrap = el('div', 'slot-wrap');
+      const card = el('button', 'slot-card' + (s.current ? ' current' : '') + (s.empty ? ' empty' : ''));
+      card.type = 'button';
+      card.setAttribute('aria-label', 'Wereld ' + s.n);
+      if (s.empty) card.innerHTML = ICONS.plus;
+      else if (s.thumb) card.style.backgroundImage = `url("${s.thumb}")`;
+      else card.innerHTML = ICONS[s.type === 'flat' ? 'flat' : 'island'];
+      onPress(card, () => {
+        if (s.empty) { this.pendingSlot = s.n; this.pendingEmpty = true; this.showPanel('type'); } else this.h.onSlot(s.n);
+      });
+      const label = el('div', 'slot-label');
+      label.appendChild(el('span', '', 'Wereld ' + s.n));
+      if (!s.empty) {
+        const again = button('slot-again', 'restore', 'Opnieuw beginnen');
+        onPress(again, () => {
+          this.pendingSlot = s.n;
+          this.pendingEmpty = false;
+          this.confirmThumb.style.backgroundImage = s.thumb ? `url("${s.thumb}")` : '';
+          this.showPanel('type');
+        });
+        label.appendChild(again);
+      }
+      wrap.append(card, label);
+      this.slotRow.appendChild(wrap);
+    }
+  }
+
+  showPanel(which) {
+    if (which === 'worlds') this.renderSlots();
+    for (const [name, p] of Object.entries(this.panels)) p.hidden = name !== which;
+  }
+
+  showMenu() {
     this.showPanel('main');
     this.menu.hidden = false;
     this.hud.classList.add('dim');
@@ -199,15 +277,20 @@ export class UI {
   get menuOpen() { return !this.menu.hidden; }
   get paletteOpen() { return !this.palette.hidden; }
 
-  openPalette() { this.palette.hidden = false; }
+  // Open de kist op het tabblad van het blok dat je nu vasthoudt
+  openPalette(current) {
+    const gi = this.palGroups.findIndex((g) => g.items.includes(current));
+    this.showGroup(Math.max(0, gi));
+    this.palette.hidden = false;
+  }
   closePalette() { this.palette.hidden = true; }
 
   setHotbar(ids, sel) {
-    this.hotbar.innerHTML = '';
+    this.hotbar.textContent = '';
     ids.forEach((id, i) => {
-      const b = el('button', 'slot' + (i === sel ? ' selected' : ''));
+      const b = el('button', 'slot' + (i === sel ? ' selected' : '') + (isSpecial(id) ? ' special' : ''));
       b.type = 'button';
-      b.setAttribute('aria-label', BLOCKS[id].name);
+      b.setAttribute('aria-label', itemName(id));
       b.innerHTML = `<img src="${this.icons[id]}" alt="">`;
       onPress(b, () => this.h.onSelect(i));
       this.hotbar.appendChild(b);
@@ -229,9 +312,18 @@ export class UI {
     this.jumpBtn.innerHTML = f ? ICONS.up : ICONS.jump;
   }
 
-  setMuted(m) {
-    this.soundBtn.innerHTML = m ? ICONS.soundOff : ICONS.soundOn;
+  setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }
+  setMuted(m) { this.soundBtn.innerHTML = m ? ICONS.soundOff : ICONS.soundOn; }
+  setMusic(on) { this.musicBtn.innerHTML = on ? ICONS.music : ICONS.musicOff; }
+
+  holdRing(x, y, p) {
+    this.holdEl.hidden = false;
+    this.holdEl.style.left = x + 'px';
+    this.holdEl.style.top = y + 'px';
+    this.holdFill.style.strokeDashoffset = String(150.8 * (1 - Math.min(1, p)));
   }
+
+  hideHoldRing() { this.holdEl.hidden = true; }
 
   // Een kringetje waar je tikte, groen bij bouwen en rood bij slopen
   tapRing(x, y, kind) {
@@ -241,10 +333,4 @@ export class UI {
     this.tapLayer.appendChild(r);
     setTimeout(() => r.remove(), 450);
   }
-}
-
-function labeled(btn, text) {
-  const w = el('div', 'labeled');
-  w.append(btn, el('span', '', text));
-  return w;
 }

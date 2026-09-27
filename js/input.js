@@ -51,7 +51,7 @@ export class Input {
     const isStick = touch && this.stickId === null && e.clientX < w * 0.42 && e.clientY > h * 0.3;
     const p = {
       sx: e.clientX, sy: e.clientY, x: e.clientX, y: e.clientY,
-      t: performance.now(), moved: false, stick: isStick, touch, button: e.button,
+      t: e.timeStamp, moved: false, stick: isStick, touch, button: e.button,
     };
     this.pointers.set(e.pointerId, p);
     if (isStick) {
@@ -97,9 +97,17 @@ export class Input {
     if (!p) return;
     this.pointers.delete(e.pointerId);
     if (p.stick) this.resetStick();
-    if (!cancelled && this.enabled && !p.moved && performance.now() - p.t < TAP_TIME) {
+    if (!cancelled && this.enabled && !p.moved && !p.didBreak && e.timeStamp - p.t < TAP_TIME) {
       this.taps.push({ x: p.sx, y: p.sy, alt: p.button === 2 });
     }
+  }
+
+  // Een vinger (of linker muisknop) die stil blijft staan: vasthouden om te slopen
+  get hold() {
+    for (const p of this.pointers.values()) {
+      if (!p.stick && !p.moved && (p.touch || p.button === 0)) return p;
+    }
+    return null;
   }
 
   resetStick() {

@@ -1,13 +1,33 @@
-// De speler: lopen, springen, vliegen, zwemmen en botsen tegen blokken.
+// De speler: lopen, springen, vliegen, zwemmen, stuiteren en botsen tegen blokken.
+// Botsen gaat met kleine blokjes, zodat je een trap op kunt lopen en langs een open deur kunt.
 
 import { B, BLOCKS } from './blocks.js';
 import { SX, SZ, SY } from './world.js';
 
 const HALF = 0.3;        // halve breedte
-const HEIGHT = 1.7;
+export const HEIGHT = 1.7;
 export const EYE = 1.55;
 const WALK = 4.3, FLY = 9, SWIM = 2.6;
 const GRAVITY = 26, JUMP = 8.4;
+const STEP = 0.6;        // zo hoog stap je vanzelf op (een traptrede)
+const E = 1e-4;
+const KEYS = ['x', 'y', 'z'];
+
+// Alle botsblokjes in een gebied (in wereld-coördinaten)
+function gather(world, lo, hi) {
+  const out = [];
+  for (let by = Math.floor(lo[1]); by <= Math.floor(hi[1]); by++) {
+    for (let bz = Math.floor(lo[2]); bz <= Math.floor(hi[2]); bz++) {
+      for (let bx = Math.floor(lo[0]); bx <= Math.floor(hi[0]); bx++) {
+        const b = BLOCKS[world.get(bx, by, bz)];
+        if (!b.solid) continue;
+        if (b.boxes) for (const q of b.boxes) out.push([bx + q[0], by + q[1], bz + q[2], bx + q[3], by + q[4], bz + q[5]]);
+        else out.push([bx, by, bz, bx + 1, by + 1, bz + 1]);
+      }
+    }
+  }
+  return out;
+}
 
 export class Player {
   constructor() {
@@ -22,54 +42,63 @@ export class Player {
 
   setPos(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; }
 
-  collides(world, x, y, z) {
-    const x0 = Math.floor(x - HALF), x1 = Math.floor(x + HALF - 1e-6);
-    const y0 = Math.floor(y), y1 = Math.floor(y + HEIGHT - 1e-6);
-    const z0 = Math.floor(z - HALF), z1 = Math.floor(z + HALF - 1e-6);
-    for (let by = y0; by <= y1; by++) for (let bz = z0; bz <= z1; bz++) for (let bx = x0; bx <= x1; bx++) {
-      if (BLOCKS[world.get(bx, by, bz)].solid) return true;
-    }
-    return false;
+  box(x = this.x, y = this.y, z = this.z) {
+    return [x - HALF, y, z - HALF, x + HALF, y + HEIGHT, z + HALF];
   }
 
-  // Overlapt het blok (bx,by,bz) met de speler? (dan mag je daar niet bouwen)
+  collides(world, x, y, z) {
+    const a = this.box(x, y, z);
+    const boxes = gather(world, [a[0] + E, a[1] + E, a[2] + E], [a[3] - E, a[4] - E, a[5] - E]);
+    return boxes.some((q) => q[0] < a[3] - E && q[3] > a[0] + E && q[1] < a[4] - E && q[4] > a[1] + E && q[2] < a[5] - E && q[5] > a[2] + E);
+  }
+
+  // Overlapt het blok (bx,by,bz) met de speler? (dan mag je daar normaal niet bouwen)
   overlapsBlock(bx, by, bz) {
     return bx < this.x + HALF && bx + 1 > this.x - HALF &&
       by < this.y + HEIGHT && by + 1 > this.y &&
       bz < this.z + HALF && bz + 1 > this.z - HALF;
   }
 
+  // Bouw je een blok waar je voeten staan? Dan wip je erbovenop (zo bouw je een toren)
+  canLiftOver(world, by) {
+    return by === Math.floor(this.y + E) && !this.collides(world, this.x, by + 1, this.z);
+  }
+
+  liftTo(y) {
+    this.y = y;
+    this.vy = 0;
+    this.onGround = true;
+  }
+
   // Zit je vast in een blok? Schuif dan omhoog tot je vrij bent
   unstick(world) {
     let n = 0;
-    while (this.collides(world, this.x, this.y, this.z) && n++ < SY) this.y = Math.floor(this.y) + 1.001;
+    while (this.collides(world, this.x, this.y, this.z) && n++ < SY + 8) this.y = Math.floor(this.y) + 1.001;
   }
 
-  // Beweeg langs één as; stop bij een blok. Geeft true als we ergens tegenaan kwamen.
+  // Beweeg langs één as en stop netjes tegen blokjes. Geeft true als we ergens tegenaan kwamen.
   moveAxis(world, axis, d) {
     if (d === 0) return false;
-    const steps = Math.ceil(Math.abs(d) / 0.35);
-    const sd = d / steps;
-    for (let i = 0; i < steps; i++) {
-      const nx = axis === 0 ? this.x + sd : this.x;
-      const ny = axis === 1 ? this.y + sd : this.y;
-      const nz = axis === 2 ? this.z + sd : this.z;
-      if (this.collides(world, nx, ny, nz)) {
-        // schuif precies tegen het blok aan
-        if (axis === 0) this.x = sd > 0 ? Math.floor(nx + HALF) - HALF - 1e-4 : Math.floor(nx - HALF) + 1 + HALF + 1e-4;
-        if (axis === 1) this.y = sd > 0 ? Math.floor(ny + HEIGHT) - HEIGHT - 1e-4 : Math.floor(ny) + 1;
-        if (axis === 2) this.z = sd > 0 ? Math.floor(nz + HALF) - HALF - 1e-4 : Math.floor(nz - HALF) + 1 + HALF + 1e-4;
-        return true;
-      }
-      this.x = nx; this.y = ny; this.z = nz;
+    const a = this.box();
+    const lo = [a[0], a[1], a[2]], hi = [a[3], a[4], a[5]];
+    if (d > 0) hi[axis] += d; else lo[axis] += d;
+    const o1 = (axis + 1) % 3, o2 = (axis + 2) % 3;
+    let nd = d;
+    for (const q of gather(world, lo, hi)) {
+      if (q[o1 + 3] <= a[o1] + E || q[o1] >= a[o1 + 3] - E) continue;
+      if (q[o2 + 3] <= a[o2] + E || q[o2] >= a[o2 + 3] - E) continue;
+      if (nd > 0 && q[axis] >= a[axis + 3] - E) nd = Math.min(nd, q[axis] - a[axis + 3]);
+      else if (nd < 0 && q[axis + 3] <= a[axis] + E) nd = Math.max(nd, q[axis + 3] - a[axis]);
     }
-    return false;
+    this[KEYS[axis]] += nd;
+    return Math.abs(nd - d) > 1e-7;
   }
 
   update(dt, input, world, now) {
     const feet = world.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z));
     const head = world.get(Math.floor(this.x), Math.floor(this.y + EYE), Math.floor(this.z));
     this.inWater = feet === B.WATER || head === B.WATER;
+    const below = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
 
     // Loop-richting t.o.v. waar je kijkt
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
@@ -93,21 +122,45 @@ export class Player {
       this.vy -= GRAVITY * dt;
       this.vy = Math.max(this.vy, -32);
       if (input.jump && this.onGround && now - this.jumpedAt > 0.25) {
-        this.vy = JUMP;
+        const bouncy = below === B.BOUNCE;
+        this.vy = bouncy ? JUMP * 1.55 : JUMP;
         this.jumpedAt = now;
-        this.onJump?.();
+        if (bouncy) this.onBounce?.(); else this.onJump?.();
       }
     }
 
-    const hitX = this.moveAxis(world, 0, this.vx * dt);
-    const hitZ = this.moveAxis(world, 2, this.vz * dt);
+    // Horizontaal bewegen, met vanzelf opstappen op een traptrede
+    const ox = this.x, oy = this.y, oz = this.z;
+    let hitX = this.moveAxis(world, 0, this.vx * dt);
+    let hitZ = this.moveAxis(world, 2, this.vz * dt);
+    if ((hitX || hitZ) && this.onGround && !this.flying) {
+      const fx = this.x, fy = this.y, fz = this.z;
+      this.x = ox; this.y = oy; this.z = oz;
+      this.moveAxis(world, 1, STEP);
+      const sx = this.moveAxis(world, 0, this.vx * dt);
+      const sz = this.moveAxis(world, 2, this.vz * dt);
+      this.moveAxis(world, 1, -(STEP + 0.01));
+      const plain = (fx - ox) ** 2 + (fz - oz) ** 2;
+      const stepped = (this.x - ox) ** 2 + (this.z - oz) ** 2;
+      if (stepped > plain + 1e-6) { hitX = sx; hitZ = sz; } else { this.x = fx; this.y = fy; this.z = fz; }
+    }
     if (hitX) this.vx = 0;
     if (hitZ) this.vz = 0;
 
-    const wasFalling = this.vy < 0;
+    const landing = this.vy;
     const hitY = this.moveAxis(world, 1, this.vy * dt);
-    this.onGround = hitY && wasFalling;
-    if (hitY) this.vy = 0;
+    this.onGround = hitY && landing < 0;
+    if (hitY) {
+      const under = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
+      if (this.onGround && under === B.BOUNCE && landing < -5 && !this.flying) {
+        // Boing! Stuiter terug omhoog
+        this.vy = Math.min(19, -landing * 0.85);
+        this.onGround = false;
+        this.onBounce?.();
+      } else {
+        this.vy = 0;
+      }
+    }
 
     // Automatisch springen tegen een opstapje van 1 blok
     const moving = Math.hypot(mx, mz) > 0.2;

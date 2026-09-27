@@ -27,6 +27,9 @@ export class Sounds {
 
   ok() { return this.ctx && !this.muted && this.ctx.state === 'running'; }
 
+  // Als de app naar de achtergrond gaat: alles stil (bij terugkomen weer aan na een tik)
+  suspend() { try { this.ctx?.suspend(); } catch { /* niet erg */ } }
+
   tone(type, f0, f1, dur, vol, delay = 0) {
     const c = this.ctx, t = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
@@ -82,6 +85,52 @@ export class Sounds {
       case 'grass': case 'sand': this.hiss('bandpass', 1500 * p, 0.9, 0.16, 0.5); break;
       default: this.hiss('bandpass', 1100 * p, 1.2, 0.18, 0.6); this.tone('square', 120 * p, 60, 0.08, 0.08);
     }
+  }
+
+  // Knorrende, kakelende en blatende dieren
+  animal(type) {
+    if (!this.ok()) return;
+    const p = 0.9 + Math.random() * 0.2;
+    if (type === 'pig') {
+      for (let i = 0; i < 2; i++) {
+        this.tone('sawtooth', 190 * p, 120 * p, 0.12, 0.12, i * 0.16);
+        this.hiss('lowpass', 500, 1, 0.1, 0.18, i * 0.16);
+      }
+    } else if (type === 'chicken') {
+      for (let i = 0; i < 3; i++) this.tone('triangle', 900 * p, 620 * p, 0.07, 0.16, i * 0.09);
+    } else {
+      this.vibrato('sawtooth', 330 * p, 0.55, 0.1);
+    }
+  }
+
+  vibrato(type, f, dur, vol) {
+    const c = this.ctx, t = c.currentTime;
+    const o = c.createOscillator(), g = c.createGain(), lfo = c.createOscillator(), lg = c.createGain();
+    const flt = c.createBiquadFilter();
+    flt.type = 'lowpass'; flt.frequency.value = 1400;
+    o.type = type; o.frequency.value = f;
+    lfo.frequency.value = 18; lg.gain.value = f * 0.06;
+    lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(vol, t + 0.04);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(flt); flt.connect(g); g.connect(this.master);
+    o.start(t); lfo.start(t); o.stop(t + dur + 0.02); lfo.stop(t + dur + 0.02);
+  }
+
+  boing() { if (this.ok()) { this.tone('sine', 180, 620, 0.22, 0.25); this.tone('triangle', 360, 900, 0.18, 0.08, 0.03); } }
+  door() { if (this.ok()) { this.tone('triangle', 240, 140, 0.12, 0.3); this.hiss('bandpass', 700, 2, 0.08, 0.25); } }
+  tick() { if (this.ok()) this.hiss('bandpass', 2400, 3, 0.03, 0.2); }
+  launch() { if (this.ok()) { this.hiss('bandpass', 900, 0.8, 0.7, 0.3); this.tone('sine', 300, 1200, 0.7, 0.06); } }
+  bang() {
+    if (!this.ok()) return;
+    this.hiss('lowpass', 500, 0.7, 0.9, 0.7);
+    this.tone('sine', 90, 40, 0.5, 0.5);
+    for (let i = 0; i < 6; i++) this.hiss('highpass', 4000, 1, 0.04, 0.12, 0.25 + i * 0.07 + Math.random() * 0.05);
+  }
+  magic() {
+    if (!this.ok()) return;
+    [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone('sine', f, f, 0.18, 0.12, i * 0.06));
   }
 
   pop() { if (this.ok()) this.tone('sine', 520, 880, 0.08, 0.22); }

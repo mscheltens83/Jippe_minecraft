@@ -114,12 +114,23 @@ tests/smoke.mjs         automatische test in een (iPad-)browser
   dan in Safari op *Deel → Zet op beginscherm*. Dan opent het schermvullend en werkt het offline.
   Zie `README.md` voor de stappen.
 
-## 10. Ideeën voor later (fase 2)
+## 10. Fase 2 (klaar)
 
-- Dieren die rondlopen (varkentjes, kippen, schaapjes)
-- Dag/nacht-knop met sterren
-- Foto-knop om bouwwerken te bewaren
-- Kant-en-klare "stempels" (huisje, boom, toren) met één tik
-- Meerdere werelden
-- Deuren, trappen, halve blokken
-- Vuurwerk-blok 🎆
+- ✅ Toren bouwen onder jezelf: blok onder je voeten = je wipt erop
+- ✅ Slopen door vast te houden (met een rondje dat vol loopt en scheurtjes in het blok)
+- ✅ Vlotter op oudere iPads (begint iets minder scherp en past zich aan)
+- ✅ Dieren: varkentjes, kippen en schaapjes; aaien geeft geluid en hartjes
+- ✅ Stempels: huisje, boom, toren en brug met één tik
+- ✅ Nieuwe blokken: stuiterblok, deur, trap, gekleurd glas en vuurwerk
+- ✅ Eigen poppetje met een camera die achter je hangt
+- ✅ Rustig muziekje (aan/uit in het menu)
+- ✅ Drie werelden, elk met een plaatje
+- ✅ De claude.ai-versie bijgewerkt
+
+## 11. Ideeën voor later
+
+- Uitleg met een handje voor de eerste keer (zonder tekst)
+- Dag/nacht-knop met sterren en lampen die licht geven
+- Foto-knop om bouwwerken te bewaren of door te sturen
+- Knoppen spiegelen voor linkshandigen
+- Het shirt van het poppetje zelf een kleur geven

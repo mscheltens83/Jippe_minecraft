@@ -1,7 +1,7 @@
 // JippeCraft: hier komt alles samen. Opstarten, de spel-lus, bouwen en slopen.
 
 import * as THREE from '../lib/three.module.min.js';
-import { AIR, B, BLOCKS, DEFAULT_HOTBAR, PALETTE } from './blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, isSpecial } from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World } from './world.js';
 import { GameScene } from './scene.js';
@@ -10,11 +10,19 @@ import { raycast } from './raycast.js';
 import { Input } from './input.js';
 import { UI } from './ui.js';
 import { Sounds } from './audio.js';
+import { Music } from './music.js';
 import { Particles } from './particles.js';
 import { Storage } from './storage.js';
+import { Animals } from './animals.js';
+import { Avatar } from './avatar.js';
+import { buildStamp } from './stamps.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
+const BREAK_TIME = 0.5;    // zo lang vasthouden om een blok te slopen (seconden)
+const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
+const CAM_UP = 1.1;        // en zo veel erboven
+const SLOTS = [1, 2, 3];   // drie wereld-plekken
 
 class Game {
   constructor(root) {
@@ -28,7 +36,10 @@ class Game {
     this.scene = new GameScene(this.canvas, this.atlas);
     this.player = new Player();
     this.sounds = new Sounds();
+    this.music = new Music(this.sounds);
     this.particles = new Particles(this.scene.scene);
+    this.animals = new Animals(this.scene.scene);
+    this.avatar = new Avatar(this.scene.scene);
     this.storage = new Storage();
     this.raycaster = new THREE.Raycaster();
 
@@ -42,6 +53,12 @@ class Game {
     this.dirtyAt = 0;
     this.lastPosSave = 0;
     this.flash = null;
+    this.breakState = null;
+    this.thirdPerson = false;
+    this.camDist = 0;
+    this.thumb = null;
+    this.lastThumb = 0;
+    this.fixedQuality = /[?&]vast\b/.test(location.search);
 
     this.ui = new UI(root, this.atlas, {
       onPlay: () => this.play(),
@@ -51,41 +68,58 @@ class Game {
       onJump: (v) => { this.input.jumpButton = v; },
       onDown: (v) => { this.input.downButton = v; },
       onFly: () => this.toggleFly(),
+      onCamera: () => this.toggleCamera(),
       onSelect: (i) => this.select(i),
       onChest: () => this.openChest(),
       onPick: (id) => this.pick(id),
       onToggleSound: () => this.toggleSound(),
-      onNewWorld: (type) => this.newWorld(type),
-      onRestore: () => this.restoreBackup(),
+      onToggleMusic: () => this.toggleMusic(),
+      getSlots: () => this.slotInfo(),
+      onSlot: (n) => this.switchSlot(n),
+      onNewWorld: (n, type) => this.newWorld(n, type),
     });
     this.input = new Input(this.canvas, this.ui.stickBase, this.ui.stickKnob);
     this.input.onKey = (e) => this.key(e);
     this.player.onJump = () => this.sounds.jump();
+    this.player.onBounce = () => this.sounds.boing();
+    this.particles.onBang = () => this.sounds.bang();
 
     const settings = this.storage.loadLocal('settings') || {};
     this.sounds.muted = !!settings.muted;
+    this.music.on = settings.music !== false;
+    this.thirdPerson = !!settings.third;
     this.ui.setMuted(this.sounds.muted);
+    this.ui.setMusic(this.music.on);
+    this.ui.setThirdPerson(this.thirdPerson);
 
-    const save = this.storage.loadLocal('world');
+    this.migrateOldSaves();
+    const meta = this.storage.loadLocal('meta') || {};
+    this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
+    const save = this.storage.loadLocal('slot' + this.slot);
     const loaded = !!save && this.applySave(save);
     if (!loaded) this.freshWorld('island');
     this.saveT = loaded ? save.t : 0;
     this.savedPos = this.posKey();
     this.scene.rebuildAll(this.world);
+    this.scene.precompile();
     this.refreshUI();
-    this.ui.showMenu(this.hasBackup());
+    this.ui.showMenu();
 
     this.resize();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) { this.input.releaseAll(); this.saveNow(); }
+      if (document.hidden) { this.input.releaseAll(); this.saveNow(); this.sounds.suspend(); }
     });
     window.addEventListener('pagehide', () => this.saveNow());
     // Op de iPad mag geluid pas aan na het loslaten van een vinger
-    for (const type of ['pointerup', 'touchend', 'keydown']) window.addEventListener(type, () => this.sounds.unlock(), true);
+    for (const type of ['pointerup', 'touchend', 'keydown']) {
+      window.addEventListener(type, () => { this.sounds.unlock(); if (this.playing) this.music.start(); }, true);
+    }
 
     this.frameTimes = [];
+    this.warmup = 2;
+    this.lowered = false;
     this.last = performance.now() / 1000;
     requestAnimationFrame((t) => this.frame(t));
     this.syncRemote();
@@ -100,12 +134,15 @@ class Game {
     this.player.pitch = -0.25;
     this.player.flying = false;
     this.undoStack = [];
+    this.thumb = null;
+    this.animals.clear();
+    this.animals.populate(this.world);
   }
 
   makeSave() {
     const p = this.player;
     return {
-      v: 1,
+      v: 2,
       t: Date.now(),
       type: this.world.type,
       seed: this.world.seed,
@@ -114,12 +151,14 @@ class Game {
       hotbar: this.hotbar,
       sel: this.sel,
       mode: this.mode,
+      animals: this.animals.serialize(),
+      thumb: this.thumb,
     };
   }
 
   applySave(s) {
     try {
-      if (!s || s.v !== 1 || typeof s.blocks !== 'string') return false;
+      if (!s || (s.v !== 1 && s.v !== 2) || typeof s.blocks !== 'string') return false;
       this.world.deserialize(s.blocks);
       this.world.type = s.type || 'island';
       this.world.seed = s.seed || 1;
@@ -136,6 +175,10 @@ class Game {
       }
       this.sel = Number.isInteger(s.sel) && s.sel >= 0 && s.sel < this.hotbar.length ? s.sel : 0;
       this.mode = s.mode === 'break' ? 'break' : 'build';
+      // Wereld van de eerste versie heeft nog geen dieren: die komen er nu bij
+      if (Array.isArray(s.animals)) this.animals.load(s.animals);
+      else { this.animals.clear(); this.animals.populate(this.world); }
+      this.thumb = typeof s.thumb === 'string' ? s.thumb : null;
       this.undoStack = [];
       return true;
     } catch (e) {
@@ -145,13 +188,30 @@ class Game {
     }
   }
 
+  // De eerste versie had één wereld + "vorige wereld": die worden wereld 1 en 2
+  migrateOldSaves() {
+    const st = this.storage;
+    if (SLOTS.some((n) => st.loadLocal('slot' + n))) return;
+    const w = st.loadLocal('world'), b = st.loadLocal('backup');
+    const ok = (!w || st.saveLocal('slot1', w)) && (!b || st.saveLocal('slot2', b));
+    if (ok && (w || b)) {
+      st.saveLocal('world', null);
+      st.saveLocal('backup', null);
+      st.saveLocal('meta', { current: 1 });
+    }
+  }
+
   saveNow() {
     const s = this.makeSave();
-    this.storage.save('world', s);
+    this.storage.save('slot' + this.slot, s);
     this.saveT = s.t;
     this.dirty = false;
     this.lastPosSave = performance.now() / 1000;
     this.savedPos = this.posKey();
+  }
+
+  saveSettings() {
+    this.storage.saveLocal('settings', { muted: this.sounds.muted, music: this.music.on, third: this.thirdPerson });
   }
 
   // Grof afgeronde plek en kijkrichting: alleen bewaren als die echt veranderd is
@@ -165,31 +225,52 @@ class Game {
     this.dirtyAt = performance.now() / 1000;
   }
 
-  hasBackup() { return !!this.storage.loadLocal('backup'); }
-
-  // Op claude.ai: kijk of er in de database een nieuwere versie staat
-  async syncRemote() {
-    const db = await this.storage.connect();
-    if (!db) return;
-    const [remote, remoteBackup] = await Promise.all([this.storage.loadRemote('world'), this.storage.loadRemote('backup')]);
-    const localBackup = this.storage.loadLocal('backup');
-    if (remoteBackup && (!localBackup || remoteBackup.t > localBackup.t)) this.storage.saveLocal('backup', remoteBackup);
-    else if (localBackup && (!remoteBackup || localBackup.t > remoteBackup.t)) this.storage.save('backup', localBackup);
-    if (remote && remote.t > this.saveT && this.edits === 0) {
-      if (this.applySave(remote)) {
-        this.storage.saveLocal('world', remote);
-        this.saveT = remote.t;
-        this.scene.rebuildAll(this.world);
-        this.refreshUI();
-      }
-    } else if (this.saveT && (!remote || this.saveT > remote.t)) {
-      this.saveNow();
-    }
-    this.ui.setBackupAvailable(this.hasBackup());
+  // Klein plaatje van de wereld voor het werelden-menu
+  grabThumb() {
+    try {
+      const c = this.thumbCanvas || (this.thumbCanvas = document.createElement('canvas'));
+      c.width = 192; c.height = 120;
+      const src = this.canvas;
+      const scale = Math.max(c.width / src.width, c.height / src.height);
+      const sw = c.width / scale, sh = c.height / scale;
+      c.getContext('2d').drawImage(src, (src.width - sw) / 2, (src.height - sh) / 2, sw, sh, 0, 0, c.width, c.height);
+      return c.toDataURL('image/jpeg', 0.7);
+    } catch { return this.thumb; }
   }
 
-  newWorld(type) {
-    this.storage.save('backup', this.makeSave());
+  captureThumb() {
+    this.updateCamera(0);
+    this.scene.render();
+    this.thumb = this.grabThumb();
+  }
+
+  slotInfo() {
+    return SLOTS.map((n) => {
+      const s = n === this.slot ? { type: this.world.type, thumb: this.thumb } : this.storage.loadLocal('slot' + n);
+      return { n, current: n === this.slot, empty: !s, thumb: s?.thumb || null, type: s?.type };
+    });
+  }
+
+  switchSlot(n) {
+    if (n === this.slot) { this.play(); return; }
+    const s = this.storage.loadLocal('slot' + n);
+    if (!s) return;
+    this.captureThumb();
+    this.saveNow();
+    if (!this.applySave(s)) { this.sounds.nope(); return; }
+    this.slot = n;
+    this.storage.saveLocal('meta', { current: n });
+    this.saveT = s.t;
+    this.edits = 0;
+    this.scene.rebuildAll(this.world);
+    this.refreshUI();
+    this.play();
+  }
+
+  newWorld(n, type) {
+    if (n !== this.slot) { this.captureThumb(); this.saveNow(); }
+    this.slot = n;
+    this.storage.saveLocal('meta', { current: n });
     this.freshWorld(type);
     this.scene.rebuildAll(this.world);
     this.saveNow();
@@ -197,16 +278,34 @@ class Game {
     this.play();
   }
 
-  restoreBackup() {
-    const backup = this.storage.loadLocal('backup');
-    if (!backup) return;
-    const current = this.makeSave();
-    if (!this.applySave(backup)) return;
-    this.storage.save('backup', current);
-    this.scene.rebuildAll(this.world);
-    this.saveNow();
-    this.refreshUI();
-    this.play();
+  // Op claude.ai: kijk of er in de database nieuwere versies van de werelden staan
+  async syncRemote() {
+    const st = this.storage;
+    const db = await st.connect();
+    if (!db) return;
+    const remote = {};
+    await Promise.all(SLOTS.map(async (n) => { remote[n] = await st.loadRemote('slot' + n); }));
+    if (SLOTS.every((n) => !remote[n])) {
+      const [rw, rb] = await Promise.all([st.loadRemote('world'), st.loadRemote('backup')]);
+      if (rw) remote[1] = rw;
+      if (rb) remote[2] = rb;
+    }
+    for (const n of SLOTS) {
+      const r = remote[n];
+      const localT = n === this.slot ? this.saveT : (st.loadLocal('slot' + n)?.t || 0);
+      if (r && r.t > localT) {
+        if (n !== this.slot) st.saveLocal('slot' + n, r);
+        else if (this.edits === 0 && this.applySave(r)) {
+          st.saveLocal('slot' + n, r);
+          this.saveT = r.t;
+          this.scene.rebuildAll(this.world);
+          this.refreshUI();
+        }
+      } else if (localT && (!r || localT > r.t)) {
+        if (n === this.slot) this.saveNow();
+        else st.save('slot' + n, st.loadLocal('slot' + n));
+      }
+    }
   }
 
   // ---------- menu & knoppen ----------
@@ -224,15 +323,17 @@ class Game {
     this.playing = true;
     this.input.enabled = true;
     this.sounds.pop();
+    this.music.start();
   }
 
   openMenu() {
     this.playing = false;
     this.input.enabled = false;
     this.input.releaseAll();
+    this.captureThumb();
     this.saveNow();
     this.ui.closePalette();
-    this.ui.showMenu(this.hasBackup());
+    this.ui.showMenu();
   }
 
   setMode(m, sound) {
@@ -252,7 +353,7 @@ class Game {
 
   openChest() {
     this.input.releaseAll();
-    this.ui.openPalette();
+    this.ui.openPalette(this.hotbar[this.sel]);
     this.sounds.pop();
   }
 
@@ -273,12 +374,27 @@ class Game {
     this.sounds.whoosh();
   }
 
+  toggleCamera() {
+    this.thirdPerson = !this.thirdPerson;
+    this.ui.setThirdPerson(this.thirdPerson);
+    this.saveSettings();
+    this.sounds.pop();
+  }
+
   toggleSound() {
     this.sounds.unlock();
     this.sounds.muted = !this.sounds.muted;
-    this.storage.saveLocal('settings', { muted: this.sounds.muted });
+    this.saveSettings();
     this.ui.setMuted(this.sounds.muted);
     this.sounds.pop();
+  }
+
+  toggleMusic() {
+    this.sounds.unlock();
+    this.music.on = !this.music.on;
+    this.saveSettings();
+    this.ui.setMusic(this.music.on);
+    if (this.music.on) this.music.start(); else this.music.stop();
   }
 
   key(e) {
@@ -291,6 +407,8 @@ class Game {
     if (this.ui.paletteOpen) return;
     if (e.code === 'KeyF') this.toggleFly();
     else if (e.code === 'KeyE') this.openChest();
+    else if (e.code === 'KeyC') this.toggleCamera();
+    else if (e.code === 'KeyM') this.toggleMusic();
     else if (e.code === 'KeyQ' || e.code === 'KeyB') this.setMode(this.mode === 'build' ? 'break' : 'build', true);
     else if (e.code === 'KeyZ' && (e.ctrlKey || e.metaKey)) this.undo();
     else if (/^Digit[1-9]$/.test(e.code)) this.select(Number(e.code.slice(5)) - 1);
@@ -298,39 +416,160 @@ class Game {
 
   // ---------- bouwen & slopen ----------
 
-  rayFrom(x, y) {
+  reach() { return REACH + (this.thirdPerson ? this.camDist : 0); }
+
+  setRay(x, y) {
     const w = window.innerWidth, h = window.innerHeight;
     this.raycaster.setFromCamera(new THREE.Vector2((x / w) * 2 - 1, -(y / h) * 2 + 1), this.scene.camera);
-    return raycast(this.world, this.scene.camera.position, this.raycaster.ray.direction, REACH);
+    return this.raycaster.ray;
+  }
+
+  rayFrom(x, y) {
+    const ray = this.setRay(x, y);
+    return raycast(this.world, ray.origin, ray.direction, this.reach());
+  }
+
+  // Welke kant kijk je op? (0 = -z, 1 = +x, 2 = +z, 3 = -x)
+  facing() {
+    const fx = -Math.sin(this.player.yaw), fz = -Math.cos(this.player.yaw);
+    if (Math.abs(fx) > Math.abs(fz)) return fx > 0 ? 1 : 3;
+    return fz > 0 ? 2 : 0;
+  }
+
+  // Het vakje waar iets nieuws komt: tegen het aangetikte vlak, of in een plantje/water
+  targetCell(hit, id) {
+    const inPlace = BLOCKS[hit.id].replaceable && hit.id !== id;
+    return inPlace ? [hit.x, hit.y, hit.z] : [hit.x + hit.nx, hit.y + hit.ny, hit.z + hit.nz];
   }
 
   act(tap) {
     const mode = tap.alt ? (this.mode === 'build' ? 'break' : 'build') : this.mode;
     this.ui.tapRing(tap.x, tap.y, mode);
-    const hit = this.rayFrom(tap.x, tap.y);
+    const ray = this.setRay(tap.x, tap.y);
+    const reach = this.reach();
+    const hit = raycast(this.world, ray.origin, ray.direction, reach);
+    const pet = this.animals.pick(ray, reach);
+    if (pet && this.animalInFront(pet, hit)) { this.petAnimal(pet.animal); return; }
     if (!hit) return;
-    if (mode === 'build') this.place(hit);
-    else this.breakBlock(hit);
+    const forceBreak = mode === 'break' && tap.alt;
+    if (BLOCKS[hit.id].shape === 'door' && !forceBreak) { this.toggleDoor(hit); return; }
+    if (hit.id === B.FIREWORK && !forceBreak) { this.launchFirework(hit); return; }
+    if (mode === 'build') this.use(hit);
+    else if (forceBreak) this.breakBlock(hit);
+    else this.hintHold(hit);
   }
 
-  place(hit) {
-    const w = this.world, id = this.hotbar[this.sel], nb = BLOCKS[id];
-    const hb = BLOCKS[hit.id];
-    // Op een plantje of in water tikken = dat vakje vervangen
-    const inPlace = hb.replaceable && hit.id !== id;
-    const x = inPlace ? hit.x : hit.x + hit.nx;
-    const y = inPlace ? hit.y : hit.y + hit.ny;
-    const z = inPlace ? hit.z : hit.z + hit.nz;
+  // Staat het dier vóór het blok? (gras, bloemetjes en water staan niet in de weg)
+  animalInFront(pet, hit) {
+    return !hit || pet.dist < hit.dist || BLOCKS[hit.id].replaceable;
+  }
+
+  use(hit) {
+    const item = this.hotbar[this.sel];
+    if (!isSpecial(item)) { this.placeBlock(hit, item); return; }
+    const sp = SPECIALS[item];
+    if (sp.kind === 'stamp') this.placeStamp(hit, sp.stamp);
+    else this.placeAnimal(hit, sp.animal);
+  }
+
+  placeBlock(hit, id) {
+    const w = this.world, p = this.player;
+    const [x, y, z] = this.targetCell(hit, id);
     const existing = w.get(x, y, z);
-    const ok = w.inside(x, y, z) &&
-      BLOCKS[existing].replaceable && existing !== id &&
-      !(nb.solid && this.player.overlapsBlock(x, y, z)) &&
-      !(nb.render === 'cross' && !BLOCKS[w.get(x, y - 1, z)].opaque);
-    if (!ok) { this.sounds.nope(); return; }
-    this.apply([{ x, y, z, from: existing, to: id }]);
+    const nb = BLOCKS[id];
+    const nope = () => this.sounds.nope();
+    if (!w.inside(x, y, z) || !BLOCKS[existing].replaceable || existing === id) return nope();
+    if (nb.render === 'cross' && !OPAQUE[w.get(x, y - 1, z)]) return nope();
+    const f = this.facing();
+
+    if (nb.shape === 'door') {
+      // een deur is twee blokken hoog en kijkt naar jou toe
+      const up = w.get(x, y + 1, z);
+      if (!w.inside(x, y + 1, z) || !BLOCKS[up].replaceable) return nope();
+      if (p.overlapsBlock(x, y, z) || p.overlapsBlock(x, y + 1, z)) return nope();
+      const d = (f + 2) % 4;
+      this.apply([
+        { x, y, z, from: existing, to: doorId(d, false, false) },
+        { x, y: y + 1, z, from: up, to: doorId(d, true, false) },
+      ]);
+    } else {
+      const place = nb.shape === 'stairs' ? B.STAIRS + f : id;
+      let lift = false;
+      if (BLOCKS[place].solid && p.overlapsBlock(x, y, z)) {
+        // Bouw je onder je eigen voeten? Dan wip je erbovenop: zo bouw je een toren
+        if (p.canLiftOver(w, y)) lift = true;
+        else return nope();
+      }
+      this.apply([{ x, y, z, from: existing, to: place }]);
+      if (lift) p.liftTo(y + 1);
+    }
     this.sounds.place(nb.sound);
     this.particles.burst(x, y, z, [[1, 1, 1], [0.92, 0.95, 1]], 7, true);
     this.flash = { x, y, z, until: performance.now() / 1000 + 0.35 };
+  }
+
+  placeStamp(hit, kind) {
+    const [x, y, z] = this.targetCell(hit, -1);
+    const changes = buildStamp(kind, this.world, x, y, z, this.facing());
+    if (!changes.length) { this.sounds.nope(); return; }
+    this.apply(changes);
+    this.player.unstick(this.world);
+    let lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9];
+    for (const c of changes) {
+      lo = [Math.min(lo[0], c.x), Math.min(lo[1], c.y), Math.min(lo[2], c.z)];
+      hi = [Math.max(hi[0], c.x + 1), Math.max(hi[1], c.y + 1), Math.max(hi[2], c.z + 1)];
+    }
+    this.particles.sparkle(lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], 80);
+    this.sounds.magic();
+  }
+
+  placeAnimal(hit, type) {
+    const w = this.world, p = this.player;
+    const [x, y, z] = this.targetCell(hit, -1);
+    if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid || this.animals.full) { this.sounds.nope(); return; }
+    const yaw = Math.atan2(-(p.x - x - 0.5), -(p.z - z - 0.5));
+    const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, yaw);
+    if (!a) { this.sounds.nope(); return; }
+    this.sounds.animal(type);
+    this.particles.heartsAt(x + 0.5, y + 1.1, z + 0.5);
+    this.markDirty();
+  }
+
+  petAnimal(a) {
+    a.pet(this.player.x, this.player.z);
+    this.sounds.animal(a.type);
+    this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z);
+  }
+
+  toggleDoor(hit) {
+    const w = this.world, b = BLOCKS[hit.id];
+    const y0 = b.upper ? hit.y - 1 : hit.y;
+    const open = !b.open;
+    const before = [w.get(hit.x, y0, hit.z), w.get(hit.x, y0 + 1, hit.z)];
+    before.forEach((id, i) => {
+      const d = BLOCKS[id];
+      if (d.shape === 'door') w.set(hit.x, y0 + i, hit.z, doorId(d.dir, d.upper, open));
+    });
+    // Zou de deur dicht in de speler zitten? Dan blijft hij open.
+    if (this.player.collides(w, this.player.x, this.player.y, this.player.z)) {
+      before.forEach((id, i) => w.set(hit.x, y0 + i, hit.z, id));
+      this.sounds.nope();
+      return;
+    }
+    this.sounds.door();
+    this.markDirty();
+  }
+
+  launchFirework(hit) {
+    this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: hit.id, to: AIR }]);
+    this.particles.firework(hit.x + 0.5, hit.y + 0.6, hit.z + 0.5);
+    this.sounds.launch();
+  }
+
+  // Kort tikken in de sloop-stand: laat zien dat je moet vasthouden
+  hintHold(hit) {
+    this.sounds.tick();
+    this.particles.burst(hit.x, hit.y, hit.z, this.atlas.particleColors[hit.id] || [[1, 1, 1]], 3);
   }
 
   breakBlock(hit) {
@@ -345,11 +584,16 @@ class Game {
     }
     if (to === hit.id) { this.sounds.nope(); return; }
     const changes = [{ x, y, z, from: hit.id, to }];
+    if (b.shape === 'door') {
+      const oy = b.upper ? y - 1 : y + 1;
+      const other = w.get(x, oy, z);
+      if (BLOCKS[other].shape === 'door') changes.push({ x, y: oy, z, from: other, to: AIR });
+    }
     const above = w.get(x, y + 1, z);
     if (BLOCKS[above].render === 'cross') changes.push({ x, y: y + 1, z, from: above, to: AIR });
     this.apply(changes);
     this.sounds.break(b.sound);
-    this.particles.burst(x, y, z, this.atlas.particleColors[hit.id], 18);
+    this.particles.burst(x, y, z, this.atlas.particleColors[BLOCKS[hit.id].family] || this.atlas.particleColors[hit.id], 18);
   }
 
   apply(changes) {
@@ -375,11 +619,73 @@ class Game {
     this.markDirty();
   }
 
+  // Vasthouden in de sloop-stand: het rondje loopt vol en het blok krijgt scheurtjes
+  updateHold(dt) {
+    const h = this.playing && !this.ui.paletteOpen && this.mode === 'break' ? this.input.hold : null;
+    const stop = () => { this.ui.hideHoldRing(); this.scene.showCrack(null); };
+    if (!h) {
+      if (this.breakState) { this.breakState = null; stop(); }
+      return;
+    }
+    const ray = this.setRay(h.sx, h.sy);
+    const reach = this.reach();
+    const hit = raycast(this.world, ray.origin, ray.direction, reach);
+    const pet = this.animals.pick(ray, reach);
+    const valid = hit && BLOCKS[hit.id].breakable && BLOCKS[hit.id].shape !== 'door' && hit.id !== B.FIREWORK &&
+      !(pet && this.animalInFront(pet, hit));
+    const key = valid ? hit.x + ',' + hit.y + ',' + hit.z : null;
+    if (!this.breakState || this.breakState.key !== key || this.breakState.ptr !== h) {
+      this.breakState = { key, t: 0, ptr: h, tick: 0 };
+    }
+    const st = this.breakState;
+    st.t += dt;
+    if (!valid) { stop(); return; }
+    const progress = st.t / BREAK_TIME;
+    if (st.t > 0.12 || h.didBreak) {
+      this.ui.holdRing(h.sx, h.sy, progress);
+      this.scene.showCrack(hit, Math.floor(progress * 4));
+      st.tick -= dt;
+      if (st.tick <= 0) {
+        st.tick = 0.12;
+        this.sounds.tick();
+        this.particles.burst(hit.x, hit.y, hit.z, this.atlas.particleColors[hit.id] || [[1, 1, 1]], 2);
+      }
+    }
+    if (progress >= 1) {
+      this.breakBlock(hit);
+      h.didBreak = true;
+      this.breakState = null;
+      stop();
+    }
+  }
+
   // ---------- de spel-lus ----------
 
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
     this.scene.resize(w, h);
+  }
+
+  updateCamera(dt) {
+    const p = this.player, cam = this.scene.camera;
+    if (this.thirdPerson) {
+      // camera schuin boven en achter het poppetje (dan staat het poppetje niet midden in beeld),
+      // en niet door muren heen
+      const cp = Math.cos(p.pitch);
+      const origin = new THREE.Vector3(p.x, p.y + 1.45, p.z);
+      const want = new THREE.Vector3(Math.sin(p.yaw) * cp, -Math.sin(p.pitch), Math.cos(p.yaw) * cp)
+        .multiplyScalar(CAM_BACK).add(new THREE.Vector3(0, CAM_UP, 0));
+      const len = want.length();
+      const dir = want.divideScalar(len);
+      const wall = raycast(this.world, origin, dir, len, (id) => OPAQUE[id] === 1);
+      const dist = wall ? Math.max(0.4, wall.dist - 0.3) : len;
+      this.camDist = dist < this.camDist || !dt ? dist : this.camDist + (dist - this.camDist) * Math.min(1, dt * 4);
+      cam.position.copy(origin).addScaledVector(dir, this.camDist);
+    } else {
+      this.camDist = 0;
+      cam.position.set(p.x, p.y + EYE, p.z);
+    }
+    cam.rotation.set(p.pitch, p.yaw, 0);
   }
 
   frame(t) {
@@ -401,10 +707,9 @@ class Game {
       this.input.taps.length = 0;
       if (this.ui.menuOpen) p.yaw += dt * 0.06; // langzaam rondkijken achter het menu
     }
-
-    const cam = this.scene.camera;
-    cam.position.set(p.x, p.y + EYE, p.z);
-    cam.rotation.set(p.pitch, p.yaw, 0);
+    this.updateHold(dt);
+    this.updateCamera(dt);
+    this.avatar.update(dt, p, this.thirdPerson);
 
     // Randje om het blok onder de muis, of kort om het blok dat je net bouwde
     let hl = null;
@@ -412,10 +717,12 @@ class Game {
     else if (this.playing && this.input.hover && !this.ui.paletteOpen) hl = this.rayFrom(this.input.hover.x, this.input.hover.y);
     this.scene.showHighlight(hl);
 
-    this.scene.updateChunks(this.world, 3);
+    this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
+    this.animals.update(dt, this.world);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
     this.scene.render();
+    if (this.playing && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
     // Automatisch bewaren
     if (this.dirty && now - this.dirtyAt > 1.5) this.saveNow();
@@ -427,14 +734,21 @@ class Game {
     this.adaptQuality(dt);
   }
 
-  // Als de iPad het niet bijhoudt: iets minder scherp tekenen
+  // Houdt de iPad het niet bij, dan tekenen we minder scherp; is hij snel, dan juist scherper
   adaptQuality(dt) {
+    if (this.fixedQuality) return;
     this.frameTimes.push(dt);
-    if (this.frameTimes.length < 120) return;
+    if (this.frameTimes.length < 90) return;
     const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
     this.frameTimes.length = 0;
-    if (avg > 1 / 40 && this.scene.pixelRatio > 1) {
-      this.scene.setPixelRatio(Math.max(1, this.scene.pixelRatio - 0.25));
+    if (this.warmup > 0) { this.warmup--; return; }
+    const sc = this.scene;
+    if (avg > 1 / 42 && sc.pixelRatio > 0.75) {
+      sc.setPixelRatio(Math.max(0.75, sc.pixelRatio - 0.25));
+      this.lowered = true;
+      this.resize();
+    } else if (avg < 1 / 57 && !this.lowered && sc.pixelRatio < sc.maxPixelRatio) {
+      sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25));
       this.resize();
     }
   }

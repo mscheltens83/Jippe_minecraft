@@ -2,7 +2,11 @@
 // Altijd in de browser (localStorage). Draait het spel als claude.ai-artifact,
 // dan wordt het óók in de artifact-database bewaard, zodat het veilig blijft.
 
-const LOCAL = { world: 'jippecraft.world.v1', backup: 'jippecraft.backup.v1', settings: 'jippecraft.settings.v1' };
+// 'world' en 'backup' zijn van de eerste versie (één wereld + vorige wereld); die worden omgezet naar plekken
+const LOCAL = {
+  world: 'jippecraft.world.v1', backup: 'jippecraft.backup.v1', settings: 'jippecraft.settings.v1',
+  meta: 'jippecraft.meta.v1', slot1: 'jippecraft.slot1.v1', slot2: 'jippecraft.slot2.v1', slot3: 'jippecraft.slot3.v1',
+};
 const MAX_REMOTE = 250000;
 
 export class Storage {

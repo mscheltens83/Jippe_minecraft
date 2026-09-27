@@ -80,7 +80,8 @@ body, #app {
 .hud.dim > * { pointer-events: none; }
 
 .menu-btn { position: absolute; top: var(--top); left: var(--left); }
-.undo-btn { position: absolute; top: var(--top); right: var(--right); }
+.top-right { position: absolute; top: var(--top); right: var(--right); display: flex; gap: 10px; }
+.cam-btn.on { background: #3f8fe0; }
 
 .mode {
   position: absolute;
@@ -154,6 +155,20 @@ body, #app {
 }
 .slot.chest { width: var(--slot); height: var(--slot); padding: 5px; border: 3px solid var(--line); border-radius: 14px; background: #7a4e27; box-shadow: none; }
 .slot.pressed { transform: scale(0.92); }
+.slot.special { background: rgba(120, 200, 90, 0.3); }
+
+/* rondje dat vol loopt als je vasthoudt om te slopen */
+.hold-ring {
+  position: absolute;
+  width: 84px;
+  height: 84px;
+  margin: -42px 0 0 -42px;
+  pointer-events: none;
+}
+.hold-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.hold-ring circle { fill: none; stroke-width: 7; }
+.hold-ring .track { stroke: rgba(0, 0, 0, 0.3); }
+.hold-ring .fill { stroke: #ffb3a3; stroke-linecap: round; stroke-dasharray: 150.8; stroke-dashoffset: 150.8; }
 
 /* joystick: rust-plek linksonder, verschijnt waar je duim komt */
 .stick {
@@ -215,7 +230,8 @@ body, #app {
 .palette { background: rgba(20, 34, 46, 0.45); }
 .palette-card {
   width: min(860px, 100%);
-  max-height: 100%;
+  /* vaste hoogte: bij een ander tabblad schuift er niets onder je vinger weg */
+  height: min(640px, 100%);
   display: flex;
   flex-direction: column;
   border-radius: 26px;
@@ -230,18 +246,44 @@ body, #app {
   justify-content: space-between;
   padding: 10px 12px 6px 16px;
 }
-.palette-title { width: 58px; height: 58px; }
-.palette-title svg { width: 100%; height: 100%; }
+.pal-tabs { display: flex; gap: 10px; flex-wrap: wrap; }
+.pal-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 64px;
+  padding: 6px 16px 6px 10px;
+  border-radius: 18px;
+  border: 3px solid rgba(0, 0, 0, 0.25);
+  background: #8b5c34;
+  color: #fff;
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+}
+.pal-tab svg { width: 44px; height: 44px; }
+.pal-tab.on { background: #c98a4b; border-color: #fff; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+.pal-tab.pressed { transform: scale(0.95); }
 .close-btn { width: 60px; height: 60px; background: var(--danger); }
 .palette-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
-  gap: 10px;
-  padding: 8px 16px 18px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 16px 18px;
   overflow-y: auto;
   touch-action: pan-y !important;
   -webkit-overflow-scrolling: touch;
 }
+.pal-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 10px;
+  touch-action: pan-y !important;
+}
+.pal-item.special { background: #5e8f3e; }
 .pal-item {
   display: flex;
   flex-direction: column;
@@ -315,6 +357,28 @@ body, #app {
 .menu .choice { width: 120px; height: 104px; background: #cfe9ff; }
 .menu .yes { width: 104px; height: 88px; background: var(--grass); box-shadow: 0 5px 0 var(--grass-dark); }
 .menu .no { width: 104px; height: 88px; background: var(--danger); box-shadow: 0 5px 0 #a8321f; }
+.slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
+.slot-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.slot-card {
+  width: 136px;
+  height: 88px;
+  padding: 14px;
+  border-radius: 18px;
+  border: 4px solid var(--ink);
+  background: #cfe9ff center / cover no-repeat;
+  box-shadow: 0 5px 0 rgba(0, 0, 0, 0.25);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.slot-card svg { width: 56px; height: 56px; }
+.slot-card.current { border-color: var(--grass-dark); box-shadow: 0 0 0 4px var(--grass), 0 5px 0 rgba(0, 0, 0, 0.25); }
+.slot-card.empty { background: #e2eef7; border-style: dashed; }
+.slot-card.pressed { transform: translateY(3px) scale(0.96); }
+.slot-label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 15px; font-weight: 500; color: var(--ink); }
+.menu .slot-again { width: 40px; height: 40px; padding: 4px; border-radius: 12px; background: #4b7fa8; border-width: 2px; }
+.confirm-thumb { width: 192px; height: 120px; border-radius: 14px; border: 3px solid var(--ink); background: #cfe9ff center / cover no-repeat; }
+.confirm-thumb:not([style*="url"]) { display: none; }
 .hint {
   margin: 0;
   max-width: 34ch;
@@ -338,6 +402,7 @@ body, #app {
 
 @media (max-width: 700px), (max-height: 520px) {
   :root { --btn: 56px; }
+  .pal-tab span { display: none; }
   .jump-btn { width: 80px; height: 80px; }
   .mode .btn { width: 66px; height: 52px; }
   .panel { gap: 12px; padding: 16px 14px; }
