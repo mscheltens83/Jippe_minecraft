@@ -1,7 +1,10 @@
 # JippeCraft
 
 Een Minecraft-achtig bouwspel voor Jippe (6 jaar). Het draait in Safari op de iPad
-en je hoeft niets te installeren. Het plan staat in [`PLAN.md`](PLAN.md).
+en je hoeft niets te installeren. Het plan staat in [`PLAN.md`](PLAN.md); plannen en prompts
+voor de volgende stappen staan in [`docs/`](docs/README.md).
+
+**Speel online:** https://mscheltens83.github.io/Jippe_minecraft/
 
 ![App-icoon](icons/icon-192.png)
 

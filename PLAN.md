@@ -134,3 +134,9 @@ tests/smoke.mjs         automatische test in een (iPad-)browser
 - Foto-knop om bouwwerken te bewaren of door te sturen
 - Knoppen spiegelen voor linkshandigen
 - Het shirt van het poppetje zelf een kleur geven
+
+## 12. Fase 3 (gepland)
+
+Jungle, woestijn, toendra, savanne en een avonturenwereld, wilde dieren (met leeuw, cheetah en
+tijger voorop), roofdieren en stallen, temmen en rijden op de leeuw, en een dierenalbum.
+Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
