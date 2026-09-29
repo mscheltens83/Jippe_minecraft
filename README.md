@@ -24,6 +24,8 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
 | **Wilde dieren** | Zoek leeuwen, leeuwinnen, cheetahs, olifanten, giraffen, zebra's, nijlpaarden en stokstaartjes in de savanne. Tijgers leven in de jungle. Stokstaartjes staan ook in de woestijn |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
+| **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
+| **Roofdieren** | Leeuwen, leeuwinnen, cheetahs en tijgers jagen soms op boerderijdieren. Je ziet eerst een ! boven de prooi en kunt het roofdier aaien om de jacht te stoppen. In het menu kunnen ouders ‘Roofdieren jagen’ uitzetten |
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
 | **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
 | **Springen** | Grote pijl rechtsonder. Tegen een opstapje of trap lopen gaat vanzelf |
@@ -53,7 +55,7 @@ Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de mui
 **Q** wisselen tussen bouwen en slopen, **1–9** blok kiezen, **Ctrl+Z** terug, **Esc** menu.
 
 ### Veilig voor kinderen
-- Geen monsters, geen schade, geen honger. Altijd dag. De dieren zijn lief en gaan niet dood.
+- Geen monsters of schade aan de speler; de speler heeft geen honger. Altijd dag. Een gevangen boerderijdier verdwijnt in een vriendelijke poef en kan meteen opnieuw uit de kist worden geplaatst.
 - Je kunt niet uit de wereld vallen (onbreekbare bodem, onzichtbare rand).
 - Slopen moet je even vasthouden, dus je sloopt niet per ongeluk je huis.
 - De werelden worden vanzelf bewaard. Een wereld weggooien vraagt altijd eerst om bevestiging.
