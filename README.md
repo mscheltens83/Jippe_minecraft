@@ -20,7 +20,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft vier tabbladen: Blokken, Natuur, Stempels en Dieren |
 | **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs of savannegras uit de kist. De plaatjes staan per wereld bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
-| **Dieren** | Varkentjes, kippen en schaapjes lopen rond. Tik erop om ze te aaien (hartjes!). Uit de kist zet je er zelf meer neer |
+| **Dieren** | Varkens, kippen, schapen en negen wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
+| **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
+| **Wilde dieren** | Zoek leeuwen, leeuwinnen, cheetahs, olifanten, giraffen, zebra's, nijlpaarden en stokstaartjes in de savanne. Tijgers leven in de jungle. Stokstaartjes staan ook in de woestijn |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
 | **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
@@ -40,6 +42,10 @@ Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**.
 In Avontuur liggen de vier nieuwe landschappen rondom een centrale weide.
 Zoek een tempel, piramide, iglo, leeuwenrots, drinkplaats of oase. De bouwplek in het
 midden blijft vlak. Schatkisten zijn er al; de verrassing bij het openen volgt later.
+Een leeuw luiert op de leeuwenrots, cheetahs sprinten met stofwolkjes en tijgers zwemmen.
+Giraffen eten bij acacia's, zebra's zoeken elkaar op en stokstaartjes duiken weg als je ze aait.
+Nieuwe dieren verschijnen vanzelf in een **nieuwe** wereld. Bewaarde werelden behouden
+hun dieren; daar kun je de nieuwe soorten zelf uit de kist neerzetten.
 
 Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
 **klikken** bouwt (in de sloop-stand: muisknop vasthouden), **rechtermuisknop** doet het omgekeerde,
@@ -113,10 +119,11 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/ui.js`, `js/icons.js` | Knoppen, onderbalk, kist en menu |
 | `js/audio.js` | Zelfgemaakte geluidjes (ook dierengeluidjes en vuurwerk) |
 | `js/music.js` | Het rustige muziekje, met code gemaakt |
-| `js/animals.js` | De dieren: rondlopen, huppelen en aaien |
+| `js/animals.js` | Dieren per wereld neerzetten, aantikken, bewaren en laden (maximaal 60) |
+| `js/animals/` | Recepten, gedeelde 3D-figuren, beweging, slapen, zwemmen, sprinten en kunstjes |
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
 | `js/stamps.js` | De stempels: huisje, boom, toren en brug |
-| `js/particles.js` | Brokjes bij het slopen, vuurwerk, hartjes en glitters |
+| `js/particles.js` | Brokjes, vuurwerk, hartjes, glitters, Zzz, stof en waterdruppels |
 | `js/storage.js` | Bewaren van de zes werelden in de browser (en op claude.ai in de database); oude opslag blijft werken |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
 | `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |

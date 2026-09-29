@@ -363,7 +363,7 @@ Elke fase is los te spelen en te testen. Per fase: een eigen branch en een pull 
 | Fase | Wat | Klaar als |
 |---|---|---|
 | **A ✅** | Werelden en blokken: `biomes.js`, 4 wereldrecepten + avontuur, alle nieuwe blokken en texturen (behalve hek en hekdeur), bomen, planten, bouwwerken (tempel, piramide, iglo, leeuwenrots, drinkplaats, oase), lucht en mist per wereld, 7 wereldsoorten in het menu, 6 plekken, tab Natuur, opslag v3, glad ijs, modder, lianen | Tests 1, 11, 12 (zonder hek), 13 slagen; elke wereld ziet er herkenbaar uit |
-| **B** | Het nieuwe dierensysteem (§5.1) + ★ **leeuw, leeuwin, cheetah, tijger** met veel detail + savannedieren (olifant, giraf, zebra, nijlpaard, stokstaartje) | Test 2 (savanne, tijger) slaagt; de favorieten zien er mooi uit en hebben hun kunstjes |
+| **B ✅** | Het nieuwe dierensysteem (§5.1) + ★ **leeuw, leeuwin, cheetah, tijger** met veel detail + savannedieren (olifant, giraf, zebra, nijlpaard, stokstaartje) | Test 2 (savanne, tijger) slaagt; de favorieten zien er mooi uit en hebben hun kunstjes |
 | **C** | Roofdieren en stallen: honger, sluipen, jagen, vluchten, poef, slapen, opgeven, ingrijpen, hek, hekdeur, hooibaal, instelling voor ouders | Tests 3 t/m 7 slagen |
 | **D** | Temmen en rijden op de leeuw (algemeen opgezet) | Tests 8 en 9 slagen |
 | **E** | De overige dieren van jungle, woestijn en toendra, met hun vaardigheden | Test 2 volledig; elk dier heeft zijn kunstje |

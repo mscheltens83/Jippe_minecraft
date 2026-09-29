@@ -1,4 +1,5 @@
 // Geluidjes, helemaal zelf gemaakt met de Web Audio API (geen geluidsbestanden).
+import { SPECIES } from './animals/species.js';
 
 export class Sounds {
   constructor() {
@@ -87,19 +88,38 @@ export class Sounds {
     }
   }
 
-  // Knorrende, kakelende en blatende dieren
+  // Vriendelijke dierengeluiden, met een eigen toon per soort.
   animal(type) {
     if (!this.ok()) return;
     const p = 0.9 + Math.random() * 0.2;
-    if (type === 'pig') {
+    const sound = SPECIES[type]?.geluid || type;
+    if (sound === 'pig') {
       for (let i = 0; i < 2; i++) {
         this.tone('sawtooth', 190 * p, 120 * p, 0.12, 0.12, i * 0.16);
         this.hiss('lowpass', 500, 1, 0.1, 0.18, i * 0.16);
       }
-    } else if (type === 'chicken') {
+    } else if (sound === 'chicken') {
       for (let i = 0; i < 3; i++) this.tone('triangle', 900 * p, 620 * p, 0.07, 0.16, i * 0.09);
-    } else {
+    } else if (sound === 'sheep') {
       this.vibrato('sawtooth', 330 * p, 0.55, 0.1);
+    } else if (['roar', 'growl', 'tiger'].includes(sound)) {
+      const frequency = sound === 'growl' ? 110 : sound === 'tiger' ? 155 : 90;
+      this.vibrato('sawtooth', frequency * p, sound === 'growl' ? 0.5 : 0.8, 0.13);
+      this.hiss('lowpass', 450, 0.8, 0.5, 0.14);
+    } else if (sound === 'purr') {
+      for (let i = 0; i < 5; i++) this.tone('triangle', 130 * p, 95 * p, 0.12, 0.09, i * 0.1);
+    } else if (sound === 'trumpet') {
+      this.vibrato('sawtooth', 450 * p, 0.8, 0.12);
+      this.tone('triangle', 280, 620, 0.4, 0.12);
+    } else if (sound === 'neigh') {
+      this.vibrato('triangle', 670 * p, 0.6, 0.14);
+      for (let i = 0; i < 3; i++) this.tone('triangle', 600 * p, 300, 0.11, 0.1, 0.3 + i * 0.1);
+    } else if (sound === 'hippo') {
+      for (let i = 0; i < 3; i++) this.tone('sine', 160 * p, 65, 0.17, 0.2, i * 0.16);
+    } else if (sound === 'chirp') {
+      for (let i = 0; i < 2; i++) this.tone('sine', 1100 * p, 1600 * p, 0.08, 0.1, i * 0.13);
+    } else if (sound === 'giraffe') {
+      this.tone('triangle', 220 * p, 150, 0.3, 0.08);
     }
   }
 

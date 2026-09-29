@@ -178,6 +178,8 @@ def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, 
 export const ITEM = {
   HOUSE: 200, TREE: 201, TOWER: 202, BRIDGE: 203, IGLOO: 204, PYRAMID: 205, TEMPLE: 206, LION_ROCK: 207,
   PIG: 210, CHICKEN: 211, SHEEP: 212,
+  LION: 213, LIONESS: 214, CHEETAH: 215, TIGER: 216, ELEPHANT: 217,
+  GIRAFFE: 218, ZEBRA: 219, HIPPO: 220, MEERKAT: 221,
 };
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
@@ -191,6 +193,15 @@ export const SPECIALS = {
   [ITEM.PIG]: { name: 'Varken', kind: 'animal', animal: 'pig' },
   [ITEM.CHICKEN]: { name: 'Kip', kind: 'animal', animal: 'chicken' },
   [ITEM.SHEEP]: { name: 'Schaap', kind: 'animal', animal: 'sheep' },
+  [ITEM.LION]: { name: 'Leeuw', kind: 'animal', animal: 'lion' },
+  [ITEM.LIONESS]: { name: 'Leeuwin', kind: 'animal', animal: 'lioness' },
+  [ITEM.CHEETAH]: { name: 'Cheetah', kind: 'animal', animal: 'cheetah' },
+  [ITEM.TIGER]: { name: 'Tijger', kind: 'animal', animal: 'tiger' },
+  [ITEM.ELEPHANT]: { name: 'Olifant', kind: 'animal', animal: 'elephant' },
+  [ITEM.GIRAFFE]: { name: 'Giraf', kind: 'animal', animal: 'giraffe' },
+  [ITEM.ZEBRA]: { name: 'Zebra', kind: 'animal', animal: 'zebra' },
+  [ITEM.HIPPO]: { name: 'Nijlpaard', kind: 'animal', animal: 'hippo' },
+  [ITEM.MEERKAT]: { name: 'Stokstaartje', kind: 'animal', animal: 'meerkat' },
 };
 
 export function itemName(id) { return SPECIALS[id]?.name ?? BLOCKS[id]?.name ?? ''; }
@@ -223,7 +234,12 @@ export const PALETTE_GROUPS = [
     items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90],
   },
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
-  { title: 'Dieren', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
+  { title: 'Dieren', sections: [
+    { title: 'Boerderij', icon: 'island', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
+    { title: 'Savanne', icon: 'savanna', items: [ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH, ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT] },
+    { title: 'Jungle', icon: 'jungle', items: [ITEM.TIGER] },
+  ], items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP, ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH,
+    ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT, ITEM.TIGER] },
 ];
 export const PALETTE = PALETTE_GROUPS.flatMap((g) => g.items);
 
