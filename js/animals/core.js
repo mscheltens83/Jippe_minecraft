@@ -1,6 +1,6 @@
 // Gemeenschappelijke beweging, botsingen en houdingen voor alle dieren.
 import * as THREE from '../../lib/three.module.min.js';
-import { B, BLOCKS } from '../blocks.js';
+import { B, BLOCKS, blockBoxes } from '../blocks.js';
 import { SX, SZ, SY } from '../world.js';
 import { cachedModel } from '../models.js';
 import { SPECIES } from './species.js';
@@ -23,14 +23,24 @@ export class Animal {
     this.timer = 1 + Math.random() * 3; this.time = Math.random() * 10;
     this.phase = 0; this.swing = 0; this.happy = 0;
     this.tame = false; this.hunger = 180 + Math.random() * 180; this.sleep = 0;
+    this.hunt = null; this.huntPause = 0; this.fleeFrom = null; this.eatTime = 0;
+    this.hay = null; this.hayCheck = 0;
     this.sprint = 0; this.sprintWait = 5 + Math.random() * 10; this.dustTime = 0;
     this.skillWait = 0; this.sprayed = false; this.browsing = false;
-    this.sleepPuff = 0; this.elapsed = 0;
+    this.sleepPuff = 0; this.elapsed = 0; this.clockElapsed = 0;
     this.box = new THREE.Box3();
     this.sync(); this.show(0);
   }
 
-  solid(world, x, y, z) { return !!BLOCKS[world.get(Math.floor(x), Math.floor(y), Math.floor(z))]?.solid; }
+  solid(world, x, y, z) {
+    const bx = Math.floor(x), bz = Math.floor(z);
+    for (let by = Math.floor(y - 0.5); by <= Math.floor(y); by++) {
+      for (const q of blockBoxes(world, bx, by, bz, true)) {
+        if (x >= bx + q[0] && x < bx + q[3] && y >= by + q[1] && y < by + q[4] && z >= bz + q[2] && z < bz + q[5]) return true;
+      }
+    }
+    return false;
+  }
   has(skill) { return this.def.kunstjes.includes(skill); }
   waterSurface(world, x = this.x, z = this.z) {
     const ix = Math.floor(x), iz = Math.floor(z);
@@ -45,14 +55,17 @@ export class Animal {
   // Vier punten langs het lijf; een lange nek mag ook niet door een dak steken.
   clearAt(world, x, y, z) {
     const r = this.def.w * 0.43, d = this.def.d * 0.3, sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
-    for (const side of [-r, r]) for (const end of [-d, d]) {
-      const px = x + cos * side + sin * end, pz = z - sin * side + cos * end;
-      if (px < 0.15 || pz < 0.15 || px >= SX - 0.15 || pz >= SZ - 0.15) return false;
-      for (let iy = Math.floor(y + 0.05); iy <= Math.floor(y + this.def.h - 0.05); iy++) {
-        if (this.solid(world, px, iy, pz)) return false;
+    const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
+    if (x - rx < 0.15 || z - rz < 0.15 || x + rx >= SX - 0.15 || z + rz >= SZ - 0.15) return false;
+    for (let bx = Math.floor(x - rx); bx <= Math.floor(x + rx); bx++) for (let bz = Math.floor(z - rz); bz <= Math.floor(z + rz); bz++) {
+      for (let by = Math.floor(y - 0.5); by <= Math.floor(y + this.def.h); by++) {
+        for (const q of blockBoxes(world, bx, by, bz, true)) {
+          if (bx + q[0] < x + rx && bx + q[3] > x - rx && bz + q[2] < z + rz && bz + q[5] > z - rz &&
+            by + q[1] < y + this.def.h - 0.05 && by + q[4] > y + 0.05) return false;
+        }
       }
     }
-    return !this.solid(world, x, y + 0.05, z);
+    return true;
   }
 
   touches(world, y) {
@@ -78,6 +91,10 @@ export class Animal {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const nx = this.x - sin * this.speedNow * dt, nz = this.z - cos * this.speedNow * dt;
     let blocked = !this.clearAt(world, nx, this.y, nz);
+    if (!blocked && this.hay && Math.hypot(nx - this.hay.x, nz - this.hay.z) > 6) {
+      this.targetYaw = Math.atan2(-(this.hay.x - this.x), -(this.hay.z - this.z));
+      return false;
+    }
     if (blocked && (this.onGround || this.inWater && this.has('zwemmen')) && this.clearAt(world, nx, this.y + 1.05, nz)) {
       this.vy = this.inWater ? 8 : 6.4;
       return; // Eerst boven het opstapje komen, dan pas vooruit.
@@ -88,8 +105,10 @@ export class Animal {
       const fy = Math.floor(this.y - 0.05);
       if (water !== null || !this.solid(world, fx, fy, fz) && !this.solid(world, fx, fy - 1, fz)) blocked = true;
     }
-    if (blocked) this.targetYaw = this.yaw + Math.PI * (0.6 + Math.random() * 0.8);
-    else { this.x = nx; this.z = nz; }
+    if (blocked) {
+      if (!this.hunt && !this.fleeFrom) this.targetYaw = this.yaw + Math.PI * (0.6 + Math.random() * 0.8);
+    } else { this.x = nx; this.z = nz; }
+    return !blocked;
   }
 
   gravity(dt, world) {
@@ -114,27 +133,34 @@ export class Animal {
     if (this.y < -3) this.y = 60;
   }
 
-  update(dt, world, effects, all = [], animate = true) {
+  update(dt, world, effects, all = [], animate = true, clockDt = dt) {
     this.time += dt;
     this.happy = Math.max(0, this.happy - dt);
-    this.sleep = Math.max(0, this.sleep - dt);
+    this.sleep = Math.max(0, this.sleep - clockDt);
+    this.eatTime = Math.max(0, this.eatTime - dt);
     this.inWater = this.waterSurface(world) !== null;
-    if (dt > 0 && !this.happy && !this.sleep) {
+    if (dt > 0 && !this.happy && !this.sleep && !this.hunt && !this.fleeFrom) {
       this.timer -= dt;
       if (this.timer <= 0) this.choose();
     }
-    updateSkills(this, dt, world, effects, all);
-    this.state = this.happy ? 'blij' : this.sleep ? 'slapen' : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
-    this.speedNow = this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
+    if (!this.hunt && !this.fleeFrom) updateSkills(this, dt, world, effects, all);
+    this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.hunt?.phase === 'stalk' ? 'sluipen'
+      : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
+    this.speedNow = this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
+      : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
+      : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
     this.yaw += wrap(this.targetYaw - this.yaw) * Math.min(1, dt * 4);
     const moving = this.walking && !this.happy && !this.sleep;
     // Verre dieren krijgen vier beeldjes tegelijk: kleine stappen houden botsingen betrouwbaar.
     for (let left = dt; left > 0.00001;) {
       const step = Math.min(0.025, left); left -= step;
-      if (moving) this.move(step, world);
+      if (moving) {
+        const moved = this.move(step, world);
+        if (this.hunt?.phase === 'chase') this.hunt.blocked = moved ? 0 : (this.hunt.blocked || 0) + step;
+      }
       this.gravity(step, world);
     }
-    if (moving) { this.phase += dt * (this.sprint ? 21 : 9); this.swing = Math.min(1, this.swing + dt * 5); }
+    if (moving) { this.phase += dt * (this.hunt || this.fleeFrom || this.sprint ? 21 : 9); this.swing = Math.min(1, this.swing + dt * 5); }
     else this.swing = Math.max(0, this.swing - dt * 5);
     if (animate && this.sleep && (this.sleepPuff -= dt) <= 0) {
       effects?.sleepAt?.(this.x, this.y + this.def.h * 0.65, this.z); this.sleepPuff = 1.5;
@@ -163,6 +189,11 @@ export class Animal {
       if (this.body) this.body.position.y -= 0.3;
       this.head.position.y -= Math.min(0.4, this.def.h * 0.3);
     }
+    if (this.state === 'sluipen') { this.group.scale.y = 0.82; this.head.rotation.x = -0.18; }
+    if (this.tongue) {
+      this.tongue.visible = this.state === 'eten';
+      if (this.state === 'eten') { this.head.rotation.x = -0.25 + Math.sin(this.time * 14) * 0.12; this.body.position.y -= 0.16; }
+    }
     if (['lion', 'lioness', 'tiger'].includes(this.type) && happy) {
       this.head.rotation.x = -0.17; this.head.rotation.z = Math.sin(this.time * 22) * 0.15;
     }
@@ -181,6 +212,7 @@ export class Animal {
 
   pet(px, pz) {
     this.happy = 1.8; this.walking = false; this.graze = false; this.sleep = 0; this.sprint = 0;
+    if (this.hunt) { this.hunt = null; this.huntPause = 30; }
     this.timer = 2.5; this.state = 'blij'; this.sprayed = false;
     if (this.onGround && this.def.dieet === 'boerderij') this.vy = 4.5;
     this.targetYaw = Math.atan2(-(px - this.x), -(pz - this.z)); this.show(0);

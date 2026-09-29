@@ -140,6 +140,7 @@ export class Sounds {
 
   boing() { if (this.ok()) { this.tone('sine', 180, 620, 0.22, 0.25); this.tone('triangle', 360, 900, 0.18, 0.08, 0.03); } }
   door() { if (this.ok()) { this.tone('triangle', 240, 140, 0.12, 0.3); this.hiss('bandpass', 700, 2, 0.08, 0.25); } }
+  nom() { if (this.ok()) { this.tone('sine', 340, 220, 0.18, 0.22); this.tone('triangle', 240, 170, 0.2, 0.12); } }
   tick() { if (this.ok()) this.hiss('bandpass', 2400, 3, 0.03, 0.2); }
   launch() { if (this.ok()) { this.hiss('bandpass', 900, 0.8, 0.7, 0.3); this.tone('sine', 300, 1200, 0.7, 0.06); } }
   bang() {

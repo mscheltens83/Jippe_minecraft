@@ -36,6 +36,8 @@ export function buildCat(type) {
   headGeos.push(box(0.14, 0.09, 0.065, '#5a3a2a', 0, headY - 0.07, -1.12));
   headGeos.push(box(0.12, 0.025, 0.02, '#5a3a2a', 0, headY - 0.19, -1.115));
   const head = part(headGeos, 0, headY - 0.14, -0.6);
+  const tongue = part([box(0.13, 0.025, 0.09, '#ef7992', 0, headY - 0.2, -1.14)], 0, headY - 0.2, -1.14);
+  tongue.visible = false;
   const legs = [];
   for (const x of [-width * 0.32, width * 0.32]) for (const z of [-0.43, 0.43]) {
     const geos = [box(0.16, legHeight, 0.16, color, x, legHeight / 2, z), box(0.2, 0.13, 0.27, cream, x, 0.065, z - 0.05)];
@@ -46,5 +48,5 @@ export function buildCat(type) {
   if (lion) tailGeos.push(box(0.19, 0.2, 0.17, dark, 0, cy + 0.3, 1.2));
   else for (let i = 0; i < 3; i++) tailGeos.push(box(0.115, 0.115, 0.06, dark, 0, cy + 0.08, 0.85 + i * 0.14));
   const tail = part(tailGeos, 0, cy + 0.08, 0.6);
-  return { parts: [body, head, tail], body, head, tail, legs, pattern: [1, -1, -1, 1] };
+  return { parts: [body, head, tail, tongue], body, head, tail, tongue, legs, pattern: [1, -1, -1, 1] };
 }

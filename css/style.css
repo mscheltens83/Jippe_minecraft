@@ -358,6 +358,9 @@ body, #app {
 .labeled > span { font-size: 15px; font-weight: 500; color: var(--ink); opacity: 0.8; }
 .menu .btn { border-color: var(--ink); }
 .menu .small { width: 74px; height: 74px; background: #4b7fa8; }
+.menu .predators-btn { width: 108px; display: flex; align-items: center; padding: 5px; background: var(--grass); }
+.menu .predators-btn svg { width: 50%; height: 100%; }
+.menu .predators-btn.off { background: #87939a; opacity: 0.7; }
 .menu .choice { width: 120px; height: 104px; background: #cfe9ff; }
 .world-choices { display: grid; grid-template-columns: repeat(4, minmax(60px, 1fr)); gap: 14px 12px; width: 100%; }
 .world-choices .choice { width: 100%; height: 90px; }
