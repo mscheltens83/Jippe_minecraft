@@ -22,7 +22,8 @@ export const B = {
   TREASURE: 77, TREASURE_OPEN: 78, ICE: 79, PACKED_ICE: 80, SPRUCE_LOG: 81,
   SPRUCE_LEAVES: 82, SNOWY_LEAVES: 83, DRY_GRASS: 84, RED_DIRT: 85,
   ACACIA_LOG: 86, ACACIA_LEAVES: 87, TALL_DRY_GRASS: 88, TERMITE: 89, MUD: 90,
-  HAY: 100,  // 91..99 blijven vrij voor het hek en de hekdeur van fase C
+  FENCE: 91, GATE: 92, // hekdeur 92..99: vier richtingen, open/dicht
+  HAY: 100,
 };
 
 // Richtingen: 0 = -z (noord), 1 = +x (oost), 2 = +z (zuid), 3 = -x (west)
@@ -30,6 +31,7 @@ export const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
 export const BLOCKS = [];
 export const OPAQUE = new Uint8Array(256);
+const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
@@ -171,7 +173,61 @@ def(B.ACACIA_LEAVES, 'Acaciabladeren', 'acacia_leaves', { render: 'cutout', foli
 def(B.TALL_DRY_GRASS, 'Hoog droog gras', 'tall_dry_grass', { render: 'cross', sound: 'grass' });
 def(B.TERMITE, 'Termietenheuvel', 'termite', { sound: 'sand' });
 def(B.MUD, 'Modder', 'mud', { sound: 'grass' });
+const FENCE_POST = [6 / 16, 0, 6 / 16, 10 / 16, 1.5, 10 / 16];
+const FENCE_ARMS = [
+  [[7 / 16, 5 / 16, 0, 9 / 16, 7 / 16, 8 / 16], [7 / 16, 1, 0, 9 / 16, 1.2, 8 / 16]],
+  [[8 / 16, 5 / 16, 7 / 16, 1, 7 / 16, 9 / 16], [8 / 16, 1, 7 / 16, 1, 1.2, 9 / 16]],
+  [[7 / 16, 5 / 16, 8 / 16, 9 / 16, 7 / 16, 1], [7 / 16, 1, 8 / 16, 9 / 16, 1.2, 1]],
+  [[0, 5 / 16, 7 / 16, 8 / 16, 7 / 16, 9 / 16], [0, 1, 7 / 16, 8 / 16, 1.2, 9 / 16]],
+];
+const FENCE_BARRIERS = [
+  [7 / 16, 0, 0, 9 / 16, 1.5, 8 / 16], [8 / 16, 0, 7 / 16, 1, 1.5, 9 / 16],
+  [7 / 16, 0, 8 / 16, 9 / 16, 1.5, 1], [0, 0, 7 / 16, 8 / 16, 1.5, 9 / 16],
+];
+def(B.FENCE, 'Hek', 'planks', { render: 'shape', shape: 'fence', boxes: [FENCE_POST], sound: 'wood' });
+export function gateId(dir, open) { return B.GATE + dir * 2 + (open ? 1 : 0); }
+for (let d = 0; d < 4; d++) for (const open of [false, true]) {
+  // Open staat het hekblad langs de zijkant; de doorgang blijft breed genoeg.
+  const alongX = d % 2 === 0;
+  const panel = alongX ? [
+    [0, 0, 7 / 16, 2 / 16, 1.5, 9 / 16], [14 / 16, 0, 7 / 16, 1, 1.5, 9 / 16],
+    [2 / 16, 5 / 16, 7 / 16, 14 / 16, 7 / 16, 9 / 16],
+    [2 / 16, 1, 7 / 16, 14 / 16, 1.2, 9 / 16],
+  ] : [
+    [7 / 16, 0, 0, 9 / 16, 1.5, 2 / 16], [7 / 16, 0, 14 / 16, 9 / 16, 1.5, 1],
+    [7 / 16, 5 / 16, 2 / 16, 9 / 16, 7 / 16, 14 / 16],
+    [7 / 16, 1, 2 / 16, 9 / 16, 1.2, 14 / 16],
+  ];
+  const folded = alongX ? (d === 0 ? [0, 0, 1 / 16, 1 / 16, 1.5, 15 / 16] : [15 / 16, 0, 1 / 16, 1, 1.5, 15 / 16])
+    : (d === 1 ? [1 / 16, 0, 15 / 16, 15 / 16, 1.5, 1] : [1 / 16, 0, 0, 15 / 16, 1.5, 1 / 16]);
+  def(gateId(d, open), 'Hekdeur', 'planks', {
+    render: 'shape', shape: 'gate', dir: d, open, family: B.GATE, boxes: open ? [folded] : panel, sound: 'wood',
+  });
+}
 def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, { sound: 'grass' });
+
+// Dezelfde vormen dienen voor tekenen én botsen. Een hek groeit vast aan buren.
+export function blockBoxes(world, x, y, z, collision = false) {
+  const id = world.get(x, y, z), b = BLOCKS[id];
+  if (!b?.solid) return [];
+  if (id === B.FENCE) {
+    const boxes = [FENCE_POST];
+    for (let d = 0; d < 4; d++) {
+      const [dx, dz] = DIRS[d], neighbour = BLOCKS[world.get(x + dx, y, z + dz)];
+      if (neighbour?.solid && (!neighbour.boxes || neighbour.shape === 'fence' || neighbour.shape === 'gate')) {
+        boxes.push(...FENCE_ARMS[d]);
+        if (collision) boxes.push(FENCE_BARRIERS[d]);
+      }
+    }
+    return boxes;
+  }
+  if (b.shape === 'gate' && collision && !b.open) {
+    const barrier = b.dir % 2 === 0 ? [0, 0, 7 / 16, 1, 1.5, 9 / 16]
+      : [7 / 16, 0, 0, 9 / 16, 1.5, 1];
+    return [...b.boxes, barrier];
+  }
+  return b.boxes || FULL_BOX;
+}
 
 // ---------- speciale dingen uit de kist (geen blokken) ----------
 
@@ -214,13 +270,13 @@ export const PALETTE_GROUPS = [
     items: [
       B.GRASS, B.DIRT, B.SAND, B.STONE, B.COBBLE, B.BRICK, B.LOG, B.PLANKS, B.LEAVES,
       B.GLASS, B.WATER, B.SNOW, B.GOLD, B.DIAMOND, B.LAMP, B.RAINBOW, B.BOOKSHELF,
-      B.PUMPKIN, B.MELON, B.STAIRS, B.DOOR, B.BOUNCE, B.FIREWORK,
+      B.PUMPKIN, B.MELON, B.STAIRS, B.DOOR, B.FENCE, B.GATE, B.HAY, B.BOUNCE, B.FIREWORK,
       B.WOOL_RED, B.WOOL_ORANGE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_LIGHTBLUE,
       B.WOOL_BLUE, B.WOOL_PURPLE, B.WOOL_PINK, B.WOOL_WHITE, B.WOOL_BLACK,
       B.GLASS_RED, B.GLASS_YELLOW, B.GLASS_GREEN, B.GLASS_BLUE, B.GLASS_PURPLE,
       B.FLOWER_RED, B.FLOWER_YELLOW, B.TALLGRASS,
       B.MOSSY_COBBLE, B.SANDSTONE, B.CARVED_SANDSTONE, B.RED_SAND,
-      B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN, B.TREASURE, B.RED_DIRT, B.HAY,
+      B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN, B.TREASURE, B.RED_DIRT,
     ],
   },
   {

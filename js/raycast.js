@@ -1,7 +1,7 @@
 // Welk blok raak je als je vanaf de camera in een richting kijkt?
 // Stapt blok voor blok langs de straal (voxel-DDA).
 
-import { AIR, B } from './blocks.js';
+import { AIR, B, BLOCKS } from './blocks.js';
 
 // `stop(id)` bepaalt welke blokken de straal tegenhouden (standaard: alles behalve lucht)
 export function raycast(world, origin, dir, maxDist, stop = null) {
@@ -27,6 +27,11 @@ export function raycast(world, origin, dir, maxDist, stop = null) {
     if (t > maxDist) break;
     if (y < 0 && stepY < 0) break;
     const id = world.get(x, y, z);
+    // Het bovenste halve stuk van een hek of hekdeur zit in een leeg rastervak.
+    if (id === AIR && y > 0 && (BLOCKS[world.get(x, y - 1, z)]?.shape === 'fence' || BLOCKS[world.get(x, y - 1, z)]?.shape === 'gate')) {
+      const below = world.get(x, y - 1, z);
+      if (!stop || stop(below)) return { x, y: y - 1, z, nx, ny, nz, id: below, dist: t };
+    }
     if (stop ? stop(id) : id !== AIR && !(skipWater && id === B.WATER)) {
       return { x, y, z, nx, ny, nz, id, dist: t };
     }
