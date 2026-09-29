@@ -8,6 +8,8 @@ import { BIOMES } from './biomes.js';
 const SPECIAL_ICONS = {
   [ITEM.HOUSE]: 'house', [ITEM.TREE]: 'tree', [ITEM.TOWER]: 'tower', [ITEM.BRIDGE]: 'bridge',
   [ITEM.PIG]: 'pig', [ITEM.CHICKEN]: 'chicken', [ITEM.SHEEP]: 'sheep',
+  [ITEM.LION]: 'lion', [ITEM.LIONESS]: 'lioness', [ITEM.CHEETAH]: 'cheetah', [ITEM.TIGER]: 'tiger',
+  [ITEM.ELEPHANT]: 'elephant', [ITEM.GIRAFFE]: 'giraffe', [ITEM.ZEBRA]: 'zebra', [ITEM.HIPPO]: 'hippo', [ITEM.MEERKAT]: 'meerkat',
   [ITEM.IGLOO]: 'igloo', [ITEM.PYRAMID]: 'pyramid', [ITEM.TEMPLE]: 'temple', [ITEM.LION_ROCK]: 'lionRock',
 };
 const GROUP_ICONS = { Blokken: 'build', Natuur: 'tree', Stempels: 'house', Dieren: 'pig' };

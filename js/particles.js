@@ -34,6 +34,13 @@ export class Particles {
     heart.colorSpace = THREE.SRGBColorSpace;
     this.heartMat = new THREE.SpriteMaterial({ map: heart, transparent: true, depthWrite: false });
     this.hearts = [];
+    const sleep = document.createElement('canvas'); sleep.width = 64; sleep.height = 32;
+    const ctx = sleep.getContext('2d');
+    ctx.font = 'bold 25px sans-serif'; ctx.lineWidth = 4; ctx.strokeStyle = '#334e68'; ctx.fillStyle = '#ffffff';
+    ctx.strokeText('Zzz', 4, 26); ctx.fillText('Zzz', 4, 26);
+    const sleepMap = new THREE.CanvasTexture(sleep);
+    this.sleepMat = new THREE.SpriteMaterial({ map: sleepMap, transparent: true, depthWrite: false });
+    this.zzz = [];
     this.scene = scene;
   }
 
@@ -112,6 +119,34 @@ export class Particles {
     }
   }
 
+  sleepAt(x, y, z) {
+    let s = this.zzz.find((p) => !p.alive);
+    if (!s) {
+      if (this.zzz.length >= 24) return;
+      s = { sprite: new THREE.Sprite(this.sleepMat.clone()), alive: false };
+      this.scene.add(s.sprite); this.zzz.push(s);
+    }
+    s.alive = true; s.life = 0; s.sprite.visible = true;
+    s.sprite.position.set(x, y, z); s.sprite.scale.set(0.65, 0.33, 1);
+  }
+
+  dustAt(x, y, z) {
+    for (let i = 0; i < 3; i++) this.add({
+      x: x + (Math.random() - 0.5) * 0.6, y: y + 0.1, z: z + (Math.random() - 0.5) * 0.6,
+      vx: (Math.random() - 0.5) * 0.8, vy: 0.5, vz: (Math.random() - 0.5) * 0.8,
+      g: 0, drag: 1, life: 0, max: 0.45, size: 0.16, col: [0.83, 0.72, 0.5], collide: false,
+    });
+  }
+
+  waterAt(x, y, z, dx, dz) {
+    for (let i = 0; i < 40; i++) this.add({
+      x, y, z, vx: dx * (1.5 + Math.random() * 1.5) + (Math.random() - 0.5),
+      vy: 3 + Math.random() * 3, vz: dz * (1.5 + Math.random() * 1.5) + (Math.random() - 0.5),
+      g: 9, drag: 1, life: 0, max: 1 + Math.random() * 0.5, size: 0.07 + Math.random() * 0.04,
+      col: i % 3 ? [0.35, 0.7, 1] : [0.75, 0.9, 1], collide: true,
+    });
+  }
+
   update(dt, world) {
     // vuurpijlen
     for (const r of this.rockets) {
@@ -131,7 +166,7 @@ export class Particles {
     this.rockets = this.rockets.filter((r) => r.life < r.max);
 
     // hartjes zweven omhoog en vervagen
-    for (const h of this.hearts) {
+    for (const pool of [this.hearts, this.zzz]) for (const h of pool) {
       if (!h.alive) continue;
       h.life += dt;
       if (h.life < 0) continue;

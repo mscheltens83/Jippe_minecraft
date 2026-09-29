@@ -2,6 +2,14 @@
 
 const S = 'stroke="#1c2a33" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
 const svg = (body) => `<svg viewBox="0 0 48 48" aria-hidden="true">${body}</svg>`;
+const catFace = (color, markings = '', mane = false) => svg(`
+  ${mane ? `<rect x="3" y="5" width="42" height="40" rx="12" fill="#8a4b1f" ${S}/>` : ''}
+  <circle cx="12" cy="11" r="6" fill="${color}" ${S}/><circle cx="36" cy="11" r="6" fill="${color}" ${S}/>
+  <rect x="8" y="10" width="32" height="29" rx="8" fill="${color}" ${S}/>${markings}
+  <circle cx="17" cy="22" r="3.5" fill="#fff"/><circle cx="31" cy="22" r="3.5" fill="#fff"/>
+  <circle cx="17" cy="22" r="2" fill="#252326"/><circle cx="31" cy="22" r="2" fill="#252326"/>
+  <ellipse cx="24" cy="32" rx="10" ry="6" fill="#fff0d2"/><path d="M20 29 H28 L24 33 Z" fill="#5a3a2a"/>
+  <path d="M19 35 Q24 39 29 35" fill="none" stroke="#5a3a2a" stroke-width="2"/>`);
 
 export const ICONS = {
   home: svg(`<path d="M8 24 L24 9 L40 24 L36 24 L36 39 L12 39 L12 24 Z" fill="#fff" ${S}/><rect x="20" y="28" width="8" height="11" fill="#e0a45a" ${S}/>`),
@@ -42,6 +50,15 @@ export const ICONS = {
   pyramid: svg(`<path d="M3 41 L24 6 L45 41 Z" fill="#e4c48a" ${S}/><path d="M24 6 L24 41 H45 Z" fill="#c79e62"/><path d="M13 25 H35 M9 33 H40" stroke="#a68452" stroke-width="2"/><rect x="19" y="31" width="8" height="10" fill="#805a36" ${S}/>`),
   temple: svg(`<path d="M3 42 V33 H9 V25 H15 V17 H21 V9 H27 V17 H33 V25 H39 V33 H45 V42 Z" fill="#7b8b67" ${S}/><path d="M6 34 H42 M12 26 H36 M18 18 H30" stroke="#425c3f" stroke-width="2"/><rect x="20" y="29" width="8" height="13" fill="#3e493a"/>`),
   lionRock: svg(`<path d="M5 42 L15 29 L23 29 L23 18 H45 V24 H32 V42 Z" fill="#9d9b92" ${S}/><path d="M23 24 H32 M13 34 H24" stroke="#6c6d67" stroke-width="3" fill="none"/><circle cx="9" cy="10" r="5" fill="#ffdc68"/>`),
+  lion: catFace('#d9a45a', '', true),
+  lioness: catFace('#d9a45a'),
+  cheetah: catFace('#e8c068', '<path d="M16 25 V30 M32 25 V30" stroke="#252326" stroke-width="2.5"/><g fill="#252326"><rect x="13" y="15" width="3" height="3"/><rect x="21" y="12" width="3" height="3"/><rect x="30" y="15" width="3" height="3"/><rect x="10" y="26" width="3" height="3"/><rect x="35" y="26" width="3" height="3"/></g>'),
+  tiger: catFace('#e8872a', '<path d="M19 12 V17 M29 12 V17 M8 24 L13 26 M40 24 L35 26 M9 31 L14 33 M39 31 L34 33" stroke="#252326" stroke-width="3"/>'),
+  elephant: svg(`<rect x="3" y="10" width="14" height="25" rx="6" fill="#a0a4aa" ${S}/><rect x="31" y="10" width="14" height="25" rx="6" fill="#a0a4aa" ${S}/><rect x="13" y="7" width="22" height="27" rx="8" fill="#a0a4aa" ${S}/><path d="M22 26 V40 Q22 46 30 40" fill="none" stroke="#1c2a33" stroke-width="10"/><path d="M22 26 V40 Q22 46 30 40" fill="none" stroke="#a0a4aa" stroke-width="6"/><circle cx="18" cy="20" r="2.5" fill="#252326"/><circle cx="30" cy="20" r="2.5" fill="#252326"/>`),
+  giraffe: svg(`<path d="M19 43 V24 H30 V43" fill="#e6c469" ${S}/><path d="M18 10 V4 M30 10 V4" ${S}/><path d="M13 12 L6 9 M34 12 L42 9" ${S}/><rect x="11" y="10" width="27" height="19" rx="6" fill="#e6c469" ${S}/><rect x="17" y="15" width="4" height="5" fill="#252326"/><rect x="29" y="15" width="4" height="5" fill="#252326"/><rect x="22" y="31" width="5" height="4" fill="#a36c35"/><rect x="19" y="38" width="5" height="5" fill="#a36c35"/>`),
+  zebra: svg(`<path d="M14 16 L11 4 L19 5 L20 16 M28 16 L29 5 L37 4 L34 16" fill="#f5f3ed" ${S}/><rect x="12" y="12" width="24" height="31" rx="8" fill="#f5f3ed" ${S}/><path d="M22 13 V20 M12 23 L18 25 M36 23 L30 25 M12 29 L18 30 M36 29 L30 30" stroke="#30313b" stroke-width="3"/><rect x="14" y="32" width="20" height="9" rx="4" fill="#30313b"/><circle cx="19" cy="23" r="2" fill="#252326"/><circle cx="29" cy="23" r="2" fill="#252326"/>`),
+  hippo: svg(`<circle cx="11" cy="11" r="5" fill="#9d91aa" ${S}/><circle cx="37" cy="11" r="5" fill="#9d91aa" ${S}/><rect x="8" y="9" width="32" height="28" rx="8" fill="#9d91aa" ${S}/><rect x="5" y="24" width="38" height="19" rx="8" fill="#b3a2b8" ${S}/><circle cx="16" cy="19" r="2.5" fill="#252326"/><circle cx="32" cy="19" r="2.5" fill="#252326"/><circle cx="16" cy="30" r="2" fill="#6b5971"/><circle cx="32" cy="30" r="2" fill="#6b5971"/><path d="M12 37 H36" stroke="#6b5971" stroke-width="2"/>`),
+  meerkat: svg(`<rect x="17" y="21" width="14" height="23" rx="5" fill="#d3b48a" ${S}/><circle cx="12" cy="9" r="4" fill="#6e523c"/><circle cx="36" cy="9" r="4" fill="#6e523c"/><rect x="10" y="7" width="28" height="22" rx="7" fill="#d3b48a" ${S}/><ellipse cx="17" cy="16" rx="5" ry="4" fill="#6e523c"/><ellipse cx="31" cy="16" rx="5" ry="4" fill="#6e523c"/><circle cx="17" cy="16" r="1.7" fill="#fff"/><circle cx="31" cy="16" r="1.7" fill="#fff"/><path d="M20 21 H28 L24 25 Z" fill="#6e523c"/><path d="M19 32 L14 36 M29 32 L34 36" ${S}/>`),
 };
 
 // Als plaatje (voor <img>), bijvoorbeeld in de onderbalk
