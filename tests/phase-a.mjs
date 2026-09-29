@@ -55,7 +55,7 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   check(await run((save) => window.__jippecraft.storage.loadLocal('slot3').blocks === save.blocks, phase2Save), 'een zesde wereld maken behoudt de oude derde wereld');
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Natuur"]').tap();
-  check(await page.locator('.pal-section').count() === 4 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat vier wereldgroepen met de nieuwe bouwblokken');
+  check(await page.locator('.pal-items:not([hidden]) .pal-section').count() === 4 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat vier wereldgroepen met de nieuwe bouwblokken');
   await page.locator('.pal-item[aria-label="Liaan"]').tap();
   check(await run(() => window.__jippecraft.hotbar[window.__jippecraft.sel] === 63), 'een liaan kiezen uit de kist werkt met aanraken');
 
@@ -161,7 +161,8 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   for (const [i, type] of ['jungle', 'desert', 'tundra', 'savanna', 'adventure'].entries()) {
     const view = await run((type) => {
       const j = window.__jippecraft; j.playing = false; j.freshWorld(type, 424242);
-      const farm = j.animals.list.length, nearCenter = j.animals.list.every((a) => Math.hypot(a.x - 48, a.z - 48) < 8);
+      const farms = j.animals.list.filter((a) => ['pig', 'chicken', 'sheep'].includes(a.type));
+      const farm = farms.length, nearCenter = farms.every((a) => Math.hypot(a.x - 48, a.z - 48) < 8);
       const l = j.world.landmarks[0];
       j.player.setPos({ x: l.x - 8, y: l.y + 8, z: l.z + 15 });
       j.player.yaw = Math.atan2(-8, 15); j.player.pitch = -0.4; j.player.flying = true;

@@ -144,8 +144,12 @@ Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
 - ✅ **3A**: zeven wereldsoorten, zes plekken, Natuur-tab, nieuwe blokken en stempels,
   bomen en bouwwerken, lucht en mist per gebied, ijs, modder en lianen, opslag v3.
   Oude v1-opslag en een echte v2-wereld uit fase 2 worden automatisch getest.
-- ⬜ **3B–3G**: wilde dieren, stallen en jagen, temmen en rijden, album, weer en muziek.
+- ✅ **3B**: één dierensysteem met gedeelde figuren, maximaal zestig dieren en minder
+  updates op afstand. Leeuw, leeuwin, cheetah, tijger, olifant, giraf, zebra, nijlpaard
+  en stokstaartje hebben eigen geluiden, bewegingen en kunstjes. Dierenkist per wereld.
+- ⬜ **3C–3G**: stallen en jagen, temmen en rijden, overige wilde dieren, album, weer en muziek.
 
 De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
-en meldt de gemiddelde beeldtijd met 30 dieren. De snelheid en bediening op een echte
-iPad 7e generatie moeten na het samenvoegen nog worden geprobeerd.
+en meldt de gemiddelde beeldtijd met 30 dieren, ook met de nieuwe wilde soorten.
+De browsercontrole is voldoende om verder te bouwen; de aanvullende controle van
+snelheid en bediening op een echte iPad 7e generatie kan later.
