@@ -214,6 +214,7 @@ export class Animals {
   spawn(type, x, y, z, yaw = Math.random() * Math.PI * 2) {
     if (!TYPES[type] || this.full) return null;
     const a = new Animal(type, x, y, z, yaw);
+    a.tame = false; a.hunger = 180 + Math.random() * 180; a.sleep = 0;
     this.scene.add(a.group);
     this.list.push(a);
     a.update(0, { get: () => 0 });
@@ -222,11 +223,13 @@ export class Animals {
 
   // Een paar dieren neerzetten in een nieuwe wereld, op het gras rond het midden
   populate(world) {
+    if (!['island', 'flat', 'adventure'].includes(world.type)) return;
     const want = [['pig', 4], ['sheep', 3], ['chicken', 4]];
     for (const [type, n] of want) {
       let placed = 0;
       for (let tries = 0; tries < 200 && placed < n; tries++) {
-        const ang = Math.random() * Math.PI * 2, dist = 6 + Math.random() * 20;
+        const ang = Math.random() * Math.PI * 2;
+        const dist = world.type === 'adventure' ? 3 + Math.random() * 3 : 6 + Math.random() * 20;
         const x = Math.floor(SX / 2 + Math.cos(ang) * dist), z = Math.floor(SZ / 2 + Math.sin(ang) * dist);
         const y = world.surfaceY(x, z);
         if (world.get(x, y, z) !== B.GRASS || world.get(x, y + 1, z) === B.WATER) continue;
@@ -255,14 +258,23 @@ export class Animals {
 
   serialize() {
     const r = (v) => Math.round(v * 100) / 100;
-    return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw) }));
+    return this.list.map((a) => ({
+      t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw),
+      tame: !!a.tame, hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
+      sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
+    }));
   }
 
   load(arr) {
     this.clear();
     if (!Array.isArray(arr)) return;
     for (const o of arr) {
-      if (TYPES[o?.t] && [o.x, o.y, o.z, o.yaw].every(Number.isFinite)) this.spawn(o.t, o.x, o.y, o.z, o.yaw);
+      if (!TYPES[o?.t] || ![o.x, o.y, o.z, o.yaw].every(Number.isFinite)) continue;
+      const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw);
+      if (!a) break;
+      a.tame = !!o.tame;
+      a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
+      a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
     }
   }
 }
