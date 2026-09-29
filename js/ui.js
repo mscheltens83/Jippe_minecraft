@@ -3,12 +3,14 @@
 import { ICONS, iconURL } from './icons.js';
 import { ITEM, PALETTE_GROUPS, itemName, isSpecial } from './blocks.js';
 import { drawBlockIcon } from './textures.js';
+import { BIOMES } from './biomes.js';
 
 const SPECIAL_ICONS = {
   [ITEM.HOUSE]: 'house', [ITEM.TREE]: 'tree', [ITEM.TOWER]: 'tower', [ITEM.BRIDGE]: 'bridge',
   [ITEM.PIG]: 'pig', [ITEM.CHICKEN]: 'chicken', [ITEM.SHEEP]: 'sheep',
+  [ITEM.IGLOO]: 'igloo', [ITEM.PYRAMID]: 'pyramid', [ITEM.TEMPLE]: 'temple', [ITEM.LION_ROCK]: 'lionRock',
 };
-const GROUP_ICONS = { Blokken: 'build', Stempels: 'house', Dieren: 'pig' };
+const GROUP_ICONS = { Blokken: 'build', Natuur: 'tree', Stempels: 'house', Dieren: 'pig' };
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -124,7 +126,7 @@ export class UI {
     root.appendChild(this.tapLayer);
   }
 
-  // --- de kist met alle blokken, stempels en dieren (drie tabbladen) ---
+  // --- de kist met blokken, natuur, stempels en dieren ---
   buildPalette(root) {
     const h = this.h;
     this.palette = el('div', 'overlay palette');
@@ -141,6 +143,8 @@ export class UI {
       tabs.appendChild(tab);
       const grid = el('div', 'pal-items');
       for (const id of g.items) {
+        const section = g.sections?.find((s) => s.items[0] === id);
+        if (section) grid.appendChild(el('div', 'pal-section', `${ICONS[section.icon]}<span>${section.title}</span>`));
         const b = el('button', 'pal-item' + (isSpecial(id) ? ' special' : ''));
         b.type = 'button';
         b.setAttribute('aria-label', itemName(id));
@@ -196,15 +200,15 @@ export class UI {
 
     const type = this.panels.type = el('div', 'panel');
     type.appendChild(el('p', 'hint', 'Wat voor wereld wil je?'));
-    const choices = el('div', 'menu-row');
-    for (const [t, icon, label] of [['island', 'island', 'Eiland'], ['flat', 'flat', 'Plat']]) {
-      const b = button('choice', icon, label);
+    const choices = el('div', 'world-choices');
+    for (const [t, biome] of Object.entries(BIOMES)) {
+      const b = button('choice ' + t, biome.icon, biome.naam);
       onPress(b, () => {
         this.pendingType = t;
         if (this.pendingEmpty) h.onNewWorld(this.pendingSlot, t);
         else this.showPanel('confirm');
       });
-      choices.appendChild(labeled(b, label));
+      choices.appendChild(labeled(b, biome.naam));
     }
     const back2 = button('small', 'close', 'Terug');
     onPress(back2, () => this.showPanel('worlds'));
@@ -237,7 +241,7 @@ export class UI {
       card.setAttribute('aria-label', 'Wereld ' + s.n);
       if (s.empty) card.innerHTML = ICONS.plus;
       else if (s.thumb) card.style.backgroundImage = `url("${s.thumb}")`;
-      else card.innerHTML = ICONS[s.type === 'flat' ? 'flat' : 'island'];
+      else card.innerHTML = ICONS[BIOMES[s.type]?.icon || 'island'];
       onPress(card, () => {
         if (s.empty) { this.pendingSlot = s.n; this.pendingEmpty = true; this.showPanel('type'); } else this.h.onSlot(s.n);
       });
@@ -249,6 +253,7 @@ export class UI {
           this.pendingSlot = s.n;
           this.pendingEmpty = false;
           this.confirmThumb.style.backgroundImage = s.thumb ? `url("${s.thumb}")` : '';
+          this.confirmThumb.innerHTML = s.thumb ? '' : ICONS[BIOMES[s.type]?.icon || 'island'];
           this.showPanel('type');
         });
         label.appendChild(again);
@@ -306,10 +311,10 @@ export class UI {
     this.hud.dataset.mode = mode;
   }
 
-  setFlying(f) {
+  setFlying(f, climbing = false) {
     this.flyBtn.classList.toggle('on', f);
-    this.downBtn.hidden = !f;
-    this.jumpBtn.innerHTML = f ? ICONS.up : ICONS.jump;
+    this.downBtn.hidden = !f && !climbing;
+    this.jumpBtn.innerHTML = f || climbing ? ICONS.up : ICONS.jump;
   }
 
   setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }

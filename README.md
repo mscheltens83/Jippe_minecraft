@@ -17,8 +17,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Bouwen** | Groene knop bovenin aan, dan op een blok tikken. Het nieuwe blok komt tegen dat vlak aan |
 | **Toren bouwen** | Recht naar beneden kijken en op de grond onder je tikken: je wipt vanzelf op het nieuwe blok |
 | **Slopen** | Rode knop (houweel) bovenin aan, dan je vinger op een blok **vasthouden** tot het rondje vol is. Blijf je vasthouden, dan graaf je verder |
-| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft drie tabbladen: blokken, stempels en dieren |
-| **Stempels** | Kies een huisje, boom, toren of brug uit de kist en tik op de grond. Het staat er in één keer |
+| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft vier tabbladen: Blokken, Natuur, Stempels en Dieren |
+| **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs of savannegras uit de kist. De plaatjes staan per wereld bij elkaar |
+| **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
 | **Dieren** | Varkentjes, kippen en schaapjes lopen rond. Tik erop om ze te aaien (hartjes!). Uit de kist zet je er zelf meer neer |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
@@ -27,11 +28,18 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Vliegen** | Veertje-knop. Pijl omhoog en omlaag om te stijgen en te dalen |
 | **Poppetje** | Knop rechtsboven: de camera gaat achter je hangen, zodat je jezelf ziet |
 | **Oeps!** | De terug-pijl rechtsboven zet de laatste acties terug (ook een hele stempel) |
-| **Menu** | Huisje linksboven: geluid, muziek en de drie werelden |
+| **IJs** | Op ijs en pakijs glijd je nog even door als je de joystick loslaat |
+| **Modder** | Op modder loop je langzamer |
+| **Lianen** | Vooruit tegen een liaan of de springknop klimt omhoog. Laat los om te blijven hangen. De omlaagknop laat je zakken |
+| **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
 
-In het menu onder **Werelden** staan drie plekken, elk met een plaatje van je wereld.
+In het menu onder **Werelden** staan zes plekken in twee rijen, elk met een plaatje van je wereld.
 Tik op een wereld om erheen te gaan, op een lege plek (+) om een nieuwe te maken,
 of op het rondje-pijltje om een wereld opnieuw te beginnen (dat vraagt eerst of je het zeker weet).
+Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**.
+In Avontuur liggen de vier nieuwe landschappen rondom een centrale weide.
+Zoek een tempel, piramide, iglo, leeuwenrots, drinkplaats of oase. De bouwplek in het
+midden blijft vlak. Schatkisten zijn er al; de verrassing bij het openen volgt later.
 
 Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
 **klikken** bouwt (in de sloop-stand: muisknop vasthouden), **rechtermuisknop** doet het omgekeerde,
@@ -94,7 +102,9 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/main.js` | Opstarten, de spel-lus, bouwen en slopen |
 | `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
 | `js/textures.js` | De pixel-art texturen, getekend met code |
-| `js/world.js` | Wereld maken (eiland of plat), bewaren en laden |
+| `js/world.js` | De zeven wereldsoorten maken, bewaren en laden |
+| `js/biomes.js` | Landschap, bomen, planten, lucht en mist per wereld |
+| `js/structures.js` | Tempels, piramides, iglo's, leeuwenrotsen, drinkplaatsen en oases |
 | `js/mesher.js` | Blokken omzetten naar 3D-vlakken, met zachte schaduwen |
 | `js/scene.js` | Lucht, zon, wolken en de zee rondom |
 | `js/player.js` | Lopen, springen, vliegen, zwemmen en botsen |
@@ -107,7 +117,7 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
 | `js/stamps.js` | De stempels: huisje, boom, toren en brug |
 | `js/particles.js` | Brokjes bij het slopen, vuurwerk, hartjes en glitters |
-| `js/storage.js` | Bewaren van de drie werelden in de browser (en op claude.ai in de database) |
+| `js/storage.js` | Bewaren van de zes werelden in de browser (en op claude.ai in de database); oude opslag blijft werken |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
 | `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |
 

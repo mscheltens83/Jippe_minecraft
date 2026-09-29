@@ -16,13 +16,14 @@ import { Storage } from './storage.js';
 import { Animals } from './animals.js';
 import { Avatar } from './avatar.js';
 import { buildStamp } from './stamps.js';
+import { BIOMES, biomeView } from './biomes.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
 const BREAK_TIME = 0.5;    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
-const SLOTS = [1, 2, 3];   // drie wereld-plekken
+const SLOTS = [1, 2, 3, 4, 5, 6];   // zes wereld-plekken, de oude sleutels blijven gelijk
 
 class Game {
   constructor(root) {
@@ -86,6 +87,7 @@ class Game {
 
     const settings = this.storage.loadLocal('settings') || {};
     this.sounds.muted = !!settings.muted;
+    this.settings = { ...settings, predators: settings.predators !== false, album: Array.isArray(settings.album) ? settings.album : [] };
     this.music.on = settings.music !== false;
     this.thirdPerson = !!settings.third;
     this.ui.setMuted(this.sounds.muted);
@@ -127,8 +129,8 @@ class Game {
 
   // ---------- wereld & bewaren ----------
 
-  freshWorld(type) {
-    this.world.generate(type);
+  freshWorld(type, seed) {
+    this.world.generate(type, seed);
     this.player.setPos(this.world.spawnPoint());
     this.player.yaw = 0;
     this.player.pitch = -0.25;
@@ -137,12 +139,13 @@ class Game {
     this.thumb = null;
     this.animals.clear();
     this.animals.populate(this.world);
+    this.updateBiome(true);
   }
 
   makeSave() {
     const p = this.player;
     return {
-      v: 2,
+      v: 3,
       t: Date.now(),
       type: this.world.type,
       seed: this.world.seed,
@@ -152,15 +155,16 @@ class Game {
       sel: this.sel,
       mode: this.mode,
       animals: this.animals.serialize(),
+      riding: false,
       thumb: this.thumb,
     };
   }
 
   applySave(s) {
     try {
-      if (!s || (s.v !== 1 && s.v !== 2) || typeof s.blocks !== 'string') return false;
+      if (!s || ![1, 2, 3].includes(s.v) || typeof s.blocks !== 'string') return false;
       this.world.deserialize(s.blocks);
-      this.world.type = s.type || 'island';
+      this.world.type = BIOMES[s.type] ? s.type : 'island';
       this.world.seed = s.seed || 1;
       const p = s.player || {};
       const num = (v, d) => (Number.isFinite(v) ? v : d);
@@ -180,6 +184,7 @@ class Game {
       else { this.animals.clear(); this.animals.populate(this.world); }
       this.thumb = typeof s.thumb === 'string' ? s.thumb : null;
       this.undoStack = [];
+      this.updateBiome(true);
       return true;
     } catch (e) {
       // deserialize() verandert niets als het mislukt, dus de huidige wereld blijft staan
@@ -211,7 +216,7 @@ class Game {
   }
 
   saveSettings() {
-    this.storage.saveLocal('settings', { muted: this.sounds.muted, music: this.music.on, third: this.thirdPerson });
+    this.storage.saveLocal('settings', { ...this.settings, muted: this.sounds.muted, music: this.music.on, third: this.thirdPerson });
   }
 
   // Grof afgeronde plek en kijkrichting: alleen bewaren als die echt veranderd is
@@ -313,7 +318,7 @@ class Game {
   refreshUI() {
     this.ui.setHotbar(this.hotbar, this.sel);
     this.ui.setMode(this.mode);
-    this.ui.setFlying(this.player.flying);
+    this.ui.setFlying(this.player.flying, this.player.climbing);
   }
 
   play() {
@@ -479,7 +484,11 @@ class Game {
     const nb = BLOCKS[id];
     const nope = () => this.sounds.nope();
     if (!w.inside(x, y, z) || !BLOCKS[existing].replaceable || existing === id) return nope();
-    if (nb.render === 'cross' && !OPAQUE[w.get(x, y - 1, z)]) return nope();
+    if (nb.climb) {
+      const supported = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
+        .some(([dx, dy, dz]) => { const id = w.get(x + dx, y + dy, z + dz); return BLOCKS[id].solid || id === B.VINE; });
+      if (!supported) return nope();
+    } else if (nb.render === 'cross' && !OPAQUE[w.get(x, y - 1, z)]) return nope();
     const f = this.facing();
 
     if (nb.shape === 'door') {
@@ -590,7 +599,7 @@ class Game {
       if (BLOCKS[other].shape === 'door') changes.push({ x, y: oy, z, from: other, to: AIR });
     }
     const above = w.get(x, y + 1, z);
-    if (BLOCKS[above].render === 'cross') changes.push({ x, y: y + 1, z, from: above, to: AIR });
+    if (BLOCKS[above].render === 'cross' && !BLOCKS[above].climb) changes.push({ x, y: y + 1, z, from: above, to: AIR });
     this.apply(changes);
     this.sounds.break(b.sound);
     this.particles.burst(x, y, z, this.atlas.particleColors[BLOCKS[hit.id].family] || this.atlas.particleColors[hit.id], 18);
@@ -661,6 +670,10 @@ class Game {
 
   // ---------- de spel-lus ----------
 
+  updateBiome(instant = false) {
+    this.scene.setBiome(biomeView(this.world.type, this.player.x, this.player.z), instant);
+  }
+
   resize() {
     const w = window.innerWidth, h = window.innerHeight;
     this.scene.resize(w, h);
@@ -701,7 +714,9 @@ class Game {
       p.yaw -= dx;
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch - dy));
       for (const tap of this.input.taps.splice(0)) this.act(tap);
+      const wasClimbing = p.climbing;
       p.update(dt, this.input, this.world, now);
+      if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();
       this.input.taps.length = 0;
@@ -721,6 +736,10 @@ class Game {
     this.animals.update(dt, this.world);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
+    if (this.world.type === 'adventure' && now >= (this.nextBiome || 0)) {
+      this.updateBiome(); this.nextBiome = now + 0.5;
+    }
+    this.scene.updateBiome(dt);
     this.scene.render();
     if (this.playing && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
@@ -772,6 +791,6 @@ function start() {
 // Geen zoomen, scrollen of selecteren op de iPad
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
-document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card')) e.preventDefault(); }, { passive: false });
 
 start();

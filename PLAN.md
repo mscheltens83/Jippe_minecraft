@@ -135,8 +135,17 @@ tests/smoke.mjs         automatische test in een (iPad-)browser
 - Knoppen spiegelen voor linkshandigen
 - Het shirt van het poppetje zelf een kleur geven
 
-## 12. Fase 3 (gepland)
+## 12. Fase 3
 
 Jungle, woestijn, toendra, savanne en een avonturenwereld, wilde dieren (met leeuw, cheetah en
 tijger voorop), roofdieren en stallen, temmen en rijden op de leeuw, en een dierenalbum.
 Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
+
+- ✅ **3A**: zeven wereldsoorten, zes plekken, Natuur-tab, nieuwe blokken en stempels,
+  bomen en bouwwerken, lucht en mist per gebied, ijs, modder en lianen, opslag v3.
+  Oude v1-opslag en een echte v2-wereld uit fase 2 worden automatisch getest.
+- ⬜ **3B–3G**: wilde dieren, stallen en jagen, temmen en rijden, album, weer en muziek.
+
+De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
+en meldt de gemiddelde beeldtijd met 30 dieren. De snelheid en bediening op een echte
+iPad 7e generatie moeten na het samenvoegen nog worden geprobeerd.

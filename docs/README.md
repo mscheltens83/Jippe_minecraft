@@ -18,7 +18,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 |---|---|---|
 | 1 | Bouwen, slopen, eiland en platte wereld, iPad-bediening | Klaar |
 | 2 | Dieren (varken, kip, schaap), stempels, nieuwe blokken, poppetje, muziek, 3 werelden | Klaar |
-| 3A | Nieuwe werelden en blokken | Te doen |
+| 3A | Nieuwe werelden en blokken | Klaar; op een echte iPad nog proberen |
 | 3B | Leeuw, cheetah, tijger en savannedieren | Te doen |
 | 3C | Roofdieren en stallen | Te doen |
 | 3D | Temmen en rijden op de leeuw | Te doen |

@@ -2,6 +2,7 @@
 // Ze worden gebouwd vanaf het vakje waar je tikte, van je af gericht.
 
 import { AIR, B, BLOCKS, DIRS, doorId } from './blocks.js';
+import { structureCells, structureBounds } from './structures.js';
 
 // Geeft een lijst met veranderingen {x, y, z, from, to} terug (zodat "terug" ook werkt)
 export function buildStamp(kind, world, ox, oy, oz, dir) {
@@ -79,6 +80,13 @@ export function buildStamp(kind, world, ox, oy, oz, dir) {
       put(0, 1, lz, AIR);
     }
     put(0, -1, 0, B.PLANKS);
+  } else if (['igloo', 'pyramid', 'temple', 'lionRock'].includes(kind)) {
+    const bounds = structureBounds(kind, true);
+    for (const [x, y, z, id] of structureCells(kind, true)) {
+      const forward = z - bounds[2];
+      put(x, y, forward, id);
+      if (y === -1) foundation(x, forward, id);
+    }
   }
 
   const changes = [];

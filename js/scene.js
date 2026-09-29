@@ -108,13 +108,63 @@ export class GameScene {
     this.scene.add(this.sky);
 
     // Vierkante zon, net als in Minecraft
-    const sun = new THREE.Mesh(
+    const sun = this.sun = new THREE.Mesh(
       new THREE.PlaneGeometry(40, 40),
       new THREE.MeshBasicMaterial({ color: '#fff4b0', fog: false, depthWrite: false }),
     );
     sun.position.set(120, 200, -140);
     sun.lookAt(0, 0, 0);
     this.sky.add(sun);
+  }
+
+  setBiome(biome, instant = false) {
+    const air = biome.lucht;
+    this.biomeTarget = {
+      boven: new THREE.Color(air.boven), horizon: new THREE.Color(air.horizon),
+      mist: new THREE.Color(air.mist), zon: new THREE.Color(air.zon),
+      mistBegin: air.mistBegin, mistEind: air.mistEind, wolken: air.wolken,
+    };
+    if (!this.biomeCurrent || instant) {
+      this.biomeCurrent = { ...this.biomeTarget };
+      for (const key of ['boven', 'horizon', 'mist', 'zon']) this.biomeCurrent[key] = this.biomeTarget[key].clone();
+      this.applyBiome();
+      this.biomeAnimating = false;
+    } else this.biomeAnimating = true;
+  }
+
+  // Zacht overgaan als je in Avontuur een ander gebied inloopt (ongeveer twee seconden).
+  updateBiome(dt) {
+    if (!this.biomeAnimating) return;
+    const current = this.biomeCurrent, target = this.biomeTarget;
+    const k = 1 - Math.exp(-dt * 2);
+    let difference = 0;
+    for (const key of ['boven', 'horizon', 'mist', 'zon']) {
+      current[key].lerp(target[key], k);
+      difference += Math.abs(current[key].r - target[key].r) + Math.abs(current[key].g - target[key].g) + Math.abs(current[key].b - target[key].b);
+    }
+    for (const key of ['mistBegin', 'mistEind', 'wolken']) {
+      current[key] += (target[key] - current[key]) * k;
+      difference += Math.abs(current[key] - target[key]);
+    }
+    this.applyBiome();
+    if (difference < 0.001) this.biomeAnimating = false;
+  }
+
+  applyBiome() {
+    const b = this.biomeCurrent;
+    this.scene.background.copy(b.mist);
+    this.scene.fog.color.copy(b.mist);
+    this.scene.fog.near = b.mistBegin; this.scene.fog.far = b.mistEind;
+    this.sun.material.color.copy(b.zon);
+    this.clouds.count = Math.max(0, Math.min(this.cloudData.length, Math.round(b.wolken)));
+    const positions = this.sky.geometry.attributes.position, colors = this.sky.geometry.attributes.color;
+    const color = this.biomeColor || (this.biomeColor = new THREE.Color());
+    for (let i = 0; i < positions.count; i++) {
+      const h = Math.pow(Math.max(0, positions.getY(i) / 300), 0.6);
+      color.copy(b.horizon).lerp(b.boven, h);
+      colors.setXYZ(i, color.r, color.g, color.b);
+    }
+    colors.needsUpdate = true;
   }
 
   buildSea() {

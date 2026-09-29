@@ -37,10 +37,11 @@ export class Player {
     this.onGround = false;
     this.flying = false;
     this.inWater = false;
+    this.climbing = false;
     this.jumpedAt = 0;
   }
 
-  setPos(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; }
+  setPos(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; this.climbing = false; }
 
   box(x = this.x, y = this.y, z = this.z) {
     return [x - HALF, y, z - HALF, x + HALF, y + HEIGHT, z + HALF];
@@ -98,15 +99,17 @@ export class Player {
     const feet = world.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z));
     const head = world.get(Math.floor(this.x), Math.floor(this.y + EYE), Math.floor(this.z));
     this.inWater = feet === B.WATER || head === B.WATER;
+    this.climbing = !this.flying && (feet === B.VINE || head === B.VINE);
     const below = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
 
     // Loop-richting t.o.v. waar je kijkt
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const mx = input.move.x, mz = input.move.y;
-    const speed = this.flying ? FLY : this.inWater ? SWIM : WALK;
+    const speed = this.flying ? FLY : this.climbing ? 2.5 : this.inWater ? SWIM : below === B.MUD ? WALK * 0.5 : WALK;
     const tx = (-sin * mz + cos * mx) * speed;
     const tz = (-cos * mz - sin * mx) * speed;
-    const accel = this.onGround || this.flying || this.inWater ? 14 : 5;
+    const slippery = this.onGround && !this.flying && !this.climbing && (below === B.ICE || below === B.PACKED_ICE);
+    const accel = slippery ? 1.5 : this.onGround || this.flying || this.inWater || this.climbing ? 14 : 5;
     const k = Math.min(1, accel * dt);
     this.vx += (tx - this.vx) * k;
     this.vz += (tz - this.vz) * k;
@@ -114,6 +117,9 @@ export class Player {
     if (this.flying) {
       const up = (input.jump ? 1 : 0) - (input.down ? 1 : 0);
       this.vy += (up * 7 - this.vy) * Math.min(1, 10 * dt);
+    } else if (this.climbing) {
+      // Vooruit in een liaan of de springknop = omhoog; omlaag heeft voorrang.
+      this.vy = (input.down ? -1 : input.jump || mz > 0.2 ? 1 : 0) * 2.5;
     } else if (this.inWater) {
       this.vy -= 7 * dt;
       if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.8);
@@ -164,7 +170,7 @@ export class Player {
 
     // Automatisch springen tegen een opstapje van 1 blok
     const moving = Math.hypot(mx, mz) > 0.2;
-    if ((hitX || hitZ) && this.onGround && moving && !this.flying) {
+    if ((hitX || hitZ) && this.onGround && moving && !this.flying && !this.climbing) {
       const len = Math.hypot(tx, tz) || 1;
       const ax = this.x + (tx / len) * 0.35, az = this.z + (tz / len) * 0.35;
       if (!this.collides(world, ax, this.y + 1.05, az) && this.collides(world, ax, this.y, az)) {

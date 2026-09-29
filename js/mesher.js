@@ -63,6 +63,8 @@ function faceST(a, sign, lx, ly, lz) {
 function faceVisible(b, id, nid) {
   if (nid === AIR) return true;
   if (OPAQUE[nid]) return false;
+  // Binnen de grote nieuwe boomkruinen hoeven we geen verborgen bladvlakken te tekenen.
+  if (b.foliage && BLOCKS[nid].foliage) return false;
   if (b.render === 'water') return nid !== B.WATER;
   if (id === nid && (b.render === 'glass' || id === B.GLASS)) return false;
   return true;

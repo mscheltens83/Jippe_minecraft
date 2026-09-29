@@ -6,6 +6,7 @@
 const LOCAL = {
   world: 'jippecraft.world.v1', backup: 'jippecraft.backup.v1', settings: 'jippecraft.settings.v1',
   meta: 'jippecraft.meta.v1', slot1: 'jippecraft.slot1.v1', slot2: 'jippecraft.slot2.v1', slot3: 'jippecraft.slot3.v1',
+  slot4: 'jippecraft.slot4.v1', slot5: 'jippecraft.slot5.v1', slot6: 'jippecraft.slot6.v1',
 };
 const MAX_REMOTE = 250000;
 

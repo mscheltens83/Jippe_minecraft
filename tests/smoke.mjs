@@ -7,6 +7,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { testPhaseA } from './phase-a.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -29,7 +30,9 @@ const check = (ok, msg) => { console.log(`${ok ? 'OK  ' : 'FOUT'} ${msg}`); if (
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
+  // Windows kan de echte GPU gebruiken; Linux/CI houdt de bestaande software-renderer.
+  args: process.platform === 'win32' && process.env.SOFTWARE_RENDERING !== '1'
+    ? ['--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
 const errors = [];
 async function newPage(init) {
@@ -121,7 +124,7 @@ check(await until((n) => window.__jippecraft.undoStack.length === n - 1, undoLen
 // --- de kist met groepen
 await page.locator('.slot.chest').tap();
 check(await page.locator('.palette').isVisible(), 'kist gaat open');
-check((await page.locator('.pal-tab').count()) === 3, 'kist heeft tabbladen: blokken, stempels en dieren');
+check((await page.locator('.pal-tab').count()) === 4, 'kist heeft tabbladen: blokken, natuur, stempels en dieren');
 await shot('03-kist');
 await page.locator('.pal-tab[aria-label="Stempels"]').tap();
 check(await page.locator('.pal-item[aria-label="Toren"]').isVisible(), 'stempels-tabblad laat de stempels zien');
@@ -274,7 +277,7 @@ await page.locator('.labeled:has-text("Muziek") .btn').tap();
 // --- 13. meerdere werelden
 const world1 = await g(() => window.__jippecraft.world.serialize());
 await page.locator('.worlds-btn').tap();
-check((await page.locator('.slot-card').count()) === 3, 'drie wereld-plekken');
+check((await page.locator('.slot-card').count()) === 6, 'zes wereld-plekken');
 check(await page.locator('.slot-card.current').isVisible(), 'huidige wereld is gemarkeerd');
 await shot('09-werelden');
 await page.locator('.slot-card.empty').first().tap();
@@ -348,6 +351,8 @@ const oldSave = await (async () => {
   check(r.animals > 0 && r.legacy === null, 'oude wereld krijgt dieren en de oude opslag is opgeruimd');
   await c.close();
 }
+
+await testPhaseA({ newPage, check, out, phase2Save: JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/fase-2-v2.json'), 'utf8')) });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 
