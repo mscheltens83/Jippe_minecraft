@@ -5,23 +5,39 @@ import { SX, SZ } from './world.js';
 import { BIOMES, biomeAt } from './biomes.js';
 import { Animal } from './animals/core.js';
 import { SPECIES, MAX_ANIMALS } from './animals/species.js';
+import { updateHunt } from './animals/hunt.js';
 export { SPECIES, MAX_ANIMALS } from './animals/species.js';
 
 const GROUND = [B.GRASS, B.DRY_GRASS, B.SAND, B.RED_SAND, B.RED_DIRT, B.MUD];
 export class Animals {
   constructor(scene, effects = null) {
     this.scene = scene; this.effects = effects; this.list = []; this.frame = 0;
+    this.predators = true; this.caught = []; this.onCatch = null;
     this.tmp = new THREE.Vector3(); this.frustum = new THREE.Frustum(); this.matrix = new THREE.Matrix4();
   }
   get full() { return this.list.length >= MAX_ANIMALS; }
   clear() {
+    for (const a of this.list) if (a.hunt?.phase === 'stalk') this.effects?.warnAt?.(a.hunt.target, false);
     for (const a of this.list) this.scene.remove(a.group);
     this.list = []; // Gedeelde geometrie blijft in de cache voor de volgende wereld.
   }
   remove(a) {
     const index = this.list.indexOf(a);
     if (index < 0) return;
+    if (a.hunt) this.stopHunt(a);
     this.scene.remove(a.group); this.list.splice(index, 1);
+  }
+  stopHunt(a, seconds = 0) {
+    if (a.hunt) {
+      if (a.hunt.phase === 'stalk') this.effects?.warnAt?.(a.hunt.target, false);
+      a.hunt.target.fleeFrom = null;
+    }
+    a.hunt = null; a.huntPause = Math.max(a.huntPause, seconds);
+    a.walking = false;
+  }
+  setPredators(on) {
+    this.predators = !!on;
+    if (!on) for (const a of this.list) if (a.hunt) this.stopHunt(a);
   }
   spawn(type, x, y, z, yaw = Math.random() * Math.PI * 2) {
     if (!SPECIES[type] || this.full) return null;
@@ -72,8 +88,9 @@ export class Animals {
     }
   }
 
-  update(dt, world, viewer = null, camera = null) {
+  update(dt, world, viewer = null, camera = null, clockDt = dt) {
     this.frame++;
+    this.caught.length = 0;
     if (camera) {
       camera.updateMatrixWorld(); this.matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       this.frustum.setFromProjectionMatrix(this.matrix);
@@ -82,11 +99,15 @@ export class Animals {
       const a = this.list[i], visible = !camera || this.frustum.intersectsBox(a.box);
       const far = viewer && Math.hypot(a.x - viewer.x, a.z - viewer.z) > 40;
       a.elapsed += dt;
+      a.clockElapsed += clockDt;
       if (!far || (this.frame + i) % 4 === 0) {
-        a.update(a.elapsed, world, visible ? this.effects : null, this.list, visible); a.elapsed = 0;
+        updateHunt(a, a.clockElapsed, world, this);
+        a.update(a.elapsed, world, visible ? this.effects : null, this.list, visible, a.clockElapsed);
+        a.elapsed = 0; a.clockElapsed = 0;
       } else if (visible && !a.group.visible) a.show(0);
       a.group.visible = visible;
     }
+    for (const prey of this.caught) this.remove(prey);
   }
 
   pick(ray, maxDist) {
@@ -104,7 +125,8 @@ export class Animals {
     const r = (v) => Math.round(v * 100) / 100;
     return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw),
       tame: !!a.tame, hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
-      sleep: Number.isFinite(a.sleep) ? a.sleep : 0 }));
+      sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
+      huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 }));
   }
   load(arr) {
     this.clear();
@@ -116,6 +138,7 @@ export class Animals {
       a.tame = !!o.tame;
       a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
       a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
+      a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;
       a.state = a.sleep ? 'slapen' : 'rust'; a.show(0);
     }
   }

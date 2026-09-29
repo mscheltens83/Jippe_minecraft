@@ -147,7 +147,9 @@ Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
 - ✅ **3B**: één dierensysteem met gedeelde figuren, maximaal zestig dieren en minder
   updates op afstand. Leeuw, leeuwin, cheetah, tijger, olifant, giraf, zebra, nijlpaard
   en stokstaartje hebben eigen geluiden, bewegingen en kunstjes. Dierenkist per wereld.
-- ⬜ **3C–3G**: stallen en jagen, temmen en rijden, overige wilde dieren, album, weer en muziek.
+- ✅ **3C**: hekken en hekdeuren, hooibalen, vriendelijke jacht met waarschuwing en ingrijpen,
+  plus een bewaarde ouderinstelling om jagen uit te zetten.
+- ⬜ **3D–3G**: temmen en rijden, overige wilde dieren, album, weer en muziek.
 
 De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
 en meldt de gemiddelde beeldtijd met 30 dieren, ook met de nieuwe wilde soorten.

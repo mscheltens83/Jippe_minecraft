@@ -192,7 +192,11 @@ export class UI {
     const worldsBtn = button('small worlds-btn', 'worlds', 'Werelden');
     onPress(worldsBtn, () => this.showPanel('worlds'));
     row.append(labeled(this.soundBtn, 'Geluid'), labeled(this.musicBtn, 'Muziek'), labeled(worldsBtn, 'Werelden'));
-    main.append(this.playBtn, row);
+    this.predatorsBtn = button('small predators-btn', 'lion', 'Roofdieren jagen');
+    this.predatorsBtn.innerHTML = ICONS.lion + ICONS.pig;
+    this.predatorsBtn.setAttribute('aria-pressed', 'true');
+    onPress(this.predatorsBtn, () => h.onTogglePredators());
+    main.append(this.playBtn, row, labeled(this.predatorsBtn, 'Roofdieren jagen'));
 
     const worlds = this.panels.worlds = el('div', 'panel');
     this.slotRow = el('div', 'slots');
@@ -322,6 +326,10 @@ export class UI {
   setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }
   setMuted(m) { this.soundBtn.innerHTML = m ? ICONS.soundOff : ICONS.soundOn; }
   setMusic(on) { this.musicBtn.innerHTML = on ? ICONS.music : ICONS.musicOff; }
+  setPredators(on) {
+    this.predatorsBtn.classList.toggle('off', !on);
+    this.predatorsBtn.setAttribute('aria-pressed', String(on));
+  }
 
   holdRing(x, y, p) {
     this.holdEl.hidden = false;

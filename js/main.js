@@ -1,7 +1,7 @@
 // JippeCraft: hier komt alles samen. Opstarten, de spel-lus, bouwen en slopen.
 
 import * as THREE from '../lib/three.module.min.js';
-import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, isSpecial } from './blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial } from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World } from './world.js';
 import { GameScene } from './scene.js';
@@ -75,6 +75,7 @@ class Game {
       onPick: (id) => this.pick(id),
       onToggleSound: () => this.toggleSound(),
       onToggleMusic: () => this.toggleMusic(),
+      onTogglePredators: () => this.togglePredators(),
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
@@ -88,10 +89,13 @@ class Game {
     const settings = this.storage.loadLocal('settings') || {};
     this.sounds.muted = !!settings.muted;
     this.settings = { ...settings, predators: settings.predators !== false, album: Array.isArray(settings.album) ? settings.album : [] };
+    this.animals.setPredators(this.settings.predators);
+    this.animals.onCatch = () => { this.sounds.nom(); this.markDirty(); };
     this.music.on = settings.music !== false;
     this.thirdPerson = !!settings.third;
     this.ui.setMuted(this.sounds.muted);
     this.ui.setMusic(this.music.on);
+    this.ui.setPredators(this.settings.predators);
     this.ui.setThirdPerson(this.thirdPerson);
 
     this.migrateOldSaves();
@@ -111,6 +115,7 @@ class Game {
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
+      this.last = performance.now() / 1000;
       if (document.hidden) { this.input.releaseAll(); this.saveNow(); this.sounds.suspend(); }
     });
     window.addEventListener('pagehide', () => this.saveNow());
@@ -402,6 +407,14 @@ class Game {
     if (this.music.on) this.music.start(); else this.music.stop();
   }
 
+  togglePredators() {
+    this.settings.predators = !this.settings.predators;
+    this.animals.setPredators(this.settings.predators);
+    this.ui.setPredators(this.settings.predators);
+    this.saveSettings();
+    this.sounds.pop();
+  }
+
   key(e) {
     if (e.code === 'Escape') {
       if (this.ui.paletteOpen) this.ui.closePalette();
@@ -458,6 +471,7 @@ class Game {
     if (!hit) return;
     const forceBreak = mode === 'break' && tap.alt;
     if (BLOCKS[hit.id].shape === 'door' && !forceBreak) { this.toggleDoor(hit); return; }
+    if (BLOCKS[hit.id].shape === 'gate' && !forceBreak) { this.toggleGate(hit); return; }
     if (hit.id === B.FIREWORK && !forceBreak) { this.launchFirework(hit); return; }
     if (mode === 'build') this.use(hit);
     else if (forceBreak) this.breakBlock(hit);
@@ -502,11 +516,16 @@ class Game {
         { x, y: y + 1, z, from: up, to: doorId(d, true, false) },
       ]);
     } else {
-      const place = nb.shape === 'stairs' ? B.STAIRS + f : id;
+      const place = nb.shape === 'stairs' ? B.STAIRS + f : nb.shape === 'gate' ? gateId(f, false) : id;
       let lift = false;
+      if (nb.shape === 'fence' || nb.shape === 'gate') {
+        const box = p.box();
+        if (x < box[3] && x + 1 > box[0] && z < box[5] && z + 1 > box[2] &&
+          y < box[4] && y + 1.5 > box[1]) return nope();
+      }
       if (BLOCKS[place].solid && p.overlapsBlock(x, y, z)) {
         // Bouw je onder je eigen voeten? Dan wip je erbovenop: zo bouw je een toren
-        if (p.canLiftOver(w, y)) lift = true;
+        if (nb.shape !== 'fence' && nb.shape !== 'gate' && p.canLiftOver(w, y)) lift = true;
         else return nope();
       }
       this.apply([{ x, y, z, from: existing, to: place }]);
@@ -547,6 +566,7 @@ class Game {
   }
 
   petAnimal(a) {
+    this.animals.stopHunt(a, 30);
     a.pet(this.player.x, this.player.z);
     this.sounds.animal(a.type);
     this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z);
@@ -569,6 +589,17 @@ class Game {
     }
     this.sounds.door();
     this.markDirty();
+  }
+
+  toggleGate(hit) {
+    const w = this.world, b = BLOCKS[hit.id];
+    w.set(hit.x, hit.y, hit.z, gateId(b.dir, !b.open));
+    if (this.player.collides(w, this.player.x, this.player.y, this.player.z) ||
+      this.animals.list.some((a) => Math.abs(a.x - hit.x - 0.5) < 2 && Math.abs(a.z - hit.z - 0.5) < 2 &&
+        Math.abs(a.y - hit.y) < 3 && !a.clearAt(w, a.x, a.y, a.z))) {
+      w.set(hit.x, hit.y, hit.z, hit.id); this.sounds.nope(); return;
+    }
+    this.sounds.door(); this.markDirty();
   }
 
   launchFirework(hit) {
@@ -706,6 +737,7 @@ class Game {
   frame(t) {
     requestAnimationFrame((tt) => this.frame(tt));
     const now = t / 1000;
+    const realDt = this.playing && !document.hidden ? Math.min(1, Math.max(0, now - this.last)) : 0;
     const dt = Math.min(0.05, Math.max(0, now - this.last));
     this.last = now;
     const p = this.player;
@@ -735,7 +767,7 @@ class Game {
     this.scene.showHighlight(hl);
 
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
-    this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera);
+    this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
     if (this.world.type === 'adventure' && now >= (this.nextBiome || 0)) {

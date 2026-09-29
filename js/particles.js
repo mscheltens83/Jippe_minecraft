@@ -41,6 +41,13 @@ export class Particles {
     const sleepMap = new THREE.CanvasTexture(sleep);
     this.sleepMat = new THREE.SpriteMaterial({ map: sleepMap, transparent: true, depthWrite: false });
     this.zzz = [];
+    const warn = document.createElement('canvas'); warn.width = warn.height = 64;
+    const wc = warn.getContext('2d');
+    wc.fillStyle = '#ffffff'; wc.strokeStyle = '#7b4833'; wc.lineWidth = 4;
+    wc.beginPath(); wc.arc(32, 29, 25, 0, Math.PI * 2); wc.fill(); wc.stroke();
+    wc.font = 'bold 42px sans-serif'; wc.fillStyle = '#e78d25'; wc.textAlign = 'center'; wc.fillText('!', 32, 45);
+    this.warnMat = new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(warn), transparent: true, depthWrite: false });
+    this.warnings = new Map();
     this.scene = scene;
   }
 
@@ -138,6 +145,25 @@ export class Particles {
     });
   }
 
+  warnAt(animal, on) {
+    const current = this.warnings.get(animal);
+    if (!on) {
+      if (current && --current.count <= 0) {
+        this.scene.remove(current.sprite); current.sprite.material.dispose(); this.warnings.delete(animal);
+      }
+      return;
+    }
+    if (current) { current.count++; return; }
+    const sprite = new THREE.Sprite(this.warnMat.clone());
+    sprite.scale.set(0.7, 0.7, 1); this.scene.add(sprite); this.warnings.set(animal, { sprite, count: 1 });
+  }
+
+  poofAt(x, y, z, feathers = false) {
+    this.burst(x - 0.5, y - 0.5, z - 0.5, [[1, 1, 1], [0.92, 0.96, 1]], 70, true);
+    this.sparkle(x - 0.6, y - 0.3, z - 0.6, x + 0.6, y + 0.7, z + 0.6, 24);
+    if (feathers) this.burst(x - 0.5, y - 0.4, z - 0.5, [[1, 1, 1], [1, 0.95, 0.72]], 12, true);
+  }
+
   waterAt(x, y, z, dx, dz) {
     for (let i = 0; i < 40; i++) this.add({
       x, y, z, vx: dx * (1.5 + Math.random() * 1.5) + (Math.random() - 0.5),
@@ -148,6 +174,7 @@ export class Particles {
   }
 
   update(dt, world) {
+    for (const [animal, warning] of this.warnings) warning.sprite.position.set(animal.x, animal.y + animal.def.h + 0.6 + Math.sin(animal.time * 5) * 0.08, animal.z);
     // vuurpijlen
     for (const r of this.rockets) {
       r.life += dt;

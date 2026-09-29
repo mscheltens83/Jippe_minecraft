@@ -621,6 +621,22 @@ export function drawBlockIcon(atlas, id, size = 96) {
     ctx.drawImage(atlas.canvas, low[0], low[1], TILE, TILE, 18 * k, 32 * k, 28 * k, 28 * k);
     return c;
   }
+  if (b.shape === 'fence' || b.shape === 'gate') {
+    // Grote, eenvoudige plaatjes: hek met latten; hekdeur met scharnieren en klink.
+    const plank = (x, y, w, h) => {
+      ctx.fillStyle = '#513018'; ctx.fillRect(x * k, y * k, w * k, h * k);
+      ctx.fillStyle = '#a77542'; ctx.fillRect((x + 2) * k, (y + 2) * k, (w - 4) * k, (h - 4) * k);
+    };
+    if (b.shape === 'fence') {
+      plank(4, 9, 11, 51); plank(49, 9, 11, 51);
+      plank(12, 25, 42, 9); plank(12, 44, 42, 9);
+    } else {
+      plank(4, 9, 10, 51); plank(50, 9, 10, 51);
+      plank(14, 19, 36, 9); plank(14, 42, 36, 9);
+      ctx.fillStyle = '#f5cf65'; ctx.fillRect(41 * k, 33 * k, 6 * k, 6 * k);
+    }
+    return c;
+  }
 
   // Isometrische projectie: x naar rechtsonder, z naar linksonder, y omhoog
   const P = (x, y, z) => [(32 + (x - z) * 28) * k, (32 + (x + z) * 14 - y * 28) * k];

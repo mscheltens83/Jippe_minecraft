@@ -2,7 +2,7 @@
 // Alleen vlakken die je kunt zien worden gemaakt. In hoekjes komt een
 // zachte schaduw (ambient occlusion), dat maakt bouwwerken duidelijk.
 
-import { AIR, B, BLOCKS, OPAQUE } from './blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from './blocks.js';
 import { SX, SY, SZ, CHUNK } from './world.js';
 import { ATLAS_COLS } from './textures.js';
 
@@ -109,7 +109,7 @@ export function buildChunk(world, atlas, cx, cz) {
 
         // Bijzondere vormen (trap, deur): losse kleine blokjes
         if (b.boxes) {
-          for (const box of b.boxes) {
+          for (const box of blockBoxes(world, x, y, z)) {
             for (let f = 0; f < 6; f++) {
               const F = FACES[f];
               const a = F.a, u = (a + 1) % 3, v = (a + 2) % 3;
@@ -127,6 +127,7 @@ export function buildChunk(world, atlas, cx, cz) {
                 L[v] = corners[i][1] ? box[3 + v] : box[v];
                 verts[i] = [x + L[0], y + L[1], z + L[2]];
                 const st = faceST(a, F.s, L[0], L[1], L[2]);
+                if (a !== 1 && box[4] > 1) st[1] /= box[4];
                 uvs[i] = tileUV(tile, st[0], st[1]);
                 cols[i] = c;
               }

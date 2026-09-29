@@ -1,7 +1,7 @@
 // De speler: lopen, springen, vliegen, zwemmen, stuiteren en botsen tegen blokken.
 // Botsen gaat met kleine blokjes, zodat je een trap op kunt lopen en langs een open deur kunt.
 
-import { B, BLOCKS } from './blocks.js';
+import { B, BLOCKS, blockBoxes } from './blocks.js';
 import { SX, SZ, SY } from './world.js';
 
 const HALF = 0.3;        // halve breedte
@@ -16,13 +16,12 @@ const KEYS = ['x', 'y', 'z'];
 // Alle botsblokjes in een gebied (in wereld-coördinaten)
 function gather(world, lo, hi) {
   const out = [];
-  for (let by = Math.floor(lo[1]); by <= Math.floor(hi[1]); by++) {
+  for (let by = Math.floor(lo[1] - 0.5); by <= Math.floor(hi[1]); by++) {
     for (let bz = Math.floor(lo[2]); bz <= Math.floor(hi[2]); bz++) {
       for (let bx = Math.floor(lo[0]); bx <= Math.floor(hi[0]); bx++) {
         const b = BLOCKS[world.get(bx, by, bz)];
         if (!b.solid) continue;
-        if (b.boxes) for (const q of b.boxes) out.push([bx + q[0], by + q[1], bz + q[2], bx + q[3], by + q[4], bz + q[5]]);
-        else out.push([bx, by, bz, bx + 1, by + 1, bz + 1]);
+        for (const q of blockBoxes(world, bx, by, bz, true)) out.push([bx + q[0], by + q[1], bz + q[2], bx + q[3], by + q[4], bz + q[5]]);
       }
     }
   }
