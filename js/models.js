@@ -56,3 +56,22 @@ export function part(geos, pivotX, pivotY, pivotZ) {
   m.position.set(pivotX, pivotY, pivotZ);
   return m;
 }
+
+// Elk dier krijgt eigen scharnieren, maar deelt de vormen met zijn soortgenoten.
+// De cache bezit de geometrie: een dier weghalen mag die dus niet opruimen.
+const MODEL_CACHE = new Map();
+export function cachedModel(key, build) {
+  if (!MODEL_CACHE.has(key)) MODEL_CACHE.set(key, build());
+  const source = MODEL_CACHE.get(key), copies = new Map();
+  const roots = [...source.parts, ...source.legs];
+  const pair = (a, b) => {
+    copies.set(a, b);
+    a.children.forEach((child, i) => pair(child, b.children[i]));
+  };
+  for (const root of roots) pair(root, root.clone());
+  const result = {};
+  for (const [name, value] of Object.entries(source)) {
+    result[name] = Array.isArray(value) ? value.map((v) => copies.get(v) || v) : copies.get(value) || value;
+  }
+  return result;
+}

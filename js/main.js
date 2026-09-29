@@ -39,7 +39,7 @@ class Game {
     this.sounds = new Sounds();
     this.music = new Music(this.sounds);
     this.particles = new Particles(this.scene.scene);
-    this.animals = new Animals(this.scene.scene);
+    this.animals = new Animals(this.scene.scene, this.particles);
     this.avatar = new Avatar(this.scene.scene);
     this.storage = new Storage();
     this.raycaster = new THREE.Raycaster();
@@ -539,6 +539,8 @@ class Game {
     const yaw = Math.atan2(-(p.x - x - 0.5), -(p.z - z - 0.5));
     const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, yaw);
     if (!a) { this.sounds.nope(); return; }
+    // De kleine boerderijdieren houden de vertrouwde plaatsingsregel uit fase 2.
+    if (a.def.dieet !== 'boerderij' && !a.clearAt(w, a.x, a.y, a.z)) { this.animals.remove(a); this.sounds.nope(); return; }
     this.sounds.animal(type);
     this.particles.heartsAt(x + 0.5, y + 1.1, z + 0.5);
     this.markDirty();
@@ -733,7 +735,7 @@ class Game {
     this.scene.showHighlight(hl);
 
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
-    this.animals.update(dt, this.world);
+    this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
     if (this.world.type === 'adventure' && now >= (this.nextBiome || 0)) {

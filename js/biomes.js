@@ -4,10 +4,11 @@ import { B } from './blocks.js';
 const sky = (boven, horizon, mist, mistBegin, mistEind, wolken = 46, zon = '#fff4b0') =>
   ({ boven, horizon, mist, mistBegin, mistEind, wolken, zon });
 const oldSky = sky('#4aa3ec', '#c9ecff', '#9ad8ff', 45, 125);
+const farmAnimals = [['pig', 4], ['sheep', 3], ['chicken', 4]];
 
 export const BIOMES = {
-  island: { naam: 'Eiland', icon: 'island', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 } },
-  flat: { naam: 'Plat', icon: 'flat', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 11, heuvels: 0, schaal: 18 } },
+  island: { naam: 'Eiland', icon: 'island', lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 } },
+  flat: { naam: 'Plat', icon: 'flat', lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 11, heuvels: 0, schaal: 18 } },
   jungle: {
     naam: 'Jungle', icon: 'jungle', zee: true,
     lucht: sky('#3f9fdc', '#bfe8d0', '#a9d8c0', 30, 90, 38),
@@ -15,14 +16,14 @@ export const BIOMES = {
     bomen: [{ soort: 'giantJungle', dichtheid: 0.006 }, { soort: 'jungle', dichtheid: 0.02 }],
     planten: [{ blok: B.JUNGLE_LEAVES, dichtheid: 0.03 }, { blok: B.FERN, dichtheid: 0.08 },
       { blok: B.JUNGLE_FLOWER, dichtheid: 0.02 }, { blok: B.BAMBOO, dichtheid: 0.004, hoog: [3, 6] }, { blok: B.MELON, dichtheid: 0.002 }],
-    bouwwerken: ['temple'], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'jungle',
+    bouwwerken: ['temple'], dieren: [['tiger', 3]], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'jungle',
   },
   desert: {
     naam: 'Woestijn', icon: 'desert', zee: true,
     lucht: sky('#5fb0e8', '#f3e2b0', '#f0dca8', 50, 130, 12, '#fff1a0'),
     grond: { top: B.SAND, onder: B.SAND, onderWater: B.SAND }, hoogte: { basis: 12, heuvels: 3, schaal: 30, schaalZ: 12 },
     bomen: [], planten: [{ blok: B.CACTUS, dichtheid: 0.01, hoog: [1, 3] }, { blok: B.DEAD_BUSH, dichtheid: 0.01 }],
-    bouwwerken: ['pyramid', 'oasis'], weer: null, achtergrond: 'wind', muziek: 'woestijn',
+    bouwwerken: ['pyramid', 'oasis'], dieren: [['meerkat', 3]], weer: null, achtergrond: 'wind', muziek: 'woestijn',
   },
   tundra: {
     naam: 'Toendra', icon: 'tundra', zee: true,
@@ -36,7 +37,9 @@ export const BIOMES = {
     lucht: sky('#58a6e0', '#f6d9a0', '#efd29a', 50, 130, 20, '#ffe296'),
     grond: { top: B.DRY_GRASS, onder: B.RED_DIRT, onderWater: B.SAND }, hoogte: { basis: 12, heuvels: 2, schaal: 30 },
     bomen: [{ soort: 'acacia', dichtheid: 0.006 }], planten: [{ blok: B.TALL_DRY_GRASS, dichtheid: 0.12 }, { blok: B.TERMITE, dichtheid: 0.002, hoog: [2, 4] }],
-    bouwwerken: ['lionRock', 'wateringHole'], weer: null, achtergrond: 'krekels', muziek: 'savanne',
+    bouwwerken: ['lionRock', 'wateringHole'],
+    dieren: [['lion', 2], ['lioness', 1], ['cheetah', 2], ['elephant', 2], ['giraffe', 2], ['zebra', 4], ['hippo', 1], ['meerkat', 3]],
+    weer: null, achtergrond: 'krekels', muziek: 'savanne',
   },
   adventure: { naam: 'Avontuur', icon: 'adventure', zee: true, lucht: oldSky },
 };
