@@ -300,6 +300,8 @@ body, #app {
 .pal-item:active { transform: scale(0.94); background: #a26d40; }
 .pal-item img { width: 64px; height: 64px; image-rendering: pixelated; pointer-events: none; }
 .pal-item span { font-size: 13px; font-weight: 500; letter-spacing: 0.02em; opacity: 0.9; }
+.pal-section { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; padding-top: 12px; color: #fff; font-size: 15px; }
+.pal-section svg { width: 32px; height: 32px; }
 
 .menu {
   background:
@@ -309,8 +311,10 @@ body, #app {
 }
 .menu-card {
   width: min(520px, 100%);
+  max-height: calc(100% - 20px);
   border-radius: 30px;
-  overflow: hidden;
+  overflow-y: auto;
+  touch-action: pan-y !important;
   border: 4px solid var(--ink);
   background: var(--surface);
   box-shadow: 0 10px 0 rgba(0, 0, 0, 0.3);
@@ -355,12 +359,20 @@ body, #app {
 .menu .btn { border-color: var(--ink); }
 .menu .small { width: 74px; height: 74px; background: #4b7fa8; }
 .menu .choice { width: 120px; height: 104px; background: #cfe9ff; }
+.world-choices { display: grid; grid-template-columns: repeat(4, minmax(60px, 1fr)); gap: 14px 12px; width: 100%; }
+.world-choices .choice { width: 100%; height: 90px; }
+.world-choices .jungle { background: #b5d89a; }
+.world-choices .desert { background: #f5dfae; }
+.world-choices .tundra { background: #dceefa; }
+.world-choices .savanna { background: #e4d49a; }
+.world-choices .adventure { background: #f5e9c9; }
 .menu .yes { width: 104px; height: 88px; background: var(--grass); box-shadow: 0 5px 0 var(--grass-dark); }
 .menu .no { width: 104px; height: 88px; background: var(--danger); box-shadow: 0 5px 0 #a8321f; }
-.slots { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; }
-.slot-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.slots { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); justify-content: center; gap: 14px; width: 100%; }
+.slot-wrap { display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
 .slot-card {
-  width: 136px;
+  width: 100%;
+  min-width: 60px;
   height: 88px;
   padding: 14px;
   border-radius: 18px;
@@ -376,9 +388,9 @@ body, #app {
 .slot-card.empty { background: #e2eef7; border-style: dashed; }
 .slot-card.pressed { transform: translateY(3px) scale(0.96); }
 .slot-label { display: flex; align-items: center; gap: 8px; min-height: 44px; font-size: 15px; font-weight: 500; color: var(--ink); }
-.menu .slot-again { width: 40px; height: 40px; padding: 4px; border-radius: 12px; background: #4b7fa8; border-width: 2px; }
+.menu .slot-again { width: 60px; height: 60px; padding: 8px; border-radius: 12px; background: #4b7fa8; border-width: 2px; }
 .confirm-thumb { width: 192px; height: 120px; border-radius: 14px; border: 3px solid var(--ink); background: #cfe9ff center / cover no-repeat; }
-.confirm-thumb:not([style*="url"]) { display: none; }
+.confirm-thumb svg { width: 100%; height: 100%; padding: 10px; }
 .hint {
   margin: 0;
   max-width: 34ch;

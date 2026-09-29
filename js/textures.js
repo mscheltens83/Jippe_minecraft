@@ -384,6 +384,160 @@ for (const [name, c] of Object.entries(WOOL)) {
   };
 }
 
+// De nieuwe tegels staan achter de oude: hun kleuren blijven bij oude werelden gelijk.
+function bark(t, color, moss = false) {
+  t.noise(color, 0.16);
+  for (let x = 1; x < 16; x += 4) for (let y = 0; y < 16; y++) {
+    if (t.r() < 0.85) t.set(x, y, shade(color, 0.65));
+  }
+  if (moss) t.specks([81, 112, 40], 0.12);
+}
+
+function rings(t, wood, rim) {
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const d = Math.max(Math.abs(x - 7.5), Math.abs(y - 7.5));
+    t.set(x, y, d > 6.5 ? rim : shade(wood, Math.floor(d) % 2 ? 0.85 : 1.08));
+  }
+}
+
+function foliage(t, color, snowy = false) {
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    if (t.r() < 0.13) continue;
+    const snow = snowy && y < 3 + (x % 4);
+    t.set(x, y, snow ? [233, 244, 250] : shade(color, 0.78 + t.r() * 0.45));
+  }
+}
+
+Object.assign(GEN, {
+  jungle_log_side: (t) => bark(t, [83, 72, 39], true),
+  jungle_log_top: (t) => rings(t, [154, 119, 61], [69, 62, 33]),
+  jungle_leaves: (t) => foliage(t, [44, 115, 44]),
+  vine(t) {
+    for (let y = 0; y < 16; y++) {
+      const x = 7 + Math.round(Math.sin(y * 0.7) * 2);
+      t.set(x, y, [53, 124, 36]); t.set(x + 1, y, [105, 166, 49]);
+      if (y % 3 === 0) for (let dx = -2; dx <= 2; dx++) t.set(x + dx, y, [68, 143, 42]);
+    }
+  },
+  bamboo(t) {
+    t.noise([131, 181, 76], 0.13);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      if (y === 3 || y === 12) t.set(x, y, [82, 132, 43]);
+      else if (x % 5 === 0) t.set(x, y, [162, 204, 97]);
+    }
+  },
+  bamboo_top: (t) => rings(t, [188, 214, 114], [91, 143, 43]),
+  fern(t) {
+    for (let y = 3; y < 16; y++) {
+      t.set(7, y, [92, 171, 46]);
+      if (y % 2) for (let dx = 1; dx <= Math.min(6, Math.floor(y / 2)); dx++) {
+        t.set(7 - dx, y - dx + 1, [43, 126, 47]); t.set(7 + dx, y - dx + 1, [75, 153, 50]);
+      }
+    }
+  },
+  jungle_flower(t) {
+    stem(t);
+    for (let y = 1; y <= 8; y++) for (let x = 3; x <= 12; x++) {
+      const dx = x - 7.5, dy = y - 4.5;
+      if (dx * dx + dy * dy < 22) t.set(x, y, x % 3 === 0 ? [239, 125, 57] : [230, 61, 128]);
+    }
+    for (let x = 6; x <= 9; x++) t.set(x, 4, [255, 219, 78]);
+  },
+  mossy_cobble(t) { GEN.cobble(t); t.specks([56, 109, 45], 0.26); t.specks([91, 143, 56], 0.1); },
+  sandstone(t) {
+    t.noise([220, 196, 135], 0.08);
+    for (const y of [3, 8, 13]) for (let x = 0; x < 16; x++) t.set(x, y, [195, 168, 109]);
+  },
+  sandstone_top(t) { t.noise([235, 211, 154], 0.07); t.specks([216, 190, 130], 0.1); },
+  carved_sandstone(t) {
+    GEN.sandstone_top(t);
+    for (let i = 2; i <= 13; i++) {
+      t.set(i, 2, [164, 134, 85]); t.set(i, 13, [164, 134, 85]);
+      t.set(2, i, [164, 134, 85]); t.set(13, i, [164, 134, 85]);
+    }
+    for (let y = 5; y < 11; y++) for (let x = 5; x < 11; x++) if ((x + y) % 4 === 0) t.set(x, y, [186, 148, 88]);
+  },
+  cactus(t) {
+    t.noise([64, 139, 59], 0.15);
+    for (let x = 2; x < 16; x += 4) for (let y = 0; y < 16; y++) t.set(x, y, [96, 165, 64]);
+    for (let y = 3; y < 16; y += 4) for (let x = 3; x < 16; x += 5) t.set(x, y, [215, 214, 144]);
+  },
+  cactus_top(t) {
+    rings(t, [111, 167, 67], [44, 108, 44]);
+    for (const [x, y] of [[7, 5], [6, 6], [8, 6], [7, 7]]) t.set(x, y, [243, 111, 157]);
+    t.set(7, 6, [255, 219, 78]);
+  },
+  dead_bush(t) {
+    for (let y = 5; y < 16; y++) { t.set(7, y, [138, 100, 58]); t.set(8, y, [113, 77, 40]); }
+    for (let i = 0; i < 5; i++) {
+      t.set(7 - i, 11 - i, [138, 100, 58]); t.set(8 + i, 9 - i, [157, 114, 65]);
+      t.set(5, 7 - i, [138, 100, 58]); t.set(11, 6 - i, [157, 114, 65]);
+    }
+  },
+  palm_log_side(t) {
+    t.noise([153, 121, 70], 0.15);
+    for (const y of [2, 6, 10, 14]) for (let x = 0; x < 16; x++) t.set(x, y, [111, 82, 42]);
+  },
+  palm_log_top: (t) => rings(t, [208, 179, 106], [123, 93, 47]),
+  palm_leaves: (t) => foliage(t, [73, 172, 63]),
+  red_sand(t) { t.noise([201, 114, 61], 0.12); t.specks([230, 146, 81], 0.13); },
+  terracotta_orange: (t) => t.noise([192, 109, 64], 0.07),
+  terracotta_brown: (t) => t.noise([124, 80, 57], 0.09),
+  treasure(t) {
+    planks(t);
+    for (let y = 0; y < 16; y++) for (const x of [1, 2, 13, 14]) t.set(x, y, [237, 184, 47]);
+    for (let x = 0; x < 16; x++) t.set(x, 5, [93, 59, 30]);
+    for (let y = 4; y < 9; y++) for (let x = 6; x < 10; x++) t.set(x, y, [255, 218, 85]);
+    t.set(7, 6, [87, 61, 31]); t.set(8, 6, [87, 61, 31]);
+  },
+  treasure_top(t) {
+    planks(t);
+    for (let y = 0; y < 16; y++) for (const x of [2, 3, 12, 13]) t.set(x, y, [241, 193, 63]);
+  },
+  treasure_gold(t) { t.noise([193, 134, 32], 0.2); t.specks([255, 224, 82], 0.4); t.specks([255, 251, 201], 0.07); },
+  ice(t) {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const stripe = (x + y) % 13 < 2;
+      t.set(x, y, stripe ? [229, 247, 255] : [139, 202, 236], stripe ? 220 : 150);
+    }
+  },
+  packed_ice(t) {
+    t.noise([151, 202, 230], 0.1);
+    for (let y = 0; y < 16; y++) { t.set((4 + Math.floor(y / 3)) % 16, y, [234, 250, 255]); t.set(12 - Math.floor(y / 4), y, [108, 164, 205]); }
+  },
+  spruce_log_side: (t) => bark(t, [75, 56, 40]),
+  spruce_log_top: (t) => rings(t, [152, 120, 83], [66, 46, 31]),
+  spruce_leaves: (t) => foliage(t, [39, 92, 77]),
+  snowy_leaves: (t) => foliage(t, [39, 92, 77], true),
+  dry_grass_top(t) { t.noise([172, 173, 77], 0.18); t.specks([205, 194, 101], 0.15); },
+  dry_grass_side(t) {
+    GEN.red_dirt(t);
+    for (let x = 0; x < 16; x++) for (let y = 0; y < 3 + (x % 3); y++) t.set(x, y, [172, 173, 77]);
+  },
+  red_dirt(t) { t.noise([155, 91, 57], 0.2); t.specks([118, 65, 41], 0.13); },
+  acacia_log_side: (t) => bark(t, [116, 113, 99]),
+  acacia_log_top: (t) => rings(t, [200, 128, 73], [97, 99, 85]),
+  acacia_leaves: (t) => foliage(t, [113, 141, 58]),
+  tall_dry_grass(t) {
+    for (let x = 2; x <= 13; x += 3) for (let y = 3 + (x % 4); y < 16; y++) {
+      t.set(x + Math.round(Math.sin(y * 0.25) * 2), y, x % 2 ? [201, 184, 93] : [162, 153, 70]);
+    }
+  },
+  termite(t) { GEN.red_dirt(t); t.specks([74, 40, 25], 0.12); },
+  mud(t) { t.noise([89, 66, 43], 0.1); t.specks([123, 102, 67], 0.12); t.specks([155, 134, 92], 0.03); },
+  hay_side(t) {
+    t.noise([209, 179, 69], 0.2);
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      if (x % 3 === 0 && t.r() < 0.7) t.set(x, y, [238, 207, 94]);
+      if (y === 4 || y === 11) t.set(x, y, [125, 97, 45]);
+    }
+  },
+  hay_top(t) {
+    rings(t, [225, 192, 77], [170, 139, 48]);
+    for (let i = 0; i < 16; i++) { t.set(4, i, [125, 97, 45]); t.set(11, i, [125, 97, 45]); }
+  },
+});
+
 function bevel(t, base, light, dark) {
   t.noise(base, 0.06);
   for (let i = 0; i < TILE; i++) {
@@ -409,6 +563,7 @@ function stem(t) {
 // Maak de atlas: een canvas met alle tegels, plus handige opzoektabellen
 export function createAtlas() {
   const names = Object.keys(GEN);
+  if (names.length > ATLAS_COLS * ATLAS_COLS) throw new Error('De textuuratlas is vol');
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = ATLAS_SIZE;
   const ctx = canvas.getContext('2d');

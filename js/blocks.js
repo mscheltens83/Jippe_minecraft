@@ -16,6 +16,13 @@ export const B = {
   GLASS_RED: 36, GLASS_YELLOW: 37, GLASS_GREEN: 38, GLASS_BLUE: 39, GLASS_PURPLE: 40,
   STAIRS: 41, // 41..44: trap in 4 richtingen
   DOOR: 45,   // 45..60: deur (richting x onder/boven x dicht/open)
+  JUNGLE_LOG: 61, JUNGLE_LEAVES: 62, VINE: 63, BAMBOO: 64, FERN: 65, JUNGLE_FLOWER: 66,
+  MOSSY_COBBLE: 67, SANDSTONE: 68, CARVED_SANDSTONE: 69, CACTUS: 70, DEAD_BUSH: 71,
+  PALM_LOG: 72, PALM_LEAVES: 73, RED_SAND: 74, TERRACOTTA_ORANGE: 75, TERRACOTTA_BROWN: 76,
+  TREASURE: 77, TREASURE_OPEN: 78, ICE: 79, PACKED_ICE: 80, SPRUCE_LOG: 81,
+  SPRUCE_LEAVES: 82, SNOWY_LEAVES: 83, DRY_GRASS: 84, RED_DIRT: 85,
+  ACACIA_LOG: 86, ACACIA_LEAVES: 87, TALL_DRY_GRASS: 88, TERMITE: 89, MUD: 90,
+  HAY: 100,  // 91..99 blijven vrij voor het hek en de hekdeur van fase C
 };
 
 // Richtingen: 0 = -z (noord), 1 = +x (oost), 2 = +z (zuid), 3 = -x (west)
@@ -44,6 +51,8 @@ function def(id, name, tex, opts = {}) {
     dir: opts.dir ?? 0,
     upper: !!opts.upper,
     open: !!opts.open,
+    climb: !!opts.climb,
+    foliage: !!opts.foliage,
   };
   OPAQUE[id] = render === 'solid' ? 1 : 0;
 }
@@ -119,14 +128,66 @@ for (let d = 0; d < 4; d++) {
   }
 }
 
+// Natuur en bouwstenen van de nieuwe werelden. Een cactus doet geen pijn.
+const logTex = (name) => ({ top: name + '_top', side: name + '_side', bottom: name + '_top' });
+def(B.JUNGLE_LOG, 'Junglehout', logTex('jungle_log'), { sound: 'wood' });
+def(B.JUNGLE_LEAVES, 'Junglebladeren', 'jungle_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.VINE, 'Liaan', 'vine', { render: 'cross', climb: true, sound: 'grass' });
+def(B.BAMBOO, 'Bamboe', { top: 'bamboo_top', side: 'bamboo', bottom: 'bamboo_top' }, {
+  render: 'shape', boxes: [[5.5 / 16, 0, 5.5 / 16, 10.5 / 16, 1, 10.5 / 16]], sound: 'wood',
+});
+def(B.FERN, 'Varen', 'fern', { render: 'cross', sound: 'grass' });
+def(B.JUNGLE_FLOWER, 'Oerwoudbloem', 'jungle_flower', { render: 'cross', sound: 'grass' });
+def(B.MOSSY_COBBLE, 'Mossige keien', 'mossy_cobble');
+def(B.SANDSTONE, 'Zandsteen', { top: 'sandstone_top', side: 'sandstone', bottom: 'sandstone_top' }, { sound: 'sand' });
+def(B.CARVED_SANDSTONE, 'Bewerkt zandsteen', 'carved_sandstone', { sound: 'sand' });
+def(B.CACTUS, 'Cactus', { top: 'cactus_top', side: 'cactus', bottom: 'cactus_top' }, {
+  render: 'shape', boxes: [[1 / 16, 0, 1 / 16, 15 / 16, 1, 15 / 16]], sound: 'grass',
+});
+def(B.DEAD_BUSH, 'Dode struik', 'dead_bush', { render: 'cross', sound: 'wood' });
+def(B.PALM_LOG, 'Palmhout', logTex('palm_log'), { sound: 'wood' });
+def(B.PALM_LEAVES, 'Palmbladeren', 'palm_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.RED_SAND, 'Rood zand', 'red_sand', { sound: 'sand' });
+def(B.TERRACOTTA_ORANGE, 'Terracotta oranje', 'terracotta_orange');
+def(B.TERRACOTTA_BROWN, 'Terracotta bruin', 'terracotta_brown');
+const chestBase = [[1 / 16, 0, 1 / 16, 15 / 16, 10 / 16, 15 / 16]];
+def(B.TREASURE, 'Schatkist', { top: 'treasure_top', side: 'treasure', bottom: 'planks' }, {
+  render: 'shape', boxes: [...chestBase, [1 / 16, 10 / 16, 1 / 16, 15 / 16, 14 / 16, 15 / 16]], sound: 'wood',
+});
+def(B.TREASURE_OPEN, 'Schatkist (open)', { top: 'treasure_gold', side: 'treasure', bottom: 'planks' }, {
+  render: 'shape', boxes: [...chestBase, [1 / 16, 10 / 16, 12 / 16, 15 / 16, 1, 15 / 16]], sound: 'wood',
+});
+def(B.ICE, 'IJs', 'ice', { render: 'glass', sound: 'glass' });
+def(B.PACKED_ICE, 'Pakijs', 'packed_ice', { sound: 'glass' });
+def(B.SPRUCE_LOG, 'Sparrenhout', logTex('spruce_log'), { sound: 'wood' });
+def(B.SPRUCE_LEAVES, 'Sparrennaalden', 'spruce_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.SNOWY_LEAVES, 'Besneeuwde naalden', { top: 'snow', side: 'snowy_leaves', bottom: 'spruce_leaves' }, {
+  render: 'cutout', foliage: true, sound: 'grass',
+});
+def(B.DRY_GRASS, 'Droog gras', { top: 'dry_grass_top', side: 'dry_grass_side', bottom: 'red_dirt' }, { sound: 'grass' });
+def(B.RED_DIRT, 'Rode aarde', 'red_dirt', { sound: 'grass' });
+def(B.ACACIA_LOG, 'Acaciahout', logTex('acacia_log'), { sound: 'wood' });
+def(B.ACACIA_LEAVES, 'Acaciabladeren', 'acacia_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.TALL_DRY_GRASS, 'Hoog droog gras', 'tall_dry_grass', { render: 'cross', sound: 'grass' });
+def(B.TERMITE, 'Termietenheuvel', 'termite', { sound: 'sand' });
+def(B.MUD, 'Modder', 'mud', { sound: 'grass' });
+def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, { sound: 'grass' });
+
 // ---------- speciale dingen uit de kist (geen blokken) ----------
 
-export const ITEM = { HOUSE: 200, TREE: 201, TOWER: 202, BRIDGE: 203, PIG: 210, CHICKEN: 211, SHEEP: 212 };
+export const ITEM = {
+  HOUSE: 200, TREE: 201, TOWER: 202, BRIDGE: 203, IGLOO: 204, PYRAMID: 205, TEMPLE: 206, LION_ROCK: 207,
+  PIG: 210, CHICKEN: 211, SHEEP: 212,
+};
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
   [ITEM.TREE]: { name: 'Boom', kind: 'stamp', stamp: 'tree' },
   [ITEM.TOWER]: { name: 'Toren', kind: 'stamp', stamp: 'tower' },
   [ITEM.BRIDGE]: { name: 'Brug', kind: 'stamp', stamp: 'bridge' },
+  [ITEM.IGLOO]: { name: 'Iglo', kind: 'stamp', stamp: 'igloo' },
+  [ITEM.PYRAMID]: { name: 'Piramide', kind: 'stamp', stamp: 'pyramid' },
+  [ITEM.TEMPLE]: { name: 'Tempel', kind: 'stamp', stamp: 'temple' },
+  [ITEM.LION_ROCK]: { name: 'Leeuwenrots', kind: 'stamp', stamp: 'lionRock' },
   [ITEM.PIG]: { name: 'Varken', kind: 'animal', animal: 'pig' },
   [ITEM.CHICKEN]: { name: 'Kip', kind: 'animal', animal: 'chicken' },
   [ITEM.SHEEP]: { name: 'Schaap', kind: 'animal', animal: 'sheep' },
@@ -147,9 +208,21 @@ export const PALETTE_GROUPS = [
       B.WOOL_BLUE, B.WOOL_PURPLE, B.WOOL_PINK, B.WOOL_WHITE, B.WOOL_BLACK,
       B.GLASS_RED, B.GLASS_YELLOW, B.GLASS_GREEN, B.GLASS_BLUE, B.GLASS_PURPLE,
       B.FLOWER_RED, B.FLOWER_YELLOW, B.TALLGRASS,
+      B.MOSSY_COBBLE, B.SANDSTONE, B.CARVED_SANDSTONE, B.RED_SAND,
+      B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN, B.TREASURE, B.RED_DIRT, B.HAY,
     ],
   },
-  { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE] },
+  {
+    title: 'Natuur',
+    sections: [
+      { title: 'Jungle', icon: 'jungle', items: [B.JUNGLE_LOG, B.JUNGLE_LEAVES, B.VINE, B.BAMBOO, B.FERN, B.JUNGLE_FLOWER] },
+      { title: 'Woestijn', icon: 'desert', items: [B.CACTUS, B.DEAD_BUSH, B.PALM_LOG, B.PALM_LEAVES] },
+      { title: 'Toendra', icon: 'tundra', items: [B.ICE, B.PACKED_ICE, B.SPRUCE_LOG, B.SPRUCE_LEAVES, B.SNOWY_LEAVES] },
+      { title: 'Savanne', icon: 'savanna', items: [B.DRY_GRASS, B.ACACIA_LOG, B.ACACIA_LEAVES, B.TALL_DRY_GRASS, B.TERMITE, B.MUD] },
+    ],
+    items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90],
+  },
+  { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
   { title: 'Dieren', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
 ];
 export const PALETTE = PALETTE_GROUPS.flatMap((g) => g.items);
