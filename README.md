@@ -23,6 +23,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
 | **Dierenalbum** | Aai een soort voor het eerst en krijg een sticker. Open het boek in het spel of in het menu om je gevonden dieren te bekijken. Tik op een sticker voor het dierengeluid |
+| **Schatkist** | Tik op een schatkist in de tempel of piramide: hij gaat open met gouden glitters en confetti. Terugzetten sluit hem weer |
+| **Sneeuwpop** | Stapel twee sneeuwblokken en zet er een pompoen op. De blokken worden een sneeuwpop die rondloopt; terugzetten haalt hem weg |
+| **Weer en muziek** | In de toendra valt sneeuw, in de jungle dwarrelen blaadjes. Elk landschap heeft zijn eigen zachte muziek en omgevingsgeluid |
 | **Wilde dieren** | Jungle: tijger, aap, papegaai, panda, kikker en luiaard. Woestijn: stokstaartje, kameel, woestijnvos, hagedis en schildpad. Toendra: ijsbeer, pinguïn, rendier, poolvos, zeehond en sneeuwuil. Ook de savanne zit vol dieren |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
@@ -46,7 +49,7 @@ of op het rondje-pijltje om een wereld opnieuw te beginnen (dat vraagt eerst of 
 Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**.
 In Avontuur liggen de vier nieuwe landschappen rondom een centrale weide.
 Zoek een tempel, piramide, iglo, leeuwenrots, drinkplaats of oase. De bouwplek in het
-midden blijft vlak. Schatkisten zijn er al; de verrassing bij het openen volgt later.
+midden blijft vlak. Tik op een schatkist voor confetti en gouden glitters.
 Een leeuw luiert op de leeuwenrots, cheetahs sprinten met stofwolkjes en tijgers zwemmen.
 Giraffen eten bij acacia's, zebra's zoeken elkaar op en stokstaartjes duiken weg als je ze aait.
 Papegaaien en sneeuwuilen vliegen, apen en luiaards klimmen, pinguïns glijden over ijs
@@ -127,7 +130,10 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/input.js` | Touch, muis en toetsenbord |
 | `js/ui.js`, `js/icons.js` | Knoppen, onderbalk, kist en menu |
 | `js/audio.js` | Zelfgemaakte geluidjes (ook dierengeluidjes en vuurwerk) |
-| `js/music.js` | Het rustige muziekje, met code gemaakt |
+| `js/music.js` | Rustige muziek per landschap, met code gemaakt |
+| `js/weather.js` | Sneeuw, dwarrelende blaadjes en zacht omgevingsgeluid |
+| `js/album.js` | Ontdekte dieren en stickers uit hun 3D-figuren |
+| `js/snowman.js` | De lopende sneeuwpop bewaren en bewegen |
 | `js/animals.js` | Dieren per wereld neerzetten, aantikken, bewaren en laden (maximaal 60) |
 | `js/animals/` | Recepten, gedeelde 3D-figuren, beweging, slapen, zwemmen, sprinten en kunstjes |
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
