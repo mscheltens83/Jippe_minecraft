@@ -368,7 +368,7 @@ Elke fase is los te spelen en te testen. Per fase: een eigen branch en een pull 
 | **D ✅** | Temmen en rijden op de leeuw (algemeen opgezet) | Tests 8 en 9 slagen |
 | **E ✅** | De overige dieren van jungle, woestijn en toendra, met hun vaardigheden | Test 2 volledig; elk dier heeft zijn kunstje |
 | **F ✅** | Dierenalbum, nieuw-dier-popup, stickers van de 3D-figuurtjes | Test 10 slaagt |
-| **G** | Extra's: weer en achtergrondgeluid, muziek per wereld, schatkisten met confetti, sneeuwpop die gaat lopen (2 sneeuwblokken + pompoen erop), eventueel jonge dieren in een stal (twee dezelfde boerderijdieren bij een hooibaal in een afgesloten stal krijgen na 2 minuten een jong) | Handmatig proberen op de iPad |
+| **G ✅** | Extra's: weer en achtergrondgeluid, muziek per wereld, schatkisten met confetti, sneeuwpop die gaat lopen (2 sneeuwblokken + pompoen erop). Jonge dieren in een stal blijven optioneel voor later | Browsercontrole voor tikken, bewaren en terugzetten slaagt; echte iPad-snelheid later controleren |
 
 Waarom deze volgorde: eerst de werelden (daar hangt alles aan), dan meteen Jippe's favorieten (B), dan wat de ouder het belangrijkst vindt (C en D), en daarna de rest.
 

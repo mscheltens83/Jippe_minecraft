@@ -13,6 +13,7 @@ import { testPhaseC } from './phase-c.mjs';
 import { testPhaseD } from './phase-d.mjs';
 import { testPhaseE } from './phase-e.mjs';
 import { testPhaseF } from './phase-f.mjs';
+import { testPhaseG } from './phase-g.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -364,6 +365,7 @@ await testPhaseC({ newPage, check, out });
 await testPhaseD({ newPage, check, out });
 await testPhaseE({ newPage, check, out });
 await testPhaseF({ newPage, check, out });
+await testPhaseG({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

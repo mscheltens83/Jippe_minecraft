@@ -18,6 +18,9 @@ import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
 import { BIOMES, biomeView } from './biomes.js';
+import { biomeAt } from './biomes.js';
+import { Weather } from './weather.js';
+import { Snowmen } from './snowman.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
@@ -41,6 +44,8 @@ class Game {
     this.music = new Music(this.sounds);
     this.particles = new Particles(this.scene.scene);
     this.animals = new Animals(this.scene.scene, this.particles);
+    this.weather = new Weather(this.scene.scene, this.sounds);
+    this.snowmen = new Snowmen(this.scene.scene);
     this.avatar = new Avatar(this.scene.scene);
     this.storage = new Storage();
     this.raycaster = new THREE.Raycaster();
@@ -141,6 +146,7 @@ class Game {
 
   freshWorld(type, seed) {
     this.dismount();
+    this.snowmen.clear();
     this.world.generate(type, seed);
     this.player.setPos(this.world.spawnPoint());
     this.player.yaw = 0;
@@ -168,6 +174,7 @@ class Game {
       sel: this.sel,
       mode: this.mode,
       animals: this.animals.serialize(),
+      snowmen: this.snowmen.serialize(),
       riding: false,
       thumb: this.thumb,
     };
@@ -196,6 +203,7 @@ class Game {
       // Wereld van de eerste versie heeft nog geen dieren: die komen er nu bij
       if (Array.isArray(s.animals)) this.animals.load(s.animals);
       else { this.animals.clear(); this.animals.populate(this.world); }
+      this.snowmen.load(s.snowmen);
       this.thumb = typeof s.thumb === 'string' ? s.thumb : null;
       this.undoStack = [];
       this.updateBiome(true);
@@ -482,6 +490,7 @@ class Game {
     const forceBreak = mode === 'break' && tap.alt;
     if (BLOCKS[hit.id].shape === 'door' && !forceBreak) { this.toggleDoor(hit); return; }
     if (BLOCKS[hit.id].shape === 'gate' && !forceBreak) { this.toggleGate(hit); return; }
+    if (hit.id === B.TREASURE && !forceBreak) { this.openTreasure(hit); return; }
     if (hit.id === B.FIREWORK && !forceBreak) { this.launchFirework(hit); return; }
     if (mode === 'build') this.use(hit);
     else if (forceBreak) this.breakBlock(hit);
@@ -539,6 +548,17 @@ class Game {
         else return nope();
       }
       this.apply([{ x, y, z, from: existing, to: place }]);
+      if (place === B.PUMPKIN && this.snowmen.list.length < 20 &&
+        w.get(x, y - 1, z) === B.SNOW && w.get(x, y - 2, z) === B.SNOW) {
+        const changes = this.undoStack.at(-1);
+        changes.push({ x, y, z, from: B.PUMPKIN, to: AIR },
+          { x, y: y - 1, z, from: B.SNOW, to: AIR },
+          { x, y: y - 2, z, from: B.SNOW, to: AIR });
+        for (const c of changes.slice(1)) w.set(c.x, c.y, c.z, c.to);
+        changes.snowman = this.snowmen.spawn(x + .5, y - 2, z + .5, p.yaw + Math.PI);
+        this.particles.sparkle(x, y - 2, z, x + 1, y + 1, z + 1, 50);
+        this.sounds.magic();
+      }
       if (lift) p.liftTo(y + 1);
     }
     this.sounds.place(nb.sound);
@@ -689,6 +709,14 @@ class Game {
     this.sounds.launch();
   }
 
+  openTreasure(hit) {
+    this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: B.TREASURE, to: B.TREASURE_OPEN }]);
+    this.particles.sparkle(hit.x - .4, hit.y + .2, hit.z - .4,
+      hit.x + 1.4, hit.y + 2, hit.z + 1.4, 100);
+    this.particles.burst(hit.x, hit.y, hit.z, [[1, .78, .12], [1, .94, .5]], 45, true);
+    this.sounds.magic();
+  }
+
   // Kort tikken in de sloop-stand: laat zien dat je moet vasthouden
   hintHold(hit) {
     this.sounds.tick();
@@ -730,6 +758,7 @@ class Game {
   undo() {
     const changes = this.undoStack.pop();
     if (!changes) { this.sounds.nope(); return; }
+    if (changes.snowman) this.snowmen.remove(changes.snowman);
     for (let i = changes.length - 1; i >= 0; i--) {
       const c = changes[i];
       this.world.set(c.x, c.y, c.z, c.from);
@@ -786,6 +815,9 @@ class Game {
 
   updateBiome(instant = false) {
     this.scene.setBiome(biomeView(this.world.type, this.player.x, this.player.z), instant);
+    const biome = biomeAt(this.world.type, this.player.x, this.player.z);
+    this.weather.setBiome(biome);
+    this.music.setStyle(BIOMES[biome].muziek);
   }
 
   resize() {
@@ -850,6 +882,8 @@ class Game {
 
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
     this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
+    this.snowmen.update(this.playing ? dt : 0, this.world);
+    this.weather.update(dt, this.world, this.player, this.scene.pixelRatio, this.playing && !document.hidden);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
     if (this.world.type === 'adventure' && now >= (this.nextBiome || 0)) {
