@@ -22,7 +22,8 @@ export class Animal {
     this.walking = false; this.graze = false; this.state = 'rust';
     this.timer = 1 + Math.random() * 3; this.time = Math.random() * 10;
     this.phase = 0; this.swing = 0; this.happy = 0;
-    this.tame = false; this.hunger = 180 + Math.random() * 180; this.sleep = 0;
+    this.tame = false; this.tameClicks = 0; this.tameUntil = 0; this.riding = false; this.following = false;
+    this.hunger = 180 + Math.random() * 180; this.sleep = 0;
     this.hunt = null; this.huntPause = 0; this.fleeFrom = null; this.eatTime = 0;
     this.hay = null; this.hayCheck = 0;
     this.sprint = 0; this.sprintWait = 5 + Math.random() * 10; this.dustTime = 0;
@@ -145,7 +146,8 @@ export class Animal {
     }
     if (!this.hunt && !this.fleeFrom) updateSkills(this, dt, world, effects, all);
     this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.hunt?.phase === 'stalk' ? 'sluipen'
-      : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
+      : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.following && this.walking ? 'volgen'
+        : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
     this.speedNow = this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
       : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
       : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
@@ -179,6 +181,7 @@ export class Animal {
 
   show(dt) {
     for (const [node, rest] of this.rest) { node.position.copy(rest.p); node.rotation.copy(rest.r); }
+    if (this.saddle) this.saddle.visible = this.tame;
     const asleep = this.state === 'slapen', happy = this.happy > 0, motion = Math.sin(this.phase) * 0.6 * this.swing;
     this.group.scale.set(1, 1, 1);
     this.group.position.y = this.y + (happy && this.def.dieet === 'boerderij' ? Math.abs(Math.sin(this.happy * 9)) * 0.12 : 0);

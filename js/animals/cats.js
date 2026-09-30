@@ -48,5 +48,14 @@ export function buildCat(type) {
   if (lion) tailGeos.push(box(0.19, 0.2, 0.17, dark, 0, cy + 0.3, 1.2));
   else for (let i = 0; i < 3; i++) tailGeos.push(box(0.115, 0.115, 0.06, dark, 0, cy + 0.08, 0.85 + i * 0.14));
   const tail = part(tailGeos, 0, cy + 0.08, 0.6);
-  return { parts: [body, head, tail, tongue], body, head, tail, tongue, legs, pattern: [1, -1, -1, 1] };
+  // Het zadel hoort bij het figuur, maar wordt alleen op een getemde leeuw zichtbaar.
+  const saddle = lion ? part([
+    box(0.74, 0.09, 0.76, '#d32f2f', 0, cy + 0.34, 0.1),
+    box(0.8, 0.045, 0.09, '#f5cc4b', 0, cy + 0.39, -0.25),
+    box(0.8, 0.045, 0.09, '#f5cc4b', 0, cy + 0.39, 0.45),
+    box(0.06, 0.17, 0.68, '#f5cc4b', -0.39, cy + 0.28, 0.1),
+    box(0.06, 0.17, 0.68, '#f5cc4b', 0.39, cy + 0.28, 0.1),
+  ], 0, cy + 0.34, 0.1) : null;
+  if (saddle) saddle.visible = false;
+  return { parts: [body, head, tail, tongue, ...(saddle ? [saddle] : [])], body, head, tail, tongue, saddle, legs, pattern: [1, -1, -1, 1] };
 }

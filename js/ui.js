@@ -323,6 +323,12 @@ export class UI {
     this.jumpBtn.innerHTML = f || climbing ? ICONS.up : ICONS.jump;
   }
 
+  setRiding(on) {
+    this.flyBtn.innerHTML = on ? ICONS.dismount : ICONS.fly;
+    this.flyBtn.setAttribute('aria-label', on ? 'Afstappen' : 'Vliegen');
+    this.downBtn.hidden = on;
+  }
+
   setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }
   setMuted(m) { this.soundBtn.innerHTML = m ? ICONS.soundOff : ICONS.soundOn; }
   setMusic(on) { this.musicBtn.innerHTML = on ? ICONS.music : ICONS.musicOff; }

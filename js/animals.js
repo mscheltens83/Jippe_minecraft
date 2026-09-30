@@ -97,10 +97,22 @@ export class Animals {
     }
     for (let i = 0; i < this.list.length; i++) {
       const a = this.list[i], visible = !camera || this.frustum.intersectsBox(a.box);
+      if (a.riding) {
+        a.elapsed = 0; a.clockElapsed = 0; a.group.visible = true; a.show(dt);
+        continue;
+      }
       const far = viewer && Math.hypot(a.x - viewer.x, a.z - viewer.z) > 40;
       a.elapsed += dt;
       a.clockElapsed += clockDt;
       if (!far || (this.frame + i) % 4 === 0) {
+        if (a.tame && a.def.rijdbaar && viewer && a.clockElapsed > 0) {
+          const dist = Math.hypot(a.x - viewer.x, a.z - viewer.z);
+          a.following = dist > 6 && dist <= 20;
+          if (a.following) {
+            a.walking = true; a.sleep = 0; a.graze = false; a.timer = Math.max(a.timer, 0.3);
+            a.targetYaw = Math.atan2(-(viewer.x - a.x), -(viewer.z - a.z));
+          } else if (dist < 3) a.walking = false;
+        }
         updateHunt(a, a.clockElapsed, world, this);
         a.update(a.elapsed, world, visible ? this.effects : null, this.list, visible, a.clockElapsed);
         a.elapsed = 0; a.clockElapsed = 0;
