@@ -80,6 +80,7 @@ body, #app {
 .hud.dim > * { pointer-events: none; }
 
 .menu-btn { position: absolute; top: var(--top); left: var(--left); }
+.album-hud-btn { position: absolute; top: calc(var(--top) + var(--btn) + 10px); left: var(--left); width: 60px; height: 60px; background: #a87343; }
 .top-right { position: absolute; top: var(--top); right: var(--right); display: flex; gap: 10px; }
 .cam-btn.on { background: #3f8fe0; }
 
@@ -403,6 +404,50 @@ body, #app {
   line-height: 1.35;
   text-wrap: balance;
 }
+
+/* Dierenalbum: één blad voor alle werelden, met grote aanraakbare stickers. */
+.album { background: rgba(15, 32, 45, .63); }
+.album-card {
+  width: min(940px, 100%); height: min(720px, 100%); display: flex; flex-direction: column;
+  border: 4px solid var(--ink); border-radius: 26px; background: #f5e8bf;
+  box-shadow: 0 10px 0 rgba(0, 0, 0, .3); overflow: hidden;
+}
+.album-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 16px; background: #a87343; }
+.album-head h2 { display: flex; align-items: center; gap: 12px; margin: 0; color: #fff; font-size: clamp(24px, 5vw, 38px); }
+.album-head h2 svg { width: 50px; height: 50px; }
+.album-count { margin: 8px 16px 4px; color: var(--ink); font-size: 18px; font-weight: 700; }
+.album-grid { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 16px; touch-action: pan-y !important; -webkit-overflow-scrolling: touch; }
+.album-section { margin: 10px 0 20px; }
+.album-section h3 { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; color: var(--ink); font-size: 20px; }
+.album-section h3 svg { width: 42px; height: 42px; }
+.album-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(116px, 1fr)); gap: 12px; }
+.album-sticker { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  min-height: 134px; padding: 8px 4px; border: 3px solid #6f4b30; border-radius: 18px;
+  background: #fff6d7; color: var(--ink); font-size: 16px; font-weight: 700; cursor: pointer; touch-action: manipulation !important; }
+.album-sticker img { width: 92px; height: 92px; object-fit: contain; image-rendering: pixelated; pointer-events: none; }
+.album-sticker.unknown { background: #d6d6d1; border-color: #8c9498; }
+.album-sticker.unknown img { filter: grayscale(1) brightness(.75); opacity: .6; }
+.album-sticker.unknown span { position: absolute; inset: 36px 0 auto; font-size: 44px; color: #fff; text-shadow: 0 2px 4px var(--ink); }
+.album-sticker.bounce { animation: sticker-bounce .45s ease-out; }
+@keyframes sticker-bounce { 50% { transform: scale(1.13) rotate(-5deg); } }
+.album-foot { display: flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 8px 18px; background: #e5cb91; font-size: 15px; }
+.album-clear { width: 60px; height: 60px; background: var(--danger); }
+.album-confirm { position: absolute; z-index: 2; display: flex; align-items: center; justify-content: center; flex-wrap: wrap;
+  gap: 18px; width: min(470px, calc(100% - 36px)); padding: 22px; border: 4px solid var(--ink); border-radius: 22px;
+  top: 50%; left: 50%; transform: translate(-50%, -50%);
+  background: #fff5d8; box-shadow: 0 8px 0 rgba(0, 0, 0, .3); text-align: center; }
+.album-confirm p { flex-basis: 100%; margin: 0; font-size: 22px; font-weight: 700; }
+.album-confirm .yes { background: var(--danger); }
+.album-confirm .no { background: var(--grass); }
+.album-new { position: absolute; z-index: 5; top: 45%; left: 50%; display: flex; flex-direction: column; align-items: center;
+  gap: 2px; padding: 12px 20px; border: 4px solid var(--ink); border-radius: 24px; background: #fff6d7;
+  box-shadow: 0 8px 0 rgba(0, 0, 0, .28); pointer-events: none; transform: translate(-50%, -50%); }
+.album-new span { color: #d17624; font-size: 28px; font-weight: 700; }
+.album-new img { width: 96px; height: 96px; image-rendering: pixelated; }
+.album-new strong { font-size: 18px; }
+.album-new.fly { animation: album-fly 2.1s ease-in forwards; }
+@keyframes album-fly { 0%, 45% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--fly-x, -40vw)), calc(-50% + var(--fly-y, -30vh))) scale(.15); opacity: 0; } }
 
 .error {
   position: absolute;

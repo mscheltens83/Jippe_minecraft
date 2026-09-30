@@ -88,6 +88,9 @@ export class UI {
     const menuBtn = button('menu-btn', 'home', 'Menu');
     onPress(menuBtn, () => h.onMenu());
     this.hud.appendChild(menuBtn);
+    this.albumHudBtn = button('album-hud-btn', 'book', 'Dierenalbum');
+    onPress(this.albumHudBtn, () => { h.onMenu(); h.onAlbum(); });
+    this.hud.appendChild(this.albumHudBtn);
 
     const mode = el('div', 'mode');
     this.buildBtn = button('mode-build', 'build', 'Bouwen');
@@ -194,7 +197,10 @@ export class UI {
     onPress(this.musicBtn, () => h.onToggleMusic());
     const worldsBtn = button('small worlds-btn', 'worlds', 'Werelden');
     onPress(worldsBtn, () => this.showPanel('worlds'));
-    row.append(labeled(this.soundBtn, 'Geluid'), labeled(this.musicBtn, 'Muziek'), labeled(worldsBtn, 'Werelden'));
+    this.albumBtn = button('small album-btn', 'book', 'Album');
+    onPress(this.albumBtn, () => h.onAlbum());
+    row.append(labeled(this.soundBtn, 'Geluid'), labeled(this.musicBtn, 'Muziek'),
+      labeled(worldsBtn, 'Werelden'), labeled(this.albumBtn, 'Album'));
     this.predatorsBtn = button('small predators-btn', 'lion', 'Roofdieren jagen');
     this.predatorsBtn.innerHTML = ICONS.lion + ICONS.pig;
     this.predatorsBtn.setAttribute('aria-pressed', 'true');

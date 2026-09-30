@@ -153,7 +153,9 @@ Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
   springen, afstappen en veilig bewaren zijn met echte aanraakbediening getest.
 - ✅ **3E**: vijftien overige wilde dieren in jungle, woestijn en toendra met eigen
   uiterlijk, geluiden en vaardigheden; alle 27 soorten staan in de dierenkist.
-- ⬜ **3F–3G**: album, weer, muziek en verrassingen.
+- ✅ **3F**: album voor alle 27 soorten, nieuwe stickers na de eerste aai,
+  3D-plaatjes, dierengeluid en leegmaken met bevestiging.
+- ⬜ **3G**: weer, muziek en verrassingen.
 
 De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
 en meldt de gemiddelde beeldtijd met 30 dieren, ook met de nieuwe wilde soorten.

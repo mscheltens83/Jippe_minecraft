@@ -25,6 +25,8 @@ export const ICONS = {
   dismount: svg(`<path d="M6 18 Q12 9 23 13 L35 18 L40 31 L36 37 H31 L30 27 H14 L13 37 H8 L9 24 Z" fill="#d9a45a" ${S}/><path d="M22 27 V39 M17 34 L22 39 L27 34" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>`),
   jump: svg(`<path d="M24 6 L38 21 L30 21 L30 32 L18 32 L18 21 L10 21 Z" fill="#fff" ${S}/><rect x="9" y="37" width="30" height="5" rx="2" fill="#fff" ${S}/>`),
   chest: svg(`<rect x="6" y="18" width="36" height="22" rx="2" fill="#b77b3d" ${S}/><path d="M6 18 C 6 10, 42 10, 42 18 Z" fill="#d49a55" ${S}/><path d="M6 22 H42" ${S} fill="none"/><rect x="20" y="19" width="8" height="9" rx="1.5" fill="#f5d34a" ${S}/>`),
+  book: svg(`<path d="M5 9 Q15 5 24 11 Q33 5 43 9 V39 Q33 35 24 41 Q15 35 5 39 Z" fill="#f7d56a" ${S}/><path d="M24 11 V41 M10 16 Q16 14 20 17 M28 17 Q34 14 39 16 M10 24 Q16 22 20 25 M28 25 Q34 22 39 24" fill="none" stroke="#9b662d" stroke-width="2"/>`),
+  trash: svg(`<path d="M11 13 H37 L35 41 H13 Z" fill="#e8553d" ${S}/><path d="M8 12 H40 M18 8 H30 M20 19 V34 M28 19 V34" fill="none" ${S}/>`),
   soundOn: svg(`<path d="M8 19 H16 L26 10 V38 L16 29 H8 Z" fill="#fff" ${S}/><path d="M31 18 C 34 21, 34 27, 31 30 M36 13 C 42 19, 42 29, 36 35" fill="none" ${S}/>`),
   soundOff: svg(`<path d="M8 19 H16 L26 10 V38 L16 29 H8 Z" fill="#fff" ${S}/><path d="M32 18 L42 30 M42 18 L32 30" fill="none" stroke="#e8553d" stroke-width="4" stroke-linecap="round"/>`),
   play: svg(`<path d="M15 9 L39 24 L15 39 Z" fill="#fff" ${S}/>`),

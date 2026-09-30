@@ -12,6 +12,7 @@ import { testPhaseB } from './phase-b.mjs';
 import { testPhaseC } from './phase-c.mjs';
 import { testPhaseD } from './phase-d.mjs';
 import { testPhaseE } from './phase-e.mjs';
+import { testPhaseF } from './phase-f.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -303,7 +304,7 @@ await page.locator('.worlds-btn').tap();
 await page.locator('.slot-wrap:nth-child(2) .slot-again').tap();
 await page.locator('.choice[aria-label="Eiland"]').tap();
 check(await page.locator('.confirm-thumb').isVisible(), 'bevestiging laat de wereld zien die weg gaat');
-await page.locator('.yes').tap();
+await page.locator('.menu .yes').tap();
 check(await until(() => window.__jippecraft.slot === 2 && window.__jippecraft.world.type === 'island'), 'wereld 2 opnieuw begonnen als eiland');
 
 // Bewaren en opnieuw laden: je komt terug in dezelfde wereld
@@ -362,6 +363,7 @@ await testPhaseB({ newPage, check, out });
 await testPhaseC({ newPage, check, out });
 await testPhaseD({ newPage, check, out });
 await testPhaseE({ newPage, check, out });
+await testPhaseF({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 
