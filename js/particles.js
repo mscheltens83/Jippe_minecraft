@@ -109,7 +109,7 @@ export class Particles {
     this.onBang?.(r.x, r.y, r.z);
   }
 
-  heartsAt(x, y, z) {
+  heartsAt(x, y, z, size = 1) {
     for (let i = 0; i < 4; i++) {
       let s = this.hearts.find((h) => !h.alive);
       if (!s) {
@@ -122,7 +122,7 @@ export class Particles {
       s.life = -i * 0.15;
       s.sprite.visible = false;
       s.sprite.position.set(x + (Math.random() - 0.5) * 0.5, y, z + (Math.random() - 0.5) * 0.5);
-      s.sprite.scale.set(0.35, 0.32, 1);
+      s.sprite.scale.set(0.35 * size, 0.32 * size, 1);
     }
   }
 

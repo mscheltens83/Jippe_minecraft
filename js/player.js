@@ -38,12 +38,14 @@ export class Player {
     this.inWater = false;
     this.climbing = false;
     this.jumpedAt = 0;
+    this.riding = null;
   }
 
   setPos(p) { this.x = p.x; this.y = p.y; this.z = p.z; this.vx = this.vy = this.vz = 0; this.climbing = false; }
 
   box(x = this.x, y = this.y, z = this.z) {
-    return [x - HALF, y, z - HALF, x + HALF, y + HEIGHT, z + HALF];
+    const half = this.riding ? 0.45 : HALF, height = this.riding ? 1.9 : HEIGHT;
+    return [x - half, y, z - half, x + half, y + height, z + half];
   }
 
   collides(world, x, y, z) {
@@ -54,9 +56,10 @@ export class Player {
 
   // Overlapt het blok (bx,by,bz) met de speler? (dan mag je daar normaal niet bouwen)
   overlapsBlock(bx, by, bz) {
-    return bx < this.x + HALF && bx + 1 > this.x - HALF &&
-      by < this.y + HEIGHT && by + 1 > this.y &&
-      bz < this.z + HALF && bz + 1 > this.z - HALF;
+    const half = this.riding ? 0.45 : HALF, height = this.riding ? 1.9 : HEIGHT;
+    return bx < this.x + half && bx + 1 > this.x - half &&
+      by < this.y + height && by + 1 > this.y &&
+      bz < this.z + half && bz + 1 > this.z - half;
   }
 
   // Bouw je een blok waar je voeten staan? Dan wip je erbovenop (zo bouw je een toren)
@@ -98,16 +101,18 @@ export class Player {
     const feet = world.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z));
     const head = world.get(Math.floor(this.x), Math.floor(this.y + EYE), Math.floor(this.z));
     this.inWater = feet === B.WATER || head === B.WATER;
-    this.climbing = !this.flying && (feet === B.VINE || head === B.VINE);
+    this.climbing = !this.riding && !this.flying && (feet === B.VINE || head === B.VINE);
     const below = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
 
     // Loop-richting t.o.v. waar je kijkt
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const mx = input.move.x, mz = input.move.y;
-    const speed = this.flying ? FLY : this.climbing ? 2.5 : this.inWater ? SWIM : below === B.MUD ? WALK * 0.5 : WALK;
+    const push = Math.min(1, Math.hypot(mx, mz));
+    const rideSpeed = 3.5 + 3 * Math.max(0, (push - 0.45) / 0.55);
+    const speed = this.riding ? rideSpeed : this.flying ? FLY : this.climbing ? 2.5 : this.inWater ? SWIM : below === B.MUD ? WALK * 0.5 : WALK;
     const tx = (-sin * mz + cos * mx) * speed;
     const tz = (-cos * mz - sin * mx) * speed;
-    const slippery = this.onGround && !this.flying && !this.climbing && (below === B.ICE || below === B.PACKED_ICE);
+    const slippery = !this.riding && this.onGround && !this.flying && !this.climbing && (below === B.ICE || below === B.PACKED_ICE);
     const accel = slippery ? 1.5 : this.onGround || this.flying || this.inWater || this.climbing ? 14 : 5;
     const k = Math.min(1, accel * dt);
     this.vx += (tx - this.vx) * k;
@@ -119,7 +124,7 @@ export class Player {
     } else if (this.climbing) {
       // Vooruit in een liaan of de springknop = omhoog; omlaag heeft voorrang.
       this.vy = (input.down ? -1 : input.jump || mz > 0.2 ? 1 : 0) * 2.5;
-    } else if (this.inWater) {
+    } else if (this.inWater && !this.riding) {
       this.vy -= 7 * dt;
       if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.8);
       this.vy = Math.max(this.vy, -2.5);
@@ -128,7 +133,7 @@ export class Player {
       this.vy = Math.max(this.vy, -32);
       if (input.jump && this.onGround && now - this.jumpedAt > 0.25) {
         const bouncy = below === B.BOUNCE;
-        this.vy = bouncy ? JUMP * 1.55 : JUMP;
+        this.vy = this.riding ? 11.5 : bouncy ? JUMP * 1.55 : JUMP;
         this.jumpedAt = now;
         if (bouncy) this.onBounce?.(); else this.onJump?.();
       }
@@ -179,8 +184,9 @@ export class Player {
     }
 
     // Binnen de wereld blijven
-    this.x = Math.min(SX - HALF, Math.max(HALF, this.x));
-    this.z = Math.min(SZ - HALF, Math.max(HALF, this.z));
+    const edge = this.riding ? 0.45 : HALF;
+    this.x = Math.min(SX - edge, Math.max(edge, this.x));
+    this.z = Math.min(SZ - edge, Math.max(edge, this.z));
     if (this.y > SY + 6) { this.y = SY + 6; this.vy = Math.min(this.vy, 0); }
     if (this.y < -5) this.unstick(world);
   }

@@ -45,16 +45,16 @@ export class Avatar {
     this.swing += ((walking ? Math.min(1, speed / 4) : 0) - this.swing) * Math.min(1, dt * 8);
     this.phase += dt * (4 + speed * 1.6);
     const s = Math.sin(this.phase) * 0.8 * this.swing;
-    this.legs[0].rotation.x = s;
-    this.legs[1].rotation.x = -s;
+    this.legs[0].rotation.x = p.riding ? -1.15 : s;
+    this.legs[1].rotation.x = p.riding ? -1.15 : -s;
     // vliegen: armen wijd, benen samen
     const fly = p.flying ? 1 : 0;
-    this.arms[0].rotation.x = -s;
-    this.arms[1].rotation.x = s;
+    this.arms[0].rotation.x = p.riding ? -0.55 : -s;
+    this.arms[1].rotation.x = p.riding ? -0.55 : s;
     this.arms[0].rotation.z = -0.9 * fly - 0.05;
     this.arms[1].rotation.z = 0.9 * fly + 0.05;
     this.head.rotation.x = Math.max(-0.7, Math.min(0.7, p.pitch * 0.7));
-    this.group.position.set(p.x, p.y, p.z);
+    this.group.position.set(p.x, p.y + (p.riding ? 0.66 : 0), p.z);
     this.group.rotation.y = p.yaw;
   }
 }

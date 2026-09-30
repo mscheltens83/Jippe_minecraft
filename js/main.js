@@ -68,7 +68,7 @@ class Game {
       onUndo: () => this.undo(),
       onJump: (v) => { this.input.jumpButton = v; },
       onDown: (v) => { this.input.downButton = v; },
-      onFly: () => this.toggleFly(),
+      onFly: () => this.player.riding ? this.dismount() : this.toggleFly(),
       onCamera: () => this.toggleCamera(),
       onSelect: (i) => this.select(i),
       onChest: () => this.openChest(),
@@ -135,6 +135,7 @@ class Game {
   // ---------- wereld & bewaren ----------
 
   freshWorld(type, seed) {
+    this.dismount();
     this.world.generate(type, seed);
     this.player.setPos(this.world.spawnPoint());
     this.player.yaw = 0;
@@ -149,13 +150,15 @@ class Game {
 
   makeSave() {
     const p = this.player;
+    // Tijdens automatisch bewaren mag Jippe blijven rijden; de bewaarde plek is naast de leeuw.
+    const place = p.riding ? this.dismountSpot() : p;
     return {
       v: 3,
       t: Date.now(),
       type: this.world.type,
       seed: this.world.seed,
       blocks: this.world.serialize(),
-      player: { x: p.x, y: p.y, z: p.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
+      player: { x: place.x, y: place.y, z: place.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
       hotbar: this.hotbar,
       sel: this.sel,
       mode: this.mode,
@@ -168,6 +171,7 @@ class Game {
   applySave(s) {
     try {
       if (!s || ![1, 2, 3].includes(s.v) || typeof s.blocks !== 'string') return false;
+      this.dismount();
       this.world.deserialize(s.blocks);
       this.world.type = BIOMES[s.type] ? s.type : 'island';
       this.world.seed = s.seed || 1;
@@ -385,6 +389,7 @@ class Game {
   }
 
   toggleCamera() {
+    if (this.player.riding) return;
     this.thirdPerson = !this.thirdPerson;
     this.ui.setThirdPerson(this.thirdPerson);
     this.saveSettings();
@@ -566,10 +571,76 @@ class Game {
   }
 
   petAnimal(a) {
+    if (a.tame && a.def.rijdbaar) { this.mountAnimal(a); return; }
     this.animals.stopHunt(a, 30);
     a.pet(this.player.x, this.player.z);
     this.sounds.animal(a.type);
-    this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z);
+    let heartSize = 1;
+    if (a.def.rijdbaar && (a.type === 'lion' || a.type === 'lioness')) {
+      const now = performance.now() / 1000;
+      a.tameClicks = now <= a.tameUntil ? a.tameClicks + 1 : 1;
+      a.tameUntil = now + 10;
+      heartSize = 1 + (a.tameClicks - 1) * 0.4;
+      if (a.tameClicks >= 3) {
+        a.tame = true; a.hunger = 180 + Math.random() * 180;
+        a.tameClicks = 0; a.tameUntil = 0; a.show(0);
+        this.particles.sparkle(a.x - 0.7, a.y, a.z - 0.7, a.x + 0.7, a.y + 1.8, a.z + 0.7, 70);
+        this.sounds.magic();
+        this.markDirty();
+      }
+    }
+    this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, heartSize);
+  }
+
+  mountAnimal(a) {
+    const p = this.player;
+    if (p.riding || !a.tame || !a.def.rijdbaar) return false;
+    p.riding = a;
+    if (p.collides(this.world, a.x, a.y, a.z)) { p.riding = null; this.sounds.nope(); return false; }
+    this.animals.stopHunt(a);
+    p.setPos({ x: a.x, y: a.y, z: a.z }); p.yaw = a.yaw; p.flying = false; p.onGround = a.onGround;
+    a.riding = true; a.walking = false; a.sleep = 0; a.state = 'bereden';
+    this.rideCamera = this.thirdPerson;
+    this.thirdPerson = true; this.ui.setThirdPerson(true);
+    this.ui.setFlying(false); this.ui.setRiding(true);
+    this.input.releaseAll(); this.sounds.magic(); this.markDirty();
+    return true;
+  }
+
+  dismountSpot() {
+    const p = this.player, riding = p.riding;
+    p.riding = null;
+    // Probeer beide zijkanten; blijf bij de leeuw als er geen vrije plek is.
+    const sideX = Math.cos(p.yaw), sideZ = -Math.sin(p.yaw);
+    let next = { x: p.x, y: p.y, z: p.z };
+    for (const sign of [1, -1]) {
+      const x = p.x + sign * sideX * 1.5, z = p.z + sign * sideZ * 1.5;
+      const y = this.world.surfaceY(Math.floor(x), Math.floor(z)) + 1;
+      if (Math.abs(y - p.y) <= 1.5 && !p.collides(this.world, x, y, z)) { next = { x, y, z }; break; }
+    }
+    p.riding = riding;
+    return next;
+  }
+
+  dismount() {
+    const p = this.player, a = p.riding;
+    if (!a) return false;
+    const next = this.dismountSpot();
+    p.riding = null; a.riding = false; a.walking = false; a.sleep = 2; a.state = 'slapen';
+    p.setPos(next); p.onGround = true;
+    this.thirdPerson = this.rideCamera; this.ui.setThirdPerson(this.thirdPerson);
+    this.ui.setRiding(false); this.ui.setFlying(false);
+    this.sounds.pop(); this.markDirty();
+    return true;
+  }
+
+  syncRide(dt) {
+    const p = this.player, a = p.riding;
+    if (!a) return;
+    a.x = p.x; a.y = p.y; a.z = p.z; a.yaw = p.yaw; a.targetYaw = p.yaw;
+    a.state = 'bereden'; a.walking = false; a.phase += Math.hypot(p.vx, p.vz) * dt * 2.7;
+    a.swing = Math.min(1, Math.hypot(p.vx, p.vz) / 4);
+    a.sync(); a.show(dt);
   }
 
   toggleDoor(hit) {
@@ -750,6 +821,7 @@ class Game {
       for (const tap of this.input.taps.splice(0)) this.act(tap);
       const wasClimbing = p.climbing;
       p.update(dt, this.input, this.world, now);
+      this.syncRide(dt);
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();
