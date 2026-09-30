@@ -101,7 +101,7 @@ export class Animal {
       return; // Eerst boven het opstapje komen, dan pas vooruit.
     }
     const water = this.waterSurface(world, nx, nz);
-    if (!blocked && !this.inWater && !(water !== null && this.has('zwemmen'))) {
+    if (!blocked && !this.flight && !this.inWater && !(water !== null && this.has('zwemmen'))) {
       const fx = nx - sin * this.def.d * 0.3, fz = nz - cos * this.def.d * 0.3;
       const fy = Math.floor(this.y - 0.05);
       if (water !== null || !this.solid(world, fx, fy, fz) && !this.solid(world, fx, fy - 1, fz)) blocked = true;
@@ -113,6 +113,12 @@ export class Animal {
   }
 
   gravity(dt, world) {
+    if (this.flight) {
+      const next = this.y + Math.max(-dt * 3, Math.min(dt * 3, this.flight.y - this.y));
+      if (this.clearAt(world, this.x, next, this.z)) this.y = next;
+      this.vy = 0; this.onGround = false; return;
+    }
+    if (this.climbing > 0) { this.climbing = Math.max(0, this.climbing - dt); this.vy = 0; return; }
     const surface = this.waterSurface(world);
     this.inWater = surface !== null;
     if (this.inWater && this.has('zwemmen') && this.vy <= 0) {
@@ -152,7 +158,9 @@ export class Animal {
       : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
       : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
     this.yaw += wrap(this.targetYaw - this.yaw) * Math.min(1, dt * 4);
-    const moving = this.walking && !this.happy && !this.sleep;
+    if (this.sliding) this.speedNow *= 2;
+    if (this.dash > 0) this.speedNow = Math.max(this.speedNow, this.def.speed * 2.5);
+    const moving = (this.walking && !this.happy || this.dash > 0) && !this.sleep;
     // Verre dieren krijgen vier beeldjes tegelijk: kleine stappen houden botsingen betrouwbaar.
     for (let left = dt; left > 0.00001;) {
       const step = Math.min(0.025, left); left -= step;
@@ -211,6 +219,13 @@ export class Animal {
       else if (this.walking) { this.body.rotation.x = -0.45; this.head.position.y -= 0.15; }
       else this.head.rotation.y = Math.sin(this.time * 1.8) * 0.5;
     }
+    if (this.hiding) this.group.scale.y = this.type === 'turtle' ? .38 : .12;
+    if (this.sliding) this.body.rotation.x = -.45;
+    if (this.chewing) this.head.rotation.x = Math.sin(this.time * 7) * .08;
+    if (this.type === 'panda' && happy) this.body.rotation.z = Math.sin(this.time * 8) * .6;
+    if (this.type === 'polarBear' && happy) this.body.rotation.z = Math.sin(this.time * 8) * .45;
+    if (this.type === 'seal' && happy) this.wings.forEach((wing, i) => { wing.rotation.z = (i ? -1 : 1) * Math.sin(this.time * 15) * .75; });
+    if (this.type === 'snowyOwl' && happy) this.head.rotation.y = Math.sin(this.time * 4) * Math.PI;
   }
 
   pet(px, pz) {

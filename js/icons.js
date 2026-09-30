@@ -10,6 +10,9 @@ const catFace = (color, markings = '', mane = false) => svg(`
   <circle cx="17" cy="22" r="2" fill="#252326"/><circle cx="31" cy="22" r="2" fill="#252326"/>
   <ellipse cx="24" cy="32" rx="10" ry="6" fill="#fff0d2"/><path d="M20 29 H28 L24 33 Z" fill="#5a3a2a"/>
   <path d="M19 35 Q24 39 29 35" fill="none" stroke="#5a3a2a" stroke-width="2"/>`);
+const newFace = (color, detail = '', ears = '') => svg(`${ears}<rect x="7" y="9" width="34" height="33" rx="11" fill="${color}" ${S}/>
+  ${detail}<circle cx="17" cy="23" r="3" fill="#252326"/><circle cx="31" cy="23" r="3" fill="#252326"/>
+  <path d="M21 32 H27 L24 35 Z" fill="#51443d"/><path d="M19 37 Q24 40 29 37" stroke="#51443d" stroke-width="2" fill="none"/>`);
 
 export const ICONS = {
   home: svg(`<path d="M8 24 L24 9 L40 24 L36 24 L36 39 L12 39 L12 24 Z" fill="#fff" ${S}/><rect x="20" y="28" width="8" height="11" fill="#e0a45a" ${S}/>`),
@@ -60,6 +63,21 @@ export const ICONS = {
   zebra: svg(`<path d="M14 16 L11 4 L19 5 L20 16 M28 16 L29 5 L37 4 L34 16" fill="#f5f3ed" ${S}/><rect x="12" y="12" width="24" height="31" rx="8" fill="#f5f3ed" ${S}/><path d="M22 13 V20 M12 23 L18 25 M36 23 L30 25 M12 29 L18 30 M36 29 L30 30" stroke="#30313b" stroke-width="3"/><rect x="14" y="32" width="20" height="9" rx="4" fill="#30313b"/><circle cx="19" cy="23" r="2" fill="#252326"/><circle cx="29" cy="23" r="2" fill="#252326"/>`),
   hippo: svg(`<circle cx="11" cy="11" r="5" fill="#9d91aa" ${S}/><circle cx="37" cy="11" r="5" fill="#9d91aa" ${S}/><rect x="8" y="9" width="32" height="28" rx="8" fill="#9d91aa" ${S}/><rect x="5" y="24" width="38" height="19" rx="8" fill="#b3a2b8" ${S}/><circle cx="16" cy="19" r="2.5" fill="#252326"/><circle cx="32" cy="19" r="2.5" fill="#252326"/><circle cx="16" cy="30" r="2" fill="#6b5971"/><circle cx="32" cy="30" r="2" fill="#6b5971"/><path d="M12 37 H36" stroke="#6b5971" stroke-width="2"/>`),
   meerkat: svg(`<rect x="17" y="21" width="14" height="23" rx="5" fill="#d3b48a" ${S}/><circle cx="12" cy="9" r="4" fill="#6e523c"/><circle cx="36" cy="9" r="4" fill="#6e523c"/><rect x="10" y="7" width="28" height="22" rx="7" fill="#d3b48a" ${S}/><ellipse cx="17" cy="16" rx="5" ry="4" fill="#6e523c"/><ellipse cx="31" cy="16" rx="5" ry="4" fill="#6e523c"/><circle cx="17" cy="16" r="1.7" fill="#fff"/><circle cx="31" cy="16" r="1.7" fill="#fff"/><path d="M20 21 H28 L24 25 Z" fill="#6e523c"/><path d="M19 32 L14 36 M29 32 L34 36" ${S}/>`),
+  monkey: newFace('#7a4a2a', '<ellipse cx="24" cy="31" rx="13" ry="9" fill="#e8c7a0"/>', '<circle cx="7" cy="18" r="6" fill="#7a4a2a"/><circle cx="41" cy="18" r="6" fill="#7a4a2a"/>'),
+  parrot: newFace('#e23b3b', '<path d="M21 29 H32 L26 37 Z" fill="#f4d34e"/><path d="M8 29 L3 36 L12 36 M40 29 L45 36 L36 36" fill="#3273c8"/>', '<path d="M19 10 L23 1 L27 10" fill="#e23b3b"/>'),
+  panda: newFace('#f5f2e9', '<ellipse cx="17" cy="23" rx="6" ry="7" fill="#25252a"/><ellipse cx="31" cy="23" rx="6" ry="7" fill="#25252a"/>', '<circle cx="10" cy="10" r="7" fill="#25252a"/><circle cx="38" cy="10" r="7" fill="#25252a"/>'),
+  frog: newFace('#4cae51', '<ellipse cx="24" cy="35" rx="12" ry="5" fill="#d5dc58"/>', '<circle cx="14" cy="11" r="8" fill="#4cae51"/><circle cx="34" cy="11" r="8" fill="#4cae51"/>'),
+  sloth: newFace('#948a78', '<ellipse cx="24" cy="25" rx="15" ry="12" fill="#d4c0a0"/><path d="M12 19 L20 25 M36 19 L28 25" stroke="#6d6258" stroke-width="5"/>'),
+  camel: newFace('#d6b27a', '<path d="M14 39 Q24 43 34 39" fill="none" stroke="#8a6a46"/>', '<path d="M9 13 Q14 0 24 7 Q34 0 39 13" fill="#b79058"/>'),
+  fennec: newFace('#e9d6ad', '', '<path d="M7 18 L3 0 L20 12 M41 18 L45 0 L28 12" fill="#e9d6ad" stroke="#1c2a33" stroke-width="2"/>'),
+  lizard: newFace('#a5b94b', '<path d="M6 35 L1 44 L13 37" fill="#a5b94b"/>'),
+  turtle: newFace('#72a86b', '<path d="M8 38 Q24 6 40 38" fill="none" stroke="#5f7842" stroke-width="5"/>'),
+  polarBear: newFace('#f4f4f0', '<ellipse cx="24" cy="33" rx="10" ry="8" fill="#fff"/>', '<circle cx="9" cy="10" r="6" fill="#f4f4f0"/><circle cx="39" cy="10" r="6" fill="#f4f4f0"/>'),
+  penguin: newFace('#292b36', '<ellipse cx="24" cy="28" rx="13" ry="16" fill="#f9f7ef"/><path d="M20 30 H28 L24 36 Z" fill="#ed982d"/>'),
+  reindeer: newFace('#8e6548', '<ellipse cx="24" cy="34" rx="11" ry="7" fill="#b58a61"/>', '<path d="M12 15 L6 3 M12 11 L2 10 M36 15 L42 3 M36 11 L46 10" fill="none" stroke="#c3a37a" stroke-width="4"/>'),
+  arcticFox: newFace('#f6f8f7', '', '<path d="M8 16 L8 2 L20 12 M40 16 L40 2 L28 12" fill="#f6f8f7" stroke="#1c2a33" stroke-width="2"/>'),
+  seal: newFace('#9ca6ad', '<path d="M7 37 L2 43 M41 37 L46 43" stroke="#9ca6ad" stroke-width="7"/>'),
+  snowyOwl: newFace('#f7f9f5', '<path d="M20 29 H28 L24 35 Z" fill="#d9a63b"/><circle cx="12" cy="31" r="2" fill="#484d52"/><circle cx="36" cy="31" r="2" fill="#484d52"/>', '<path d="M9 16 L7 5 L19 12 M39 16 L41 5 L29 12" fill="#f7f9f5"/>'),
 };
 
 // Als plaatje (voor <img>), bijvoorbeeld in de onderbalk

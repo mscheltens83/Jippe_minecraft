@@ -20,9 +20,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft vier tabbladen: Blokken, Natuur, Stempels en Dieren |
 | **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs of savannegras uit de kist. De plaatjes staan per wereld bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
-| **Dieren** | Varkens, kippen, schapen en negen wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
+| **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
-| **Wilde dieren** | Zoek leeuwen, leeuwinnen, cheetahs, olifanten, giraffen, zebra's, nijlpaarden en stokstaartjes in de savanne. Tijgers leven in de jungle. Stokstaartjes staan ook in de woestijn |
+| **Wilde dieren** | Jungle: tijger, aap, papegaai, panda, kikker en luiaard. Woestijn: stokstaartje, kameel, woestijnvos, hagedis en schildpad. Toendra: ijsbeer, pinguïn, rendier, poolvos, zeehond en sneeuwuil. Ook de savanne zit vol dieren |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
 | **Roofdieren** | Leeuwen, leeuwinnen, cheetahs en tijgers jagen soms op boerderijdieren. Je ziet eerst een ! boven de prooi en kunt het roofdier aaien om de jacht te stoppen. In het menu kunnen ouders ‘Roofdieren jagen’ uitzetten |
@@ -48,6 +48,8 @@ Zoek een tempel, piramide, iglo, leeuwenrots, drinkplaats of oase. De bouwplek i
 midden blijft vlak. Schatkisten zijn er al; de verrassing bij het openen volgt later.
 Een leeuw luiert op de leeuwenrots, cheetahs sprinten met stofwolkjes en tijgers zwemmen.
 Giraffen eten bij acacia's, zebra's zoeken elkaar op en stokstaartjes duiken weg als je ze aait.
+Papegaaien en sneeuwuilen vliegen, apen en luiaards klimmen, pinguïns glijden over ijs
+en panda's zoeken bamboe. Tik op een dier om zijn eigen geluid en kunstje te zien.
 Nieuwe dieren verschijnen vanzelf in een **nieuwe** wereld. Bewaarde werelden behouden
 hun dieren; daar kun je de nieuwe soorten zelf uit de kist neerzetten.
 

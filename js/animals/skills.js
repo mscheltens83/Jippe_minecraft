@@ -62,6 +62,68 @@ export const SKILLS = {
       return;
     }
   },
+  vliegen(a, dt, world) {
+    if (a.happy || a.sleep) return;
+    a.flightWait = (a.flightWait ?? 2) - dt;
+    if (!a.flight && a.flightWait <= 0) {
+      const x = Math.max(3, Math.min(92, a.x + (Math.random() - .5) * 18));
+      const z = Math.max(3, Math.min(92, a.z + (Math.random() - .5) * 18));
+      const y = Math.min(42, world.surfaceY(Math.floor(x), Math.floor(z)) + 4 + Math.random() * 5);
+      if (a.clearAt(world, x, y, z)) {
+        a.flight = { x, y, z, left: 5 + Math.random() * 5 };
+        a.walking = true;
+      } else a.flightWait = 3;
+    }
+    if (a.flight) {
+      a.flight.left -= dt;
+      toward(a, a.flight.x, a.flight.z);
+      if (a.flight.left <= 0 || Math.hypot(a.flight.x - a.x, a.flight.z - a.z) < .6) {
+        a.flight = null; a.flightWait = 4 + Math.random() * 5; a.walking = false;
+      }
+    }
+  },
+  klimmen(a, dt, world) {
+    if ((a.climbWait = (a.climbWait ?? 1) - dt) > 0 || a.happy || a.sleep) return;
+    a.climbWait = .5;
+    const x = Math.floor(a.x), z = Math.floor(a.z), y = Math.floor(a.y);
+    const trunks = [B.JUNGLE_LOG, B.LOG];
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (!trunks.includes(world.get(x + dx, y, z + dz))) continue;
+      if (a.clearAt(world, a.x, a.y + .4, a.z)) {
+        a.y += .4; a.vy = 0; a.onGround = false; a.climbing = .5;
+      }
+      return;
+    }
+  },
+  springen(a, dt) {
+    if (a.onGround && !a.sleep && (a.happy || Math.random() < dt * .08)) {
+      a.vy = a.happy ? 7.5 : 5; a.onGround = false;
+    }
+  },
+  bamboe(a, dt, world) {
+    if ((a.skillWait -= dt) > 0 || a.happy || a.sleep) return;
+    a.skillWait = 3;
+    for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
+      const x = Math.floor(a.x) + dx, z = Math.floor(a.z) + dz;
+      if (world.get(x, Math.floor(a.y), z) !== B.BAMBOO && world.get(x, Math.floor(a.y) + 1, z) !== B.BAMBOO) continue;
+      toward(a, x + .5, z + .5);
+      a.walking = Math.hypot(dx, dz) > 1.5; a.graze = !a.walking; a.timer = 3;
+      return;
+    }
+  },
+  kauwen(a) { a.chewing = a.happy || !a.walking && !a.sleep; },
+  schieten(a, dt) {
+    if (a.happy && !a.dashed) { a.dashed = true; a.dash = .65; a.targetYaw += Math.PI; }
+    if (!a.happy) a.dashed = false;
+    a.dash = Math.max(0, (a.dash || 0) - dt);
+  },
+  verstoppen(a) { a.hiding = a.happy; },
+  opduiken(a) { a.hiding = a.happy; },
+  glijden(a, dt, world) {
+    const under = world.get(Math.floor(a.x), Math.floor(a.y - .05), Math.floor(a.z));
+    a.sliding = !a.sleep && (under === B.ICE || under === B.PACKED_ICE || a.happy);
+    if (a.sliding && a.happy) { a.walking = true; a.targetYaw += dt * 2; }
+  },
 };
 
 export function updateSkills(a, dt, world, effects, all) {

@@ -236,6 +236,9 @@ export const ITEM = {
   PIG: 210, CHICKEN: 211, SHEEP: 212,
   LION: 213, LIONESS: 214, CHEETAH: 215, TIGER: 216, ELEPHANT: 217,
   GIRAFFE: 218, ZEBRA: 219, HIPPO: 220, MEERKAT: 221,
+  MONKEY: 222, PARROT: 223, PANDA: 224, FROG: 225, SLOTH: 226,
+  CAMEL: 227, FENNEC: 228, LIZARD: 229, TURTLE: 230,
+  POLAR_BEAR: 231, PENGUIN: 232, REINDEER: 233, ARCTIC_FOX: 234, SEAL: 235, SNOWY_OWL: 236,
 };
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
@@ -258,6 +261,21 @@ export const SPECIALS = {
   [ITEM.ZEBRA]: { name: 'Zebra', kind: 'animal', animal: 'zebra' },
   [ITEM.HIPPO]: { name: 'Nijlpaard', kind: 'animal', animal: 'hippo' },
   [ITEM.MEERKAT]: { name: 'Stokstaartje', kind: 'animal', animal: 'meerkat' },
+  [ITEM.MONKEY]: { name: 'Aap', kind: 'animal', animal: 'monkey' },
+  [ITEM.PARROT]: { name: 'Papegaai', kind: 'animal', animal: 'parrot' },
+  [ITEM.PANDA]: { name: 'Panda', kind: 'animal', animal: 'panda' },
+  [ITEM.FROG]: { name: 'Kikker', kind: 'animal', animal: 'frog' },
+  [ITEM.SLOTH]: { name: 'Luiaard', kind: 'animal', animal: 'sloth' },
+  [ITEM.CAMEL]: { name: 'Kameel', kind: 'animal', animal: 'camel' },
+  [ITEM.FENNEC]: { name: 'Woestijnvos', kind: 'animal', animal: 'fennec' },
+  [ITEM.LIZARD]: { name: 'Hagedis', kind: 'animal', animal: 'lizard' },
+  [ITEM.TURTLE]: { name: 'Schildpad', kind: 'animal', animal: 'turtle' },
+  [ITEM.POLAR_BEAR]: { name: 'IJsbeer', kind: 'animal', animal: 'polarBear' },
+  [ITEM.PENGUIN]: { name: 'Pinguïn', kind: 'animal', animal: 'penguin' },
+  [ITEM.REINDEER]: { name: 'Rendier', kind: 'animal', animal: 'reindeer' },
+  [ITEM.ARCTIC_FOX]: { name: 'Poolvos', kind: 'animal', animal: 'arcticFox' },
+  [ITEM.SEAL]: { name: 'Zeehond', kind: 'animal', animal: 'seal' },
+  [ITEM.SNOWY_OWL]: { name: 'Sneeuwuil', kind: 'animal', animal: 'snowyOwl' },
 };
 
 export function itemName(id) { return SPECIALS[id]?.name ?? BLOCKS[id]?.name ?? ''; }
@@ -293,9 +311,14 @@ export const PALETTE_GROUPS = [
   { title: 'Dieren', sections: [
     { title: 'Boerderij', icon: 'island', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
     { title: 'Savanne', icon: 'savanna', items: [ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH, ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT] },
-    { title: 'Jungle', icon: 'jungle', items: [ITEM.TIGER] },
+    { title: 'Jungle', icon: 'jungle', items: [ITEM.TIGER, ITEM.MONKEY, ITEM.PARROT, ITEM.PANDA, ITEM.FROG, ITEM.SLOTH] },
+    { title: 'Woestijn', icon: 'desert', items: [ITEM.CAMEL, ITEM.FENNEC, ITEM.LIZARD, ITEM.TURTLE] },
+    { title: 'Toendra', icon: 'tundra', items: [ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
   ], items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP, ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH,
-    ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT, ITEM.TIGER] },
+    ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT, ITEM.TIGER,
+    ITEM.MONKEY, ITEM.PARROT, ITEM.PANDA, ITEM.FROG, ITEM.SLOTH,
+    ITEM.CAMEL, ITEM.FENNEC, ITEM.LIZARD, ITEM.TURTLE,
+    ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
 ];
 export const PALETTE = PALETTE_GROUPS.flatMap((g) => g.items);
 

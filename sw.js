@@ -1,7 +1,7 @@
 // Service worker: zorgt dat JippeCraft ook zonder internet werkt.
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
-const CACHE = 'jippecraft-v6';
+const CACHE = 'jippecraft-v7';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',
@@ -11,6 +11,7 @@ const FILES = [
   'js/stamps.js', 'js/biomes.js', 'js/structures.js',
   'js/animals/core.js', 'js/animals/species.js', 'js/animals/skills.js',
   'js/animals/farm.js', 'js/animals/cats.js', 'js/animals/savanna.js', 'js/animals/hunt.js',
+  'js/animals/extras.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 

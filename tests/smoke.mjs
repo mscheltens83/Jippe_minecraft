@@ -11,6 +11,7 @@ import { testPhaseA } from './phase-a.mjs';
 import { testPhaseB } from './phase-b.mjs';
 import { testPhaseC } from './phase-c.mjs';
 import { testPhaseD } from './phase-d.mjs';
+import { testPhaseE } from './phase-e.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -203,17 +204,18 @@ check(await until(() => window.__jippecraft.world.data.some((id) => id >= 41 && 
 await pickFromChest('Rood glas');
 await page.touchscreen.tap(cx + 90, cy + 40);
 check(await until(() => window.__jippecraft.world.data.includes(36)), 'rood glas geplaatst');
-await pickFromChest('Vuurwerk');
-await page.touchscreen.tap(cx - 110, cy + 40);
-check(await until(() => window.__jippecraft.world.data.includes(35)), 'vuurwerk geplaatst');
-await lookAt(-0.3, Math.PI / 2);
-await page.waitForTimeout(800);
 await shot('05-blokken');
-await lookAt(-0.6, Math.PI / 2);
-await page.waitForTimeout(200);
-await page.touchscreen.tap(cx - 110, cy + 40);
+// De eerdere bouwtests laten veel blokken rond het mikpunt achter; begin voor
+// het vuurwerk op een leeg grasveld zodat de echte tik het vuurwerk raakt.
+await g(() => { const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear(); j.scene.rebuildAll(j.world); });
+await pickFromChest('Vuurwerk');
+await lookAt(-0.7, 0);
+await page.touchscreen.tap(cx, cy + 50);
+check(await until(() => window.__jippecraft.world.data.includes(35)), 'vuurwerk geplaatst');
+await page.waitForTimeout(800);
+await page.touchscreen.tap(cx, cy + 50);
 check(await until(() => !window.__jippecraft.world.data.includes(35)), 'tikken op vuurwerk laat het opstijgen');
-await lookAt(0.35, Math.PI / 2);
+await lookAt(0.35, 0);
 check(await until(() => window.__jippecraft.particles.list.length > 100, null, 20000), 'vuurwerk knalt uit elkaar');
 await shot('06-vuurwerk');
 
@@ -359,6 +361,7 @@ await testPhaseA({ newPage, check, out, phase2Save: JSON.parse(fs.readFileSync(p
 await testPhaseB({ newPage, check, out });
 await testPhaseC({ newPage, check, out });
 await testPhaseD({ newPage, check, out });
+await testPhaseE({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 
