@@ -22,6 +22,6 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 3B | Leeuw, leeuwin, cheetah, tijger en savannedieren | Klaar; getest in de browser |
 | 3C | Roofdieren en stallen | Klaar; getest in de browser |
 | 3D | Temmen en rijden op de leeuw | Klaar; getest in de browser |
-| 3E | Overige wilde dieren | Te doen |
+| 3E | Overige wilde dieren | Klaar; getest in de browser |
 | 3F | Dierenalbum | Te doen |
 | 3G | Weer, geluid, extra's | Te doen |

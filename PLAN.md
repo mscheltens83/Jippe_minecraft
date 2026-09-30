@@ -151,7 +151,9 @@ Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
   plus een bewaarde ouderinstelling om jagen uit te zetten.
 - ✅ **3D**: drie keer aaien temt een leeuw of leeuwin. Een zadel, volgen, rijden,
   springen, afstappen en veilig bewaren zijn met echte aanraakbediening getest.
-- ⬜ **3E–3G**: overige wilde dieren, album, weer en muziek.
+- ✅ **3E**: vijftien overige wilde dieren in jungle, woestijn en toendra met eigen
+  uiterlijk, geluiden en vaardigheden; alle 27 soorten staan in de dierenkist.
+- ⬜ **3F–3G**: album, weer, muziek en verrassingen.
 
 De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
 en meldt de gemiddelde beeldtijd met 30 dieren, ook met de nieuwe wilde soorten.

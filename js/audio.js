@@ -120,6 +120,19 @@ export class Sounds {
       for (let i = 0; i < 2; i++) this.tone('sine', 1100 * p, 1600 * p, 0.08, 0.1, i * 0.13);
     } else if (sound === 'giraffe') {
       this.tone('triangle', 220 * p, 150, 0.3, 0.08);
+    } else if (sound === 'monkey') {
+      for (let i = 0; i < 3; i++) this.tone('sine', (390 + i * 80) * p, (600 + i * 90) * p, .12, .14, i * .16);
+    } else if (sound === 'parrot' || sound === 'owl') {
+      this.vibrato('triangle', (sound === 'owl' ? 550 : 1050) * p, .45, .11);
+    } else if (sound === 'frog' || sound === 'penguin' || sound === 'seal') {
+      const base = sound === 'frog' ? 250 : sound === 'seal' ? 190 : 470;
+      for (let i = 0; i < 2; i++) this.tone('sine', base * p, base * .66, .16, .16, i * .22);
+    } else if (sound === 'panda' || sound === 'bear' || sound === 'camel' || sound === 'reindeer') {
+      const base = sound === 'bear' ? 105 : sound === 'camel' ? 225 : sound === 'reindeer' ? 275 : 185;
+      this.vibrato('triangle', base * p, .42, .1);
+    } else if (sound === 'fennec' || sound === 'fox' || sound === 'lizard' || sound === 'turtle' || sound === 'sloth') {
+      const base = sound === 'lizard' ? 1200 : sound === 'sloth' ? 260 : sound === 'turtle' ? 340 : 750;
+      this.tone('triangle', base * p, base * 1.25, sound === 'sloth' ? .45 : .13, .12);
     }
   }
 

@@ -8,7 +8,7 @@ import { SPECIES, MAX_ANIMALS } from './animals/species.js';
 import { updateHunt } from './animals/hunt.js';
 export { SPECIES, MAX_ANIMALS } from './animals/species.js';
 
-const GROUND = [B.GRASS, B.DRY_GRASS, B.SAND, B.RED_SAND, B.RED_DIRT, B.MUD];
+const GROUND = [B.GRASS, B.DRY_GRASS, B.SAND, B.RED_SAND, B.RED_DIRT, B.MUD, B.SNOW, B.ICE, B.PACKED_ICE];
 export class Animals {
   constructor(scene, effects = null) {
     this.scene = scene; this.effects = effects; this.list = []; this.frame = 0;
@@ -47,7 +47,10 @@ export class Animals {
 
   populate(world) {
     const recipes = world.type === 'adventure'
-      ? [['island', [['pig', 4], ['sheep', 3], ['chicken', 4]]], ['jungle', [['tiger', 2]]],
+      ? [['island', [['pig', 4], ['sheep', 3], ['chicken', 4]]],
+        ['jungle', [['tiger', 2], ...BIOMES.jungle.dieren.slice(1).map(([type]) => [type, 1])]],
+        ['desert', [['meerkat', 1], ...BIOMES.desert.dieren.slice(1).map(([type]) => [type, 1])]],
+        ['tundra', BIOMES.tundra.dieren.map(([type]) => [type, 1])],
         ['savanna', [['lion', 1], ['lioness', 1], ['cheetah', 1], ['elephant', 1], ['giraffe', 1], ['zebra', 3], ['hippo', 1], ['meerkat', 2]]]]
       : [[world.type, BIOMES[world.type]?.dieren || []]];
     for (const [biome, want] of recipes) for (const [type, n] of want) {
@@ -72,7 +75,7 @@ export class Animals {
           const index = (offset + tries * 97) % count;
           const x = 2 + index % (SX - 4), z = 2 + Math.floor(index / (SX - 4));
           const dist = Math.hypot(x - SX / 2, z - SZ / 2);
-          if (world.type === 'adventure' && (biomeAt(world.type, x, z) !== biome || (biome === 'island' ? dist > 6 : dist < 14))) continue;
+          if (world.type === 'adventure' && (biomeAt(world.type, x + .5, z + .5) !== biome || (biome === 'island' ? dist > 6 : dist < 14))) continue;
           if (world.type !== 'adventure' && SPECIES[type].dieet === 'boerderij' && (dist < 6 || dist > 26)) continue;
           if (SPECIES[type].dieet !== 'boerderij' && dist < 10) continue;
           if (type === 'tiger' && i === 0 && dist > 28) continue;
