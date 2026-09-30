@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url';
 import { testPhaseA } from './phase-a.mjs';
 import { testPhaseB } from './phase-b.mjs';
 import { testPhaseC } from './phase-c.mjs';
+import { testPhaseD } from './phase-d.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -357,6 +358,7 @@ const oldSave = await (async () => {
 await testPhaseA({ newPage, check, out, phase2Save: JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/fase-2-v2.json'), 'utf8')) });
 await testPhaseB({ newPage, check, out });
 await testPhaseC({ newPage, check, out });
+await testPhaseD({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

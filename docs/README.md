@@ -20,8 +20,8 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 2 | Dieren (varken, kip, schaap), stempels, nieuwe blokken, poppetje, muziek, 3 werelden | Klaar |
 | 3A | Nieuwe werelden en blokken | Klaar; op een echte iPad nog proberen |
 | 3B | Leeuw, leeuwin, cheetah, tijger en savannedieren | Klaar; getest in de browser |
-| 3C | Roofdieren en stallen | Te doen |
-| 3D | Temmen en rijden op de leeuw | Te doen |
+| 3C | Roofdieren en stallen | Klaar; getest in de browser |
+| 3D | Temmen en rijden op de leeuw | Klaar; getest in de browser |
 | 3E | Overige wilde dieren | Te doen |
 | 3F | Dierenalbum | Te doen |
 | 3G | Weer, geluid, extra's | Te doen |

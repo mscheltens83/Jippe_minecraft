@@ -149,7 +149,9 @@ Het uitgewerkte plan staat in [`docs/fase-3-plan.md`](docs/fase-3-plan.md).
   en stokstaartje hebben eigen geluiden, bewegingen en kunstjes. Dierenkist per wereld.
 - ✅ **3C**: hekken en hekdeuren, hooibalen, vriendelijke jacht met waarschuwing en ingrijpen,
   plus een bewaarde ouderinstelling om jagen uit te zetten.
-- ⬜ **3D–3G**: temmen en rijden, overige wilde dieren, album, weer en muziek.
+- ✅ **3D**: drie keer aaien temt een leeuw of leeuwin. Een zadel, volgen, rijden,
+  springen, afstappen en veilig bewaren zijn met echte aanraakbediening getest.
+- ⬜ **3E–3G**: overige wilde dieren, album, weer en muziek.
 
 De automatische iPad-browsercontrole maakt ook plaatjes van alle nieuwe landschappen
 en meldt de gemiddelde beeldtijd met 30 dieren, ook met de nieuwe wilde soorten.

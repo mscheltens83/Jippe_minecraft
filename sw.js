@@ -1,7 +1,7 @@
 // Service worker: zorgt dat JippeCraft ook zonder internet werkt.
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
-const CACHE = 'jippecraft-v5';
+const CACHE = 'jippecraft-v6';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',

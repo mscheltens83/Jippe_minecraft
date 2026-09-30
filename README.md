@@ -26,6 +26,8 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
 | **Roofdieren** | Leeuwen, leeuwinnen, cheetahs en tijgers jagen soms op boerderijdieren. Je ziet eerst een ! boven de prooi en kunt het roofdier aaien om de jacht te stoppen. In het menu kunnen ouders ‘Roofdieren jagen’ uitzetten |
+| **Vriendjes-leeuw** | Aai dezelfde leeuw of leeuwin drie keer snel achter elkaar. Het rode zadel laat zien dat jullie vrienden zijn; hij volgt je en jaagt niet meer |
+| **Rijden** | Tik nog eens op je vriendjes-leeuw om op te stappen. Duw de joystick helemaal naar voren om te rennen, spring over een hek en tik op het leeuw-pijltje om af te stappen |
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
 | **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
 | **Springen** | Grote pijl rechtsonder. Tegen een opstapje of trap lopen gaat vanzelf |
