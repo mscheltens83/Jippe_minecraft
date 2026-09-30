@@ -366,8 +366,8 @@ Elke fase is los te spelen en te testen. Per fase: een eigen branch en een pull 
 | **B ✅** | Het nieuwe dierensysteem (§5.1) + ★ **leeuw, leeuwin, cheetah, tijger** met veel detail + savannedieren (olifant, giraf, zebra, nijlpaard, stokstaartje) | Test 2 (savanne, tijger) slaagt; de favorieten zien er mooi uit en hebben hun kunstjes |
 | **C ✅** | Roofdieren en stallen: honger, sluipen, jagen, vluchten, poef, slapen, opgeven, ingrijpen, hek, hekdeur, hooibaal, instelling voor ouders | Tests 3 t/m 7 slagen |
 | **D ✅** | Temmen en rijden op de leeuw (algemeen opgezet) | Tests 8 en 9 slagen |
-| **E** | De overige dieren van jungle, woestijn en toendra, met hun vaardigheden | Test 2 volledig; elk dier heeft zijn kunstje |
-| **F** | Dierenalbum, nieuw-dier-popup, stickers van de 3D-figuurtjes | Test 10 slaagt |
+| **E ✅** | De overige dieren van jungle, woestijn en toendra, met hun vaardigheden | Test 2 volledig; elk dier heeft zijn kunstje |
+| **F ✅** | Dierenalbum, nieuw-dier-popup, stickers van de 3D-figuurtjes | Test 10 slaagt |
 | **G** | Extra's: weer en achtergrondgeluid, muziek per wereld, schatkisten met confetti, sneeuwpop die gaat lopen (2 sneeuwblokken + pompoen erop), eventueel jonge dieren in een stal (twee dezelfde boerderijdieren bij een hooibaal in een afgesloten stal krijgen na 2 minuten een jong) | Handmatig proberen op de iPad |
 
 Waarom deze volgorde: eerst de werelden (daar hangt alles aan), dan meteen Jippe's favorieten (B), dan wat de ouder het belangrijkst vindt (C en D), en daarna de rest.

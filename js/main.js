@@ -15,6 +15,7 @@ import { Particles } from './particles.js';
 import { Storage } from './storage.js';
 import { Animals } from './animals.js';
 import { Avatar } from './avatar.js';
+import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
 import { BIOMES, biomeView } from './biomes.js';
 
@@ -76,6 +77,7 @@ class Game {
       onToggleSound: () => this.toggleSound(),
       onToggleMusic: () => this.toggleMusic(),
       onTogglePredators: () => this.togglePredators(),
+      onAlbum: () => this.album.open(),
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
@@ -89,6 +91,9 @@ class Game {
     const settings = this.storage.loadLocal('settings') || {};
     this.sounds.muted = !!settings.muted;
     this.settings = { ...settings, predators: settings.predators !== false, album: Array.isArray(settings.album) ? settings.album : [] };
+    this.album = new Album(root, this.settings.album,
+      (type) => { this.sounds.unlock(); this.sounds.animal(type); },
+      () => { this.settings.album = []; this.saveSettings(); });
     this.animals.setPredators(this.settings.predators);
     this.animals.onCatch = () => { this.sounds.nom(); this.markDirty(); };
     this.music.on = settings.music !== false;
@@ -575,6 +580,11 @@ class Game {
     this.animals.stopHunt(a, 30);
     a.pet(this.player.x, this.player.z);
     this.sounds.animal(a.type);
+    if (this.album.discover(a.type)) {
+      this.settings.album = [...this.album.known];
+      this.saveSettings();
+      this.sounds.magic();
+    }
     let heartSize = 1;
     if (a.def.rijdbaar && (a.type === 'lion' || a.type === 'lioness')) {
       const now = performance.now() / 1000;
@@ -897,6 +907,6 @@ function start() {
 // Geen zoomen, scrollen of selecteren op de iPad
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
-document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card, .album-grid')) e.preventDefault(); }, { passive: false });
 
 start();

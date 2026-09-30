@@ -22,6 +22,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
 | **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
+| **Dierenalbum** | Aai een soort voor het eerst en krijg een sticker. Open het boek in het spel of in het menu om je gevonden dieren te bekijken. Tik op een sticker voor het dierengeluid |
 | **Wilde dieren** | Jungle: tijger, aap, papegaai, panda, kikker en luiaard. Woestijn: stokstaartje, kameel, woestijnvos, hagedis en schildpad. Toendra: ijsbeer, pinguïn, rendier, poolvos, zeehond en sneeuwuil. Ook de savanne zit vol dieren |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
@@ -52,6 +53,8 @@ Papegaaien en sneeuwuilen vliegen, apen en luiaards klimmen, pinguïns glijden o
 en panda's zoeken bamboe. Tik op een dier om zijn eigen geluid en kunstje te zien.
 Nieuwe dieren verschijnen vanzelf in een **nieuwe** wereld. Bewaarde werelden behouden
 hun dieren; daar kun je de nieuwe soorten zelf uit de kist neerzetten.
+Het dierenalbum telt ontdekkingen uit alle werelden samen. De stickers blijven bewaard;
+"Album leegmaken" vraagt eerst om bevestiging.
 
 Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
 **klikken** bouwt (in de sloop-stand: muisknop vasthouden), **rechtermuisknop** doet het omgekeerde,
