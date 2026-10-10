@@ -64,11 +64,11 @@ export async function testPhase4H({ newPage, check, out }) {
   await page.screenshot({ path: out + '/4h-jungle.png' });
 
   // Bewaard als extra wereld van deze wereldplek
-  check(await waitTrue(page, async () => {
+  check(await run(async () => {
     const j = window.__jippecraft, key = 'slot' + j.slot + '~jungle';
-    await j.store.flush();
+    await j.saveNow(); await j.store.flush();
     return !!(await j.store.loadMetas([key]))[key];
-  }, null, 10000), 'de Jungle wordt apart bewaard bij deze wereldplek');
+  }), 'de Jungle wordt apart bewaard bij deze wereldplek');
 
   // Terug door het portaal: weer thuis, naast het eerste portaal, met de hond
   await run(() => {

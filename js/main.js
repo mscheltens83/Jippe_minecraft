@@ -29,6 +29,7 @@ import { Quests, hasRoof } from './quests.js';
 import { Wardrobe, STICKER_PRIZES } from './wardrobe.js';
 import { iconURL } from './icons.js';
 import { placeState, neighbourChanges, startCart, stepCart, cartPose, isRail } from './rails.js';
+import { switchOn, signalChanges } from './switches.js';
 import { speech } from './speech.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
@@ -198,6 +199,8 @@ class Game {
           if (BLOCKS[this.world.get(x + dx, y + dy, z + dz)]?.portal !== undefined) this.world.set(x + dx, y + dy, z + dz, AIR);
         }
       }
+      // Een knop, hendel of drukplaat ging aan of uit: deuren, hekken en lampen in de buurt gaan mee
+      if (switchOn(old) !== switchOn(id)) this.signal(x, y, z);
     };
     this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
@@ -838,6 +841,15 @@ class Game {
       w.set(x, y, z, B.CHEST + b.dir * 2 + (b.open ? 0 : 1));
       this.sounds.door();
       if (!b.open) this.particles.sparkle(x + 0.1, y + 0.8, z + 0.1, x + 0.9, y + 1.4, z + 0.9, 12);
+    } else if (b.family === B.LEVER) {
+      w.set(x, y, z, b.aan ? B.LEVER : B.LEVER + 1); // om
+      this.sounds.tick(); this.sounds.place('wood');
+    } else if (b.family === B.BUTTON) {
+      // Een knop is even aan (2 seconden) en springt dan vanzelf terug
+      if (!b.aan) w.set(x, y, z, B.BUTTON + 1);
+      this.buttons = (this.buttons || []).filter((k) => k.x !== x || k.y !== y || k.z !== z);
+      this.buttons.push({ x, y, z, until: performance.now() / 1000 + 2 });
+      this.sounds.tick();
     } else if (b.family === B.DINO_EGG) {
       this.hatchEgg(hit);
     } else if (hit.id === B.JUKEBOX) {
@@ -1178,6 +1190,48 @@ class Game {
   extraSeed(theme) {
     const main = this.metas['slot' + this.slot]?.seed ?? this.world.seed;
     return theme ? (main ^ Math.imul(PORTAL_THEMES.indexOf(theme) + 1, 0x9e3779b1)) | 0 : main;
+  }
+
+  // ---------- knoppen, hendels en drukplaten (fase 5E) ----------
+
+  // Deuren, hekken en lampen rond (x, y, z) krijgen de stand die bij de schakelaars past
+  signal(x, y, z) {
+    const changes = signalChanges(this.world, x, y, z);
+    if (!changes.length) return;
+    for (const c of changes) this.world.set(c.x, c.y, c.z, c.to);
+    const opened = changes.some((c) => BLOCKS[c.to].open), lit = changes.some((c) => c.to === B.SWITCH_LAMP + 1);
+    if (changes.some((c) => BLOCKS[c.to].shape === 'door' || BLOCKS[c.to].shape === 'gate')) this.sounds.door();
+    this.particles.sparkle(x - 0.1, y + 0.1, z - 0.1, x + 1.1, y + 0.8, z + 1.1, 10);
+    if (opened || lit) this.note('signal', { door: opened, lamp: lit });
+    this.markDirty();
+  }
+
+  // Knoppen springen terug; drukplaten zijn aan zolang er iemand (of een dier) op staat
+  switchTick(now) {
+    if (now < (this.nextSwitchTick || 0)) return;
+    this.nextSwitchTick = now + 0.1;
+    const w = this.world;
+    if (this.buttons?.length) {
+      for (const k of this.buttons) if (now >= k.until && w.get(k.x, k.y, k.z) === B.BUTTON + 1) w.set(k.x, k.y, k.z, B.BUTTON);
+      this.buttons = this.buttons.filter((k) => now < k.until);
+    }
+    const p = this.player, on = new Set();
+    const feet = (e) => {
+      const x = Math.floor(e.x), y = Math.floor(e.y + 0.05), z = Math.floor(e.z);
+      if (BLOCKS[w.get(x, y, z)]?.family === B.PLATE) on.add(x + ',' + y + ',' + z);
+    };
+    if (!p.flying) feet(p);
+    for (const a of this.animals.list) if (Math.abs(a.x - p.x) < 24 && Math.abs(a.z - p.z) < 24) feet(a);
+    for (const k of on) {
+      const [x, y, z] = k.split(',').map(Number);
+      if (w.get(x, y, z) === B.PLATE) { w.set(x, y, z, B.PLATE + 1); this.sounds.tick(); if (k === [Math.floor(p.x), Math.floor(p.y + 0.05), Math.floor(p.z)].join(',')) this.note('plate'); }
+    }
+    for (const k of this.platesOn || []) {
+      if (on.has(k)) continue;
+      const [x, y, z] = k.split(',').map(Number);
+      if (w.get(x, y, z) === B.PLATE + 1) w.set(x, y, z, B.PLATE);
+    }
+    this.platesOn = on;
   }
 
   // ---------- karretje en bootje (fase 5D) ----------
@@ -1689,6 +1743,7 @@ class Game {
       if (inPortal !== null && !this.inPortal && !this.readOnly) this.travel(inPortal);
       this.inPortal = inPortal !== null;
       this.questTick(now);
+      this.switchTick(now);
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();

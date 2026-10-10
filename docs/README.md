@@ -44,4 +44,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 5B | Opdrachtjes en stickers, met voorlezen | Klaar (versie 5.1.0) |
 | 5C | Schatkisten en verkleden | Klaar (versie 5.2.0) |
 | 5D | Rails met karretje, bootje | Klaar (versie 5.3.0) |
-| 5E | Knoppen, hendels, drukplaten en lampen | Bezig |
+| 5E | Knoppen, hendels, drukplaten en lampen | Klaar (versie 5.4.0) |

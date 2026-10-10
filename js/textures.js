@@ -1127,6 +1127,15 @@ Object.assign(GEN, {
   rail_c2: (t) => railTile(t, [0, 16]),
   rail_c3: (t) => railTile(t, [0, 0]),
   rail_side: (t) => t.clear(), // de zijkant van de dunne rails zie je niet
+  // Knoppen en hendels (fase 5E): uit is grijs en hout, aan is rood (zoals redstone)
+  lever_off: (t) => { mcPlanks(t); for (let i = 0; i < 16; i++) t.set(i, i % 16, [96, 66, 36]); },
+  lever_on: (t) => { paletteNoise(t, [[200, 40, 30], [230, 70, 50], [160, 30, 24]], [0.5, 0.3, 0.2]); },
+  button_off: (t) => smoothBlock(t, [150, 150, 150]),
+  button_on: (t) => paletteNoise(t, [[210, 50, 40], [240, 90, 60], [170, 36, 28]], [0.5, 0.3, 0.2]),
+  plate_off: (t) => smoothBlock(t, [168, 168, 168]),
+  plate_on: (t) => { smoothBlock(t, [168, 168, 168]); for (let i = 2; i < 14; i++) { t.set(i, 2, [220, 60, 40]); t.set(i, 13, [220, 60, 40]); t.set(2, i, [220, 60, 40]); t.set(13, i, [220, 60, 40]); } },
+  lamp_off: (t) => { paletteNoise(t, [[92, 60, 40], [70, 46, 30], [110, 74, 48]], [0.5, 0.3, 0.2]); for (let i = 0; i < 16; i++) { t.set(i, 0, [50, 34, 22]); t.set(0, i, [50, 34, 22]); t.set(i, 8, [60, 40, 26]); t.set(8, i, [60, 40, 26]); } },
+  lamp_on: (t) => { paletteNoise(t, [[255, 200, 90], [255, 230, 140], [240, 160, 60]], [0.5, 0.3, 0.2]); for (let i = 0; i < 16; i++) { t.set(i, 0, [150, 96, 40]); t.set(0, i, [150, 96, 40]); t.set(i, 8, [200, 130, 50]); t.set(8, i, [200, 130, 50]); } },
   dino_egg_green: (t) => egg(t, [176, 214, 140], [76, 130, 60]),
   dino_egg_blue: (t) => egg(t, [168, 206, 236], [60, 104, 170]),
   dino_egg_red: (t) => egg(t, [240, 214, 186], [196, 70, 52]),

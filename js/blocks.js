@@ -68,6 +68,8 @@ export const B = {
   DINO_EGG: 602,     // 602..604: dino-ei in 3 kleuren
   PORTAL_STONE_RED: 605, PORTAL_RED: 606, // rode portaalsteen en het licht (606 langs x, 607 langs z)
   RAIL: 610,         // 610..619: rails (fase 5D): recht, bocht en helling, zie rails.js
+  // Knoppen en hendels (fase 5E): steeds uit en aan
+  LEVER: 620, BUTTON: 622, PLATE: 624, SWITCH_LAMP: 626,
 };
 
 // Portalen (fase 4H): elke kleur portaalsteen gaat naar een andere themawereld
@@ -133,7 +135,7 @@ export const EMIT = new Uint8Array(MAX_ID);   // hoeveel licht een blok zelf gee
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
-const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal', 'egg', 'rail'];
+const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal', 'egg', 'rail', 'schakel', 'aan', 'schakelLamp'];
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const render = opts.render || 'solid';
@@ -434,6 +436,24 @@ for (let s = 0; s < 10; s++) {
   def(B.RAIL + s, 'Rails', { top: tex, side: 'rail_side', bottom: tex }, {
     render: 'shape', solid: false, replaceable: false, boxBuf: 'cutout', sound: 'metal', family: B.RAIL, rail: s, boxes, icon: 'rail_ns',
   });
+}
+
+// Knoppen, hendels, drukplaten en een lamp die aan en uit kan (fase 5E, zie switches.js)
+for (const aan of [false, true]) {
+  const k = aan ? 1 : 0, st = aan ? '_on' : '_off';
+  def(B.LEVER + k, 'Hendel', 'lever' + st, {
+    render: 'shape', solid: false, replaceable: false, sound: 'wood', family: B.LEVER, schakel: 'hendel', aan,
+    boxes: [[4 / 16, 0, 3 / 16, 12 / 16, 2 / 16, 13 / 16], aan ? [7 / 16, 2 / 16, 10 / 16, 9 / 16, 11 / 16, 12 / 16] : [7 / 16, 2 / 16, 4 / 16, 9 / 16, 11 / 16, 6 / 16]],
+  });
+  def(B.BUTTON + k, 'Knop', 'button' + st, {
+    render: 'shape', solid: false, replaceable: false, sound: 'stone', family: B.BUTTON, schakel: 'knop', aan,
+    boxes: [[5 / 16, 0, 5 / 16, 11 / 16, (aan ? 1 : 2.5) / 16, 11 / 16]],
+  });
+  def(B.PLATE + k, 'Drukplaat', 'plate' + st, {
+    render: 'shape', solid: false, replaceable: false, sound: 'stone', family: B.PLATE, schakel: 'plaat', aan,
+    boxes: [[1 / 16, 0, 1 / 16, 15 / 16, (aan ? 0.5 : 1) / 16, 15 / 16]],
+  });
+  def(B.SWITCH_LAMP + k, aan ? 'Schakellamp (aan)' : 'Schakellamp', 'lamp' + st, { glow: aan, light: aan ? 15 : 0, sound: 'glass', family: B.SWITCH_LAMP, schakelLamp: true });
 }
 
 // Planten van twee blokken hoog (het bovenste blok is één verder)
@@ -737,6 +757,7 @@ export const PALETTE_GROUPS = [
     { title: 'Licht', icon: 'torch', items: [B.TORCH, B.LANTERN, B.GLOWSTONE, B.JACK_O_LANTERN, B.CAMPFIRE, B.LAMP, B.SEA_LANTERN] },
     { title: 'In huis', icon: 'house', items: [B.CRAFTING_TABLE, B.FURNACE, B.CHEST, B.LADDER, B.FLOWER_POT, B.JUKEBOX, B.CAKE] },
     { title: 'Bedden', icon: 'home', items: [bedId(0, false)] },
+    { title: 'Knoppen en hendels', icon: 'lever', items: [B.LEVER, B.BUTTON, B.PLATE, B.SWITCH_LAMP] },
   ]),
   group('Planten', [
     { title: 'Bloemen', icon: 'flower', items: [B.FLOWER_RED, B.FLOWER_YELLOW, B.CORNFLOWER, B.TULIP, B.SUNFLOWER, B.TALLGRASS, B.FERN, B.MUSHROOM_RED, B.MUSHROOM_BROWN] },

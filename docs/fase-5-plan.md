@@ -12,7 +12,7 @@ Zoals altijd: alles in het Nederlands, groot en duidelijk voor een kind van 6, n
 | **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 ✅ |
 | **5C** | Schatkisten en verkleden | 5.2.0 ✅ |
 | **5D** | Rails en karretje, bootje | 5.3.0 ✅ |
-| **5E** | Knoppen, hendels, drukplaten en lampen | 5.4.0 |
+| **5E** | Knoppen, hendels, drukplaten en lampen | 5.4.0 ✅ |
 
 Elk deel krijgt tests (unit en browser), docs, een eigen versie en een push, net als in fase 4.
 
@@ -132,6 +132,11 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 ### Klaar als
 - Een hendel opent een deur en zet een lamp aan; uit doet ze weer dicht en uit.
 - Een drukplaat voor een deur opent die als je erop gaat staan.
+
+### Zo is het gebouwd (versie 5.4.0)
+- `switches.js`: een schakelaar (hendel, knop, drukplaat) heeft een stand uit en aan. Gaat er een aan of uit, dan kijkt het spel naar alle deuren, hekken en schakellampen binnen 4 blokken: staat er een schakelaar aan binnen 4 blokken van dat ding, dan gaat het open of aan; anders dicht of uit. Dat gebeurt in `onBlockChanged`, dus het werkt ook bij slopen en met de terug-knop.
+- De knop springt na 2 seconden terug; drukplaten kijken tien keer per seconde of de speler of een dier erop staat (`switchTick`).
+- Drie nieuwe stickers: een deur openen met een hendel of knop, een schakellamp aanzetten en op een drukplaat staan. Daarmee zijn er 39 stickers.
 
 ## 7. Testen
 - **Unit:** generator van de Dinowereld (per seed hetzelfde, landschappen aanwezig), opdrachtjes (afvinken en bewaren), rails (de vorm past zich aan de buren aan), knoppen (wat binnen bereik aan en uit gaat).

@@ -121,6 +121,9 @@ export const ICONS = {
   minecart: svg(`<path d="M6 14 H42 L38 34 H10 Z" fill="#8c929a" ${S}/><path d="M6 14 H42" stroke="#b9bec6" stroke-width="4"/><circle cx="16" cy="38" r="5" fill="#26221f" ${S}/><circle cx="32" cy="38" r="5" fill="#26221f" ${S}/><path d="M2 44 H46" stroke="#7a5530" stroke-width="3"/>`),
   boat: svg(`<path d="M4 24 H44 L38 38 H10 Z" fill="#b8874e" ${S}/><path d="M10 30 H38" stroke="#7a5530" stroke-width="2.5"/><path d="M14 24 L6 12 M34 24 L42 12" stroke="#7a5530" stroke-width="3.5" stroke-linecap="round"/><path d="M2 42 Q8 38 14 42 T26 42 T38 42 T48 42" fill="none" stroke="#4f93e0" stroke-width="3"/>`),
   rail: svg(`<path d="M8 46 L16 2 M40 46 L32 2" stroke="#9aa0a8" stroke-width="4"/><path d="M8 40 H40 M10 30 H38 M12 20 H36 M14 10 H34" stroke="#7a5530" stroke-width="4"/>`),
+  // Knoppen en hendels (fase 5E)
+  lever: svg(`<rect x="8" y="34" width="32" height="10" rx="2" fill="#9aa0a8" ${S}/><path d="M24 36 L34 10" stroke="#1c2a33" stroke-width="7" stroke-linecap="round"/><path d="M24 36 L34 10" stroke="#a8743f" stroke-width="3.5" stroke-linecap="round"/><circle cx="34" cy="9" r="5" fill="#e8503d" ${S}/>`),
+  plate: svg(`<rect x="6" y="28" width="36" height="8" rx="2" fill="#b8bec6" ${S}/><path d="M18 26 V16 M30 26 V16 M14 18 L18 12 L22 18 M26 18 L30 12 L34 18" stroke="#1c2a33" stroke-width="3" fill="none" stroke-linecap="round"/>`),
   // Verkleden (fase 5C)
   hatCap: svg(`<path d="M8 30 Q8 12 24 12 Q40 12 40 30 Z" fill="#e8503d" ${S}/><path d="M6 30 H44 Q44 36 34 36 H6 Z" fill="#c23b2f" ${S}/><circle cx="24" cy="12" r="3" fill="#c23b2f"/>`),
   hatCrown: svg(`<path d="M6 36 L8 14 L17 24 L24 10 L31 24 L40 14 L42 36 Z" fill="#f2c230" ${S}/><circle cx="24" cy="29" r="3.5" fill="#d83b3b" ${S}/><circle cx="14" cy="30" r="2.5" fill="#3f7fd0"/><circle cx="34" cy="30" r="2.5" fill="#5cb84a"/>`),

@@ -14,6 +14,7 @@ export const QUEST_GROUPS = [
   { key: 'dinos', title: "Dino's", icon: 'dino' },
   { key: 'schatten', title: 'Schatten', icon: 'chest' },
   { key: 'rijden', title: 'Rails en water', icon: 'minecart' },
+  { key: 'knoppen', title: 'Knoppen', icon: 'lever' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -61,6 +62,10 @@ export const QUESTS = [
   { id: 'rails', groep: 'rijden', icon: 'rail', tekst: 'Leg tien rails neer.', on: 'place', doel: 10, match: (d) => d.rail },
   { id: 'karretje', groep: 'rijden', icon: 'minecart', tekst: 'Rijd een stuk met het karretje over de rails.', on: 'cartRide' },
   { id: 'bootje', groep: 'rijden', icon: 'boat', tekst: 'Vaar een stuk met het bootje.', on: 'boatRide' },
+  // Knoppen en hendels (fase 5E)
+  { id: 'hendelDeur', groep: 'knoppen', icon: 'lever', tekst: 'Zet een hendel of een knop naast een deur, en tik erop: de deur gaat open.', on: 'signal', match: (d) => d.door },
+  { id: 'lampAan', groep: 'knoppen', icon: 'torch', tekst: 'Zet een schakellamp aan met een hendel of een knop.', on: 'signal', match: (d) => d.lamp },
+  { id: 'drukplaat', groep: 'knoppen', icon: 'plate', tekst: 'Ga op een drukplaat staan.', on: 'plate' },
   { id: 'vulkaan', groep: 'dinos', icon: 'pteranodon', tekst: 'Ga naar een vulkaan in de Dinowereld.', on: 'biome', match: (d) => d.biome === 'volcano' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));
