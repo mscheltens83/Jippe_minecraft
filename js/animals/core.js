@@ -1,6 +1,6 @@
 // Gemeenschappelijke beweging, botsingen en houdingen voor alle dieren.
 import * as THREE from '../../lib/three.module.min.js';
-import { B, BLOCKS, blockBoxes } from '../blocks.js';
+import { B, blockBoxes } from '../blocks.js';
 import { SX, SZ, SY } from '../world.js';
 import { cachedModel } from '../models.js';
 import { SPECIES } from './species.js';

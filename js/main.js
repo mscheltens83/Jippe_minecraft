@@ -1,5 +1,6 @@
 // JippeCraft: hier komt alles samen. Opstarten, de spel-lus, bouwen en slopen.
 
+import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens het opstarten bewaard worden
 import * as THREE from '../lib/three.module.min.js';
 import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial } from './blocks.js';
 import { createAtlas } from './textures.js';
@@ -21,12 +22,17 @@ import { BIOMES, biomeView } from './biomes.js';
 import { biomeAt } from './biomes.js';
 import { Weather } from './weather.js';
 import { Snowmen } from './snowman.js';
+import { PerfMeter } from './perf.js';
+import { Bench } from './bench.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
 const BREAK_TIME = 0.5;    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
+const RIDE_BACK = 5;       // tijdens het rijden verder weg en hoger,
+const RIDE_UP = 1.5;
+const RIDE_TILT = -0.24;   // en iets meer naar beneden kijkend, zodat je het dier ziet
 const SLOTS = [1, 2, 3, 4, 5, 6];   // zes wereld-plekken, de oude sleutels blijven gelijk
 
 class Game {
@@ -66,6 +72,8 @@ class Game {
     this.thumb = null;
     this.lastThumb = 0;
     this.fixedQuality = /[?&]vast\b/.test(location.search);
+    this.readOnly = false;    // tijdens de meetrit wordt niets bewaard
+    this.bench = null;
 
     this.ui = new UI(root, this.atlas, {
       onPlay: () => this.play(),
@@ -86,6 +94,14 @@ class Game {
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
+      parent: {
+        renderer: () => this.scene.renderer,
+        pixelRatio: () => this.scene.pixelRatio,
+        savedWorlds: () => this.slotInfo().filter((s) => !s.empty).length,
+        fpsOn: () => this.perf.visible,
+        onFps: () => this.toggleFps(),
+        onBench: () => { this.saveNow(); location.href = location.pathname + '?meet'; },
+      },
     });
     this.input = new Input(this.canvas, this.ui.stickBase, this.ui.stickKnob);
     this.input.onKey = (e) => this.key(e);
@@ -107,6 +123,8 @@ class Game {
     this.ui.setMusic(this.music.on);
     this.ui.setPredators(this.settings.predators);
     this.ui.setThirdPerson(this.thirdPerson);
+    this.perf = new PerfMeter(root);
+    this.perf.show(/[?&]fps\b/.test(location.search) || !!this.settings.fps);
 
     this.migrateOldSaves();
     const meta = this.storage.loadLocal('meta') || {};
@@ -229,6 +247,7 @@ class Game {
   }
 
   saveNow() {
+    if (this.readOnly) return;
     const s = this.makeSave();
     this.storage.save('slot' + this.slot, s);
     this.saveT = s.t;
@@ -238,6 +257,7 @@ class Game {
   }
 
   saveSettings() {
+    if (this.readOnly) return;
     this.storage.saveLocal('settings', { ...this.settings, muted: this.sounds.muted, music: this.music.on, third: this.thirdPerson });
   }
 
@@ -423,6 +443,12 @@ class Game {
     this.saveSettings();
     this.ui.setMusic(this.music.on);
     if (this.music.on) this.music.start(); else this.music.stop();
+  }
+
+  toggleFps() {
+    this.settings.fps = !this.perf.visible;
+    this.perf.show(this.settings.fps);
+    this.saveSettings();
   }
 
   togglePredators() {
@@ -830,10 +856,10 @@ class Game {
     if (this.thirdPerson) {
       // camera schuin boven en achter het poppetje (dan staat het poppetje niet midden in beeld),
       // en niet door muren heen
-      const cp = Math.cos(p.pitch);
+      const cp = Math.cos(p.pitch), riding = !!p.riding;
       const origin = new THREE.Vector3(p.x, p.y + 1.45, p.z);
       const want = new THREE.Vector3(Math.sin(p.yaw) * cp, -Math.sin(p.pitch), Math.cos(p.yaw) * cp)
-        .multiplyScalar(CAM_BACK).add(new THREE.Vector3(0, CAM_UP, 0));
+        .multiplyScalar(riding ? RIDE_BACK : CAM_BACK).add(new THREE.Vector3(0, riding ? RIDE_UP : CAM_UP, 0));
       const len = want.length();
       const dir = want.divideScalar(len);
       const wall = raycast(this.world, origin, dir, len, (id) => OPAQUE[id] === 1);
@@ -844,19 +870,25 @@ class Game {
       this.camDist = 0;
       cam.position.set(p.x, p.y + EYE, p.z);
     }
-    cam.rotation.set(p.pitch, p.yaw, 0);
+    cam.rotation.set(Math.max(-1.55, p.pitch + (this.thirdPerson && p.riding ? RIDE_TILT : 0)), p.yaw, 0);
   }
 
   frame(t) {
     requestAnimationFrame((tt) => this.frame(tt));
+    const t0 = performance.now();
     const now = t / 1000;
+    const rawDt = now - this.last; // echte tijd sinds het vorige beeldje, voor het meten
     const realDt = this.playing && !document.hidden ? Math.min(1, Math.max(0, now - this.last)) : 0;
     const dt = Math.min(0.05, Math.max(0, now - this.last));
     this.last = now;
     const p = this.player;
 
     this.input.poll();
-    if (this.playing && !this.ui.paletteOpen) {
+    if (this.bench) {
+      this.bench.step(Math.min(0.25, Math.max(0, rawDt)));
+      this.input.takeLook();
+      this.input.taps.length = 0;
+    } else if (this.playing && !this.ui.paletteOpen) {
       const [dx, dy] = this.input.takeLook();
       p.yaw -= dx;
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch - dy));
@@ -891,7 +923,8 @@ class Game {
     }
     this.scene.updateBiome(dt);
     this.scene.render();
-    if (this.playing && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
+    this.bench?.after(rawDt, this.scene.renderer.info);
+    if (this.playing && !this.readOnly && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
     // Automatisch bewaren
     if (this.dirty && now - this.dirtyAt > 1.5) this.saveNow();
@@ -901,6 +934,15 @@ class Game {
     }
 
     this.adaptQuality(dt);
+    this.perf.record(rawDt, performance.now() - t0);
+    if (this.perf.visible) {
+      const info = this.scene.renderer.info.render;
+      this.perf.draw(now, {
+        calls: info.calls, triangles: info.triangles, chunks: this.world.dirtyChunks.size,
+        animals: this.animals.list.length, pixelRatio: this.scene.pixelRatio,
+        width: this.canvas.width, height: this.canvas.height,
+      });
+    }
   }
 
   // Houdt de iPad het niet bij, dan tekenen we minder scherp; is hij snel, dan juist scherper
@@ -926,9 +968,13 @@ class Game {
 function start() {
   const root = document.getElementById('app');
   try {
-    window.__jippecraft = new Game(root);
+    const game = window.__jippecraft = new Game(root);
+    // ?meet = meetrit (30 seconden), ?meet=10 = 10 seconden
+    const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
+    if (meet) game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30);
   } catch (e) {
     console.error(e);
+    logError(e, 'opstarten');
     root.innerHTML = '<div class="error"><h1>Oeps!</h1><p>Dit apparaat kan het spel niet laten zien. Werk de iPad bij via Instellingen &rarr; Algemeen &rarr; Software-update.</p></div>';
   }
   // Offline spelen (alleen als het spel op een eigen website staat)
@@ -941,6 +987,6 @@ function start() {
 // Geen zoomen, scrollen of selecteren op de iPad
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
-document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card, .album-grid')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card, .album-grid, .bench-card')) e.preventDefault(); }, { passive: false });
 
 start();

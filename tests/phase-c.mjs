@@ -1,4 +1,6 @@
 // Fase C: echte aanraakknoppen en gerichte simulaties voor roofdieren en stallen.
+import { tapAndWait } from './helpers.mjs';
+
 export async function testPhaseC({ newPage, check, out }) {
   const { context, page } = await newPage();
   const run = (fn, arg) => page.evaluate(fn, arg);
@@ -118,7 +120,7 @@ export async function testPhaseC({ newPage, check, out }) {
 
   await page.locator('.play-btn').tap();
   const gatePoint = await run(async () => {
-    const { B, gateId } = await import('./js/blocks.js');
+    const { gateId } = await import('./js/blocks.js');
     const THREE = await import('./lib/three.module.min.js');
     const j = window.__jippecraft;
     j.freshWorld('flat', 7); j.animals.clear();
@@ -129,10 +131,10 @@ export async function testPhaseC({ newPage, check, out }) {
     const v = new THREE.Vector3(48.5, y + 0.75, 49.5).project(j.scene.camera);
     return { x: (v.x + 1) * innerWidth / 2, y: (1 - v.y) * innerHeight / 2, by: y };
   });
-  await page.touchscreen.tap(gatePoint.x, gatePoint.y);
-  check(await run((y) => window.__jippecraft.world.get(48, y, 49) === 93, gatePoint.by), 'hekdeur opent met een echte vinger-tik');
-  await page.touchscreen.tap(gatePoint.x, gatePoint.y);
-  check(await run((y) => window.__jippecraft.world.get(48, y, 49) === 92, gatePoint.by), 'hekdeur sluit met een echte vinger-tik');
+  check(await tapAndWait(page, gatePoint.x, gatePoint.y, (y) => window.__jippecraft.world.get(48, y, 49) === 93, gatePoint.by),
+    'hekdeur opent met een echte vinger-tik');
+  check(await tapAndWait(page, gatePoint.x, gatePoint.y, (y) => window.__jippecraft.world.get(48, y, 49) === 92, gatePoint.by),
+    'hekdeur sluit met een echte vinger-tik');
   await page.screenshot({ path: out + '/fase-c-hekdeur.png' });
 
   const lionPoint = await run(async () => {
@@ -149,8 +151,9 @@ export async function testPhaseC({ newPage, check, out }) {
     return { x: (v.x + 1) * innerWidth / 2, y: (1 - v.y) * innerHeight / 2 };
   });
   check(await run(() => window.__jippecraft.animals.list[0].hunt?.phase === 'chase'), 'jacht bereikt na drie seconden de achtervolging');
-  await page.touchscreen.tap(lionPoint.x, lionPoint.y);
-  check(await run(() => { const a = window.__jippecraft.animals.list[0]; return !a.hunt && a.huntPause > 29; }), '6: leeuw aaien met een vinger stopt de jacht 30 seconden');
+  // Aaien zet de pauze op 30 seconden; die loopt daarna langzaam af
+  check(await tapAndWait(page, lionPoint.x, lionPoint.y, () => { const a = window.__jippecraft.animals.list[0]; return !a.hunt && a.huntPause > 25; }),
+    '6: leeuw aaien met een vinger stopt de jacht 30 seconden');
 
   await run(() => {
     const j = window.__jippecraft, a = j.animals.list[0];

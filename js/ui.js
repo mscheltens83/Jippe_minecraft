@@ -4,6 +4,8 @@ import { ICONS, iconURL } from './icons.js';
 import { ITEM, PALETTE_GROUPS, itemName, isSpecial } from './blocks.js';
 import { drawBlockIcon } from './textures.js';
 import { BIOMES } from './biomes.js';
+import { VERSION } from './version.js';
+import { ParentPanel } from './parent.js';
 
 const SPECIAL_ICONS = {
   [ITEM.HOUSE]: 'house', [ITEM.TREE]: 'tree', [ITEM.TOWER]: 'tower', [ITEM.BRIDGE]: 'bridge',
@@ -58,6 +60,20 @@ function onHold(elm, down, up) {
   elm.addEventListener('pointerup', end);
   elm.addEventListener('pointercancel', end);
   elm.addEventListener('lostpointercapture', end);
+}
+
+// Lang vasthouden (voor het ouderscherm): pas na `ms` milliseconden gebeurt er iets
+function onLongPress(elm, ms, fn) {
+  let timer = null;
+  const stop = () => { clearTimeout(timer); timer = null; elm.classList.remove('holding'); };
+  elm.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    stop();
+    elm.classList.add('holding');
+    timer = setTimeout(() => { stop(); fn(); }, ms);
+  });
+  for (const type of ['pointerup', 'pointercancel', 'pointerleave']) elm.addEventListener(type, stop);
 }
 
 function labeled(btn, text) {
@@ -205,7 +221,12 @@ export class UI {
     this.predatorsBtn.innerHTML = ICONS.lion + ICONS.pig;
     this.predatorsBtn.setAttribute('aria-pressed', 'true');
     onPress(this.predatorsBtn, () => h.onTogglePredators());
-    main.append(this.playBtn, row, labeled(this.predatorsBtn, 'Roofdieren jagen'));
+    // Klein versienummer; 3 seconden vasthouden opent het ouderscherm
+    this.versionBtn = el('button', 'version', 'versie ' + VERSION);
+    this.versionBtn.type = 'button';
+    this.versionBtn.setAttribute('aria-label', 'Versie ' + VERSION + ' (vasthouden voor ouders)');
+    onLongPress(this.versionBtn, 3000, () => this.showPanel('parent'));
+    main.append(this.playBtn, row, labeled(this.predatorsBtn, 'Roofdieren jagen'), this.versionBtn);
 
     const worlds = this.panels.worlds = el('div', 'panel');
     this.slotRow = el('div', 'slots');
@@ -240,7 +261,10 @@ export class UI {
     yesNo.append(labeled(yes, 'Ja'), labeled(no, 'Nee'));
     confirm.append(this.confirmThumb, text, yesNo);
 
-    card.append(main, worlds, type, confirm);
+    this.parent = new ParentPanel({ ...h.parent, onBack: () => this.showPanel('main') });
+    this.panels.parent = this.parent.el;
+
+    card.append(main, worlds, type, confirm, this.parent.el);
     this.menu.appendChild(card);
     root.appendChild(this.menu);
     this.showPanel('main');
@@ -280,6 +304,7 @@ export class UI {
 
   showPanel(which) {
     if (which === 'worlds') this.renderSlots();
+    if (which === 'parent') this.parent.refresh();
     for (const [name, p] of Object.entries(this.panels)) p.hidden = name !== which;
   }
 

@@ -14,7 +14,7 @@ export function raycast(world, origin, dir, maxDist, stop = null) {
   let tMaxZ = dir.z !== 0 ? frac(origin.z, stepZ) * tDeltaZ : Infinity;
   // Zit de camera onder water, dan kun je door het water heen bouwen
   const skipWater = world.get(x, y, z) === B.WATER;
-  let nx = 0, ny = 0, nz = 0, t = 0;
+  let nx, ny, nz, t = 0;
 
   while (t <= maxDist) {
     if (tMaxX < tMaxY && tMaxX < tMaxZ) {

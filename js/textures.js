@@ -560,9 +560,12 @@ function stem(t) {
   t.set(10, 12, g); t.set(9, 12, g); t.set(9, 13, g);
 }
 
+// Namen van alle tegels (ook voor de tests: bestaat elke textuur die een blok noemt?)
+export const TEXTURE_NAMES = Object.keys(GEN);
+
 // Maak de atlas: een canvas met alle tegels, plus handige opzoektabellen
 export function createAtlas() {
-  const names = Object.keys(GEN);
+  const names = TEXTURE_NAMES;
   if (names.length > ATLAS_COLS * ATLAS_COLS) throw new Error('De textuuratlas is vol');
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = ATLAS_SIZE;

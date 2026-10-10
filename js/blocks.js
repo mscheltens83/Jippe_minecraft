@@ -32,6 +32,7 @@ export const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 export const BLOCKS = [];
 export const OPAQUE = new Uint8Array(256);
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
+const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
@@ -209,7 +210,7 @@ def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, 
 // Dezelfde vormen dienen voor tekenen én botsen. Een hek groeit vast aan buren.
 export function blockBoxes(world, x, y, z, collision = false) {
   const id = world.get(x, y, z), b = BLOCKS[id];
-  if (!b?.solid) return [];
+  if (!b?.solid) return NO_BOXES;
   if (id === B.FENCE) {
     const boxes = [FENCE_POST];
     for (let d = 0; d < 4; d++) {

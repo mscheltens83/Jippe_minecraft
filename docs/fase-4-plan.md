@@ -50,7 +50,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 
 | Fase | Wat | Omvang | Hangt af van | Status |
 |---|---|---|---|---|
-| **4A** | Fundament: meten, automatische tests op GitHub, kleine fouten | Klein (1 PR) | – | Gepland |
+| **4A** | Fundament: meten, automatische tests op GitHub, kleine fouten | Klein (1 PR) | – | ✅ Klaar (10 oktober 2026); nulmeting op de iPad nog doen |
 | **4B** | Nieuwe wereldmotor: eindeloze chunks, workers, opslag in IndexedDB, oude werelden omzetten | Zeer groot (2–3 PR's) | 4A | Gepland |
 | **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | Gepland |
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | Gepland |

@@ -75,6 +75,17 @@ Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de mui
 Het spel begint op een tablet iets minder scherp en past zich aan: haalt de iPad het niet,
 dan tekent hij nog wat minder scherp; is de iPad snel, dan juist scherper.
 
+### Voor ouders: versie, meetscherm en meetrit
+Onderin het menu staat klein het **versienummer**. Zo zie je of de iPad de nieuwste versie heeft.
+**Houd het versienummer 3 seconden vast** voor het ouderscherm. Daar staan:
+- het apparaat, de beeldscherpte, hoeveel werelden er bewaard zijn en hoeveel opslag dat kost;
+- de **laatste fouten** (als er iets misging), met een knop om alles te kopiëren;
+- **Meetscherm aan/uit**: een klein kader rechtsboven met beelden per seconde (fps), de traagste
+  beeldjes (p95) en hoeveel de iPad moet tekenen. Op een computer kan het ook met `?fps` achter het adres;
+- **Meetrit**: de camera vliegt 30 seconden over een savanne met 60 dieren en laat daarna zien
+  hoe vlot het spel liep. Maak er een schermafbeelding van. De werelden van Jippe blijven precies
+  zoals ze waren. Op een computer: `?meet` achter het adres (`?meet=10` voor 10 seconden).
+
 ## Op de iPad zetten
 
 Het spel bestaat uit gewone webbestanden. Het moet op een website staan (via `https://`).
@@ -107,9 +118,14 @@ Geen bouwstap nodig: het zijn gewone HTML-, CSS- en JavaScript-bestanden.
 ```bash
 npm start          # start een lokale webserver op http://localhost:8080
 npm install        # eenmalig, voor de test
-npm test           # speelt het spel automatisch in een gesimuleerde iPad
+npm run lint       # zoekt tikfouten en vergeten variabelen in de code
+npm test           # unit-tests (snel, zonder browser) en daarna het spel in een gesimuleerde iPad
+FASE=basis,c,4a npm run test:browser   # alleen een paar onderdelen van de browsertest
 npm run icons      # maakt de app-iconen opnieuw
 ```
+
+Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde controles
+(`.github/workflows/test.yml`). De schermafbeeldingen van de test staan daar bij de uitslag.
 
 ### Bestanden
 | Bestand | Wat doet het? |
@@ -139,8 +155,13 @@ npm run icons      # maakt de app-iconen opnieuw
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
 | `js/stamps.js` | De stempels: huisje, boom, toren en brug |
 | `js/particles.js` | Brokjes, vuurwerk, hartjes, glitters, Zzz, stof en waterdruppels |
+| `js/version.js` | Het versienummer (hoort bij `CACHE` in `sw.js`) |
+| `js/errors.js` | Foutenlogboek: de laatste 20 fouten |
+| `js/perf.js`, `js/bench.js` | Meetscherm (`?fps`) en meetrit (`?meet`) |
+| `js/parent.js` | Het ouderscherm |
 | `js/storage.js` | Bewaren van de zes werelden in de browser (en op claude.ai in de database); oude opslag blijft werken |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
+| `tests/` | Browsertests per fase (`smoke.mjs`, `phase-*.mjs`) en unit-tests (`unit/`) |
 | `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |
 
 ### Een blok toevoegen

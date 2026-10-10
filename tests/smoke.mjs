@@ -14,6 +14,8 @@ import { testPhaseD } from './phase-d.mjs';
 import { testPhaseE } from './phase-e.mjs';
 import { testPhaseF } from './phase-f.mjs';
 import { testPhaseG } from './phase-g.mjs';
+import { testPhase4A } from './phase-4a.mjs';
+import { VERSION } from '../js/version.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'tests', 'out');
@@ -41,7 +43,8 @@ const browser = await chromium.launch({
     ? ['--ignore-gpu-blocklist'] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'],
 });
 const errors = [];
-async function newPage(init) {
+// `query` komt achter ?vast, bijvoorbeeld '&fps'
+async function newPage(init, query = '') {
   const context = await browser.newContext({ ...devices['iPad Pro 11 landscape'] });
   // Lettertype van internet niet nodig voor de test
   await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
@@ -50,11 +53,13 @@ async function newPage(init) {
   page.on('pageerror', (e) => errors.push(String(e)));
   page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
   page.on('requestfailed', (r) => { if (!/fonts\./.test(r.url())) errors.push('request failed: ' + r.url()); });
-  await page.goto(base);
+  await page.goto(base + query);
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 20000 });
   return { context, page };
 }
 
+// --- de basis: alles uit fase 1 en 2
+async function testBasis() {
 const { context, page } = await newPage();
 const g = (fn, arg) => page.evaluate(fn, arg);
 // Wacht tot iets waar is (software-rendering in de test is traag)
@@ -359,13 +364,20 @@ const oldSave = await (async () => {
   await c.close();
 }
 
-await testPhaseA({ newPage, check, out, phase2Save: JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/fase-2-v2.json'), 'utf8')) });
-await testPhaseB({ newPage, check, out });
-await testPhaseC({ newPage, check, out });
-await testPhaseD({ newPage, check, out });
-await testPhaseE({ newPage, check, out });
-await testPhaseF({ newPage, check, out });
-await testPhaseG({ newPage, check, out });
+}
+
+// FASE=basis,a,c,4a npm run test:browser  draait alleen die onderdelen
+const only = (process.env.FASE || '').toLowerCase().split(',').filter(Boolean);
+const want = (name) => !only.length || only.includes(name);
+if (want('basis')) await testBasis();
+if (want('a')) await testPhaseA({ newPage, check, out, phase2Save: JSON.parse(fs.readFileSync(path.join(root, 'tests/fixtures/fase-2-v2.json'), 'utf8')) });
+if (want('b')) await testPhaseB({ newPage, check, out });
+if (want('c')) await testPhaseC({ newPage, check, out });
+if (want('d')) await testPhaseD({ newPage, check, out });
+if (want('e')) await testPhaseE({ newPage, check, out });
+if (want('f')) await testPhaseF({ newPage, check, out });
+if (want('g')) await testPhaseG({ newPage, check, out });
+if (want('4a')) await testPhase4A({ newPage, check, out, version: VERSION });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 
