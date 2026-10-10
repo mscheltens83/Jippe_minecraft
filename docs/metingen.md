@@ -22,7 +22,12 @@ langzamer worden (§13 van [`fase-4-plan.md`](fase-4-plan.md)).
 
 | Datum | Versie | Apparaat | Beeldkaart | Duur | fps | p50 ms | p95 ms | traagst ms | tekenopdrachten | driehoeken | scherpte · beeld |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| *nog te meten* | 4.0.0 | | | | | | | | | | |
+| 2026-10-10 18:07 | 4.6.2 | iPad 10,2 inch (810×1080, iPadOS 18.7) | Apple GPU | 30 s | 38,3 | 26 | 32 | 96 | 423 (max 502) | 357.152 | 1,5 · 1620×1060 |
+
+**Eerste meting op de iPad (4.6.2):** 38 fps, net onder het minimum van 40. Wel heel gelijkmatig: een
+gewoon beeldje duurt 26 ms en ook de traagste 5% maar 32 ms, dus geen haperingen. In het gewone spel
+gaat de beeldscherpte daarom vanzelf van 1,5 naar 1 (dat zag je in het ouderscherm). De nulmeting
+van 4.0.0 is nooit gedaan; dit is het vertrekpunt voor de volgende fases.
 
 ## Testcomputer (in de cloud, **zonder videokaart**)
 
