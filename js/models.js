@@ -92,7 +92,7 @@ export function cachedModel(key, build) {
 // Zadel en tong (die soms aan, soms uit staan) doen niet mee.
 function mergedPose(source) {
   const root = new THREE.Group(), roots = [...source.parts, ...source.legs];
-  const skip = new Set([source.saddle, source.tongue].filter(Boolean));
+  const skip = new Set([source.saddle, source.tongue, source.flower].filter(Boolean));
   for (const r of roots) root.add(r);
   root.updateMatrixWorld(true);
   const geos = [];

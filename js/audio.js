@@ -139,6 +139,10 @@ export class Sounds {
     } else if (sound === 'panda' || sound === 'bear' || sound === 'camel' || sound === 'reindeer') {
       const base = sound === 'bear' ? 105 : sound === 'camel' ? 225 : sound === 'reindeer' ? 275 : 185;
       this.vibrato('triangle', base * p, .42, .1);
+    } else if (sound === 'hmm') {
+      this.vibrato('triangle', 190 * p, 0.35, 0.12); this.tone('triangle', 230 * p, 160 * p, 0.25, 0.1, 0.3);
+    } else if (sound === 'golem') {
+      this.tone('sine', 90 * p, 60 * p, 0.35, 0.18); this.hiss('lowpass', 300, 1, 0.3, 0.08);
     } else if (sound === 'moo') {
       this.vibrato('sawtooth', 120 * p, 0.9, 0.12);
       this.tone('triangle', 140 * p, 105 * p, 0.8, 0.08);

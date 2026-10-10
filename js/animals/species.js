@@ -66,6 +66,10 @@ Object.assign(SPECIES.elephant, { rijdbaar: true, rijsnelheid: 0.7 });
 Object.assign(SPECIES.cheetah, { rijdbaar: true, rijsnelheid: 1.9 });
 Object.assign(SPECIES.tiger, { rijdbaar: true, rijsnelheid: 1.3 });
 
+// Het dorp (fase 4G deel 2)
+SPECIES.villager = { naam: 'Dorpeling', w: .6, h: 1.95, d: .5, speed: .8, bouw: (v) => buildMc('villager', v), varianten: VARIANTS.villager.length, geluid: 'hmm', kunstjes: ['dorp'], slaapkans: .02 };
+SPECIES.golem = { naam: 'IJzergolem', w: 1.3, h: 2.7, d: .8, speed: .55, bouw: () => buildMc('golem'), geluid: 'golem', kunstjes: ['dorp'], slaapkans: 0 };
+
 // Alle soorten hebben deze velden (ook als ze in het recept ontbreken)
 for (const def of Object.values(SPECIES)) { def.kunstjes ||= []; def.werelden ||= []; def.rensnelheid ||= def.speed * 2; }
 

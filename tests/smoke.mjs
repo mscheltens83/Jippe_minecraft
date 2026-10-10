@@ -20,7 +20,7 @@ import { testPhase4C } from './phase-4c.mjs';
 import { testPhase4D } from './phase-4d.mjs';
 import { testPhase4E } from './phase-4e.mjs';
 import { testPhase4F, testPhase4F2 } from './phase-4f.mjs';
-import { testPhase4G } from './phase-4g.mjs';
+import { testPhase4G, testPhase4G2 } from './phase-4g.mjs';
 import { VERSION } from '../js/version.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -395,6 +395,7 @@ if (want('4e')) await testPhase4E({ newPage, check, out });
 if (want('4f')) await testPhase4F({ newPage, check, out });
 if (want('4f')) await testPhase4F2({ newPage, check, out });
 if (want('4g')) await testPhase4G({ newPage, check, out });
+if (want('4g')) await testPhase4G2({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

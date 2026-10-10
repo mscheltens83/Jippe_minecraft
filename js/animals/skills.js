@@ -2,6 +2,7 @@
 import { SY } from '../world.js';
 import { B } from '../blocks.js';
 import * as THREE from '../../lib/three.module.min.js';
+import { Animal } from './core.js';
 
 const FLOWERS = new Set([B.FLOWER_RED, B.FLOWER_YELLOW, B.CORNFLOWER, B.TULIP, B.SUNFLOWER]);
 const toward = (a, x, z) => { a.targetYaw = Math.atan2(-(x - a.x), -(z - a.z)); };
@@ -126,6 +127,29 @@ export const SKILLS = {
       if (!near) toward(a, a.flight.x, a.flight.z);
       a.walking = !near;
       if (a.flight.left <= 0) { a.flight.left = 0; a.flightWait = .5 + Math.random() * 2; a.flight = null; }
+    }
+  },
+  // Dorpelingen en de golem blijven in hun dorp; 's nachts gaan dorpelingen naar hun bed
+  dorp(a, dt) {
+    if (a.type === 'golem' && !a.holdFlower && Math.random() < dt * 0.02) a.holdFlower = true;
+    if (a.home && a.type === 'villager') {
+      if (Animal.night && !a.tame) {
+        if (!a.inBed) {
+          a.bedWait = (a.bedWait ?? 0) + dt;
+          const d = Math.hypot(a.home.outX + .5 - a.x, a.home.outZ + .5 - a.z);
+          if (d < 2.5 || a.bedWait > 25) {
+            // naar binnen, in bed
+            a.x = a.home.x + .5; a.z = a.home.z + .5; a.y = a.home.y + .56; a.vy = 0;
+            a.inBed = true; a.walking = false; a.bedWait = 0;
+          } else { toward(a, a.home.outX + .5, a.home.outZ + .5); a.walking = true; a.sleep = 0; a.timer = 1; }
+        }
+        if (a.inBed) { a.sleep = 30; a.walking = false; a.x = a.home.x + .5; a.z = a.home.z + .5; }
+        return;
+      }
+      if (a.inBed) { // goedemorgen: naar buiten, voor de deur
+        a.inBed = false; a.sleep = 0;
+        a.x = a.home.outX + .5; a.z = a.home.outZ + .5; a.y = a.home.y; a.vy = 0;
+      }
     }
   },
   // Een dolfijn springt af en toe uit het water

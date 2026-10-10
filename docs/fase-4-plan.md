@@ -57,7 +57,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
 | **Snel** | Sneller maken na de eerste iPad-meting (38 fps): onzichtbare grotten niet tekenen, meetrit met extra rondjes | Klein | 4F | ✅ Klaar (versie 4.7.0) |
-| **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot (2 PR's) | 4C | G1 ✅ klaar (versie 4.8.0), G2 gepland |
+| **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot (2 PR's) | 4C | ✅ Klaar (G1 versie 4.8.0, G2 versie 4.9.0) |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
 
 Na elke fase: samenvoegen, op de iPad proberen (checklist in §13) en dan pas verder.
@@ -461,6 +461,14 @@ Schipwrak op het strand of in ondiepe zee (met schatkist), mijnschacht in grote 
 - **Temmen:** drie keer snel aaien temt nu ook paard, hond, kat, kameel, olifant, cheetah en tijger. Tamme dieren volgen je; een tamme hond gaat zitten als je erop tikt. Rijden heeft een snelheid per soort (`rijsnelheid`).
 - Dieren die je geaaid of gevoerd hebt, worden nooit opgeruimd (net als tamme en zelf neergezette dieren).
 - Afwijking van het plan: temmen gaat met aaien in plaats van met een bot (er is geen bot in het spel; aaien kent Jippe al). Een papegaai op je schouder is niet gedaan.
+
+### 11.9 Zo is deel 2 gebouwd (versie 4.9.0)
+- `js/engine/village.js`: een dorp als lijst blokken rond het midden: waterput, paden in een kruis, 4 tot 8 huisjes (zadeldak van trappen, deur, ramen, bed, werkbank, fakkel) van wie één een bibliotheek, twee akkers met gewassen en water, en lantaarnpalen. Vijf stijlen: eik (vlakte, bos), spar (taiga), spar met sneeuw (toendra), acacia met terracotta (savanne) en zandsteen met plat dak (woestijn).
+- `gen.js`: een dorp per regio in vlakte, taiga, toendra, savanne en woestijn, alleen op vlakke grond (hoogstens 5 blokken verschil). In de Grote wereld zoekt de generator bij de start in ringen van 90 tot 300 blokken een plek, zodat er altijd een dorp in de buurt ligt.
+- Dorpelingen (boer, bakker, bibliothecaris) wonen elk in een huis; 's nachts gaan ze naar binnen en slapen ze in hun bed, 's ochtends staan ze weer voor de deur. Katten en de ijzergolem blijven bij het dorp. Aai de golem: hij geeft je een bloem (hoogstens één per 20 seconden).
+- Andere bouwwerken: schipwrak op het strand of in ondiepe zee (het water blijft in de romp staan), ruïne in het bos, mijnschacht op 20 blokken onder zeeniveau (twee gangen in een kruis met stutten, lantaarns en een schatkist; nooit vlak onder de zeebodem).
+- Stempels: dorpshuis en waterput. Dorpeling en ijzergolem staan ook in de dierenkist en in het album.
+- Niet gedaan: een klokje (er is geen klok-blok) en dorpelingen die deuren openen (ze gaan "naar binnen" zonder door de deur te lopen).
 
 ### 11.7 Klaar als
 - In een Grote wereld vind je binnen 300 blokken een dorp met dorpelingen, een waterput en akkers.

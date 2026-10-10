@@ -11,12 +11,15 @@ import { CHUNK, SY, SEA, SHIFT, CENTER } from './constants.js';
 import { biomeTree, TREE_RADIUS } from './trees.js';
 import { Climate } from './climate.js';
 import { Underground } from './caves.js';
+import { villageCells, villageStyle, VILLAGE_STYLES, VILLAGE_RADIUS } from './village.js';
 
 const OLD_SEA = SEA - SHIFT;      // 10
 const REGION = 128;               // per stuk van 128 x 128 blokken hoogstens één bouwwerk
-const S = { biome: 1, tree: 2, prio: 3, treeSeed: 4, plant: 5, plantH: 6, flower: 7, region: 8, rx: 9, rz: 10, kind: 11, pond: 12, palms: 13 };
+const S = { biome: 1, tree: 2, prio: 3, treeSeed: 4, plant: 5, plantH: 6, flower: 7, region: 8, rx: 9, rz: 10, kind: 11, pond: 12, palms: 13, village: 14, mine: 15 };
+const MINE_REGION = 112;           // per stuk van 112 x 112 hoogstens één mijnschacht
+const MINE_ARM = 22;               // zo lang is elke gang vanaf het midden
 const POND = new Set(['oasis', 'wateringHole']);
-const STRUCTURE_BLOCK = { igloo: B.SNOW, pyramid: B.SANDSTONE, temple: B.MOSSY_COBBLE, lionRock: B.STONE };
+const STRUCTURE_BLOCK = { igloo: B.SNOW, pyramid: B.SANDSTONE, temple: B.MOSSY_COBBLE, lionRock: B.STONE, shipwreck: B.SAND, ruin: B.GRASS };
 // Bouwwerken bij de bouwplek: dezelfde plekken als in de oude werelden van 96 x 96
 const HOME_STRUCTURES = {
   jungle: [['temple', 20, -15]],
@@ -44,10 +47,13 @@ export class Generator {
     this.colCache = new Map();
     this.treeCache = new Map();
     this.regionCache = new Map();
+    this.mineCache = new Map();
     this.climate = this.type === 'world' ? new Climate(this.seed) : null;
     this.underground = this.type === 'flat' ? null : new Underground(this.seed);
     this.home = [];
     if (!classic) for (const [kind, dx, dz] of HOME_STRUCTURES[this.type] || []) this.home.push(this.makeStructure(kind, CENTER + dx, CENTER + dz, true));
+    // In de Grote wereld ligt er altijd een dorp binnen 300 blokken van de start
+    if (this.type === 'world') { const v = this.findVillage(); if (v) this.home.push(v); }
     this.landmarks = this.home.map((s) => ({ kind: s.kind, x: s.x, y: s.y, z: s.z, ...(s.radius ? { radius: s.radius } : {}) }));
   }
 
@@ -144,9 +150,48 @@ export class Generator {
 
   // ---------- bouwwerken ----------
 
+  // Is de grond hier vlak genoeg voor een dorp? (hoogstens 5 blokken verschil)
+  villageSpot(x, z) {
+    const raw = this.raw(x, z);
+    if (!villageStyle(raw.biome) || raw.h <= SEA + 1) return false;
+    let lo = Infinity, hi = -Infinity;
+    for (let dx = -VILLAGE_RADIUS; dx <= VILLAGE_RADIUS; dx += VILLAGE_RADIUS / 2) for (let dz = -VILLAGE_RADIUS; dz <= VILLAGE_RADIUS; dz += VILLAGE_RADIUS / 2) {
+      const r = this.raw(Math.round(x + dx), Math.round(z + dz));
+      if (r.h <= SEA) return false;
+      lo = Math.min(lo, r.h); hi = Math.max(hi, r.h);
+    }
+    return hi - lo <= 5;
+  }
+
+  findVillage() {
+    for (let r = 90; r <= 300; r += 15) {
+      for (let a = 0; a < 24; a++) {
+        const t = (a + hash(this.seed, r, 0, S.village)) / 24 * Math.PI * 2;
+        const x = Math.round(CENTER + Math.cos(t) * r), z = Math.round(CENTER + Math.sin(t) * r);
+        if (this.villageSpot(x, z)) return this.makeStructure('village', x, z);
+      }
+    }
+    return null;
+  }
+
   makeStructure(kind, x, z, home = false) {
     const raw = this.raw(x, z), oldH = raw.h - SHIFT;
     const s = { kind, x, z, home };
+    if (kind === 'village') {
+      const style = villageStyle(raw.biome) || VILLAGE_STYLES.plains;
+      // de hoogte in het midden (gemiddeld over het dorp, zodat het zo min mogelijk afgraaft)
+      let sum = 0, n = 0;
+      for (let dx = -12; dx <= 12; dx += 6) for (let dz = -12; dz <= 12; dz += 6) { sum += this.raw(x + dx, z + dz).h; n++; }
+      s.base = Math.max(SEA + 1, Math.round(sum / n));
+      s.padBlock = style.ground;
+      s.bounds = [-VILLAGE_RADIUS, VILLAGE_RADIUS, -VILLAGE_RADIUS, VILLAGE_RADIUS];
+      const v = villageCells(Math.floor(hash(this.seed, x, z, S.village) * 4294967296), style);
+      s.cells = v.cells;
+      s.beds = v.beds.map((b) => ({ x: b.x + x, z: b.z + z, outX: b.outX + x, outZ: b.outZ + z })); // in wereldcoördinaten
+      s.y = s.base + 1;
+      s.pad = [x + s.bounds[0] - 1, x + s.bounds[1] + 1, z + s.bounds[2] - 1, z + s.bounds[3] + 1];
+      return s;
+    }
     if (POND.has(kind)) {
       s.radius = (kind === 'oasis' ? 3 : 5) + Math.floor(hash(this.seed, x, z, S.pond) * 3);
       s.base = Math.max(12, Math.min(15, oldH)) + SHIFT;
@@ -162,6 +207,13 @@ export class Generator {
           s.palms.push([x + Math.round(Math.cos(a) * (s.radius + 1)), s.base + 1, z + Math.round(Math.sin(a) * (s.radius + 1))]);
         }
       }
+    } else if (kind === 'shipwreck' && raw.h < SEA) {
+      // onder water: het water blijft staan, ook in de romp
+      s.base = raw.h; s.wet = true;
+      s.padBlock = B.SAND;
+      s.bounds = structureBounds(kind);
+      s.cells = structureCells(kind).map(([cx, cy, cz, id]) => [cx, cy, cz, id === AIR && raw.h + 1 + cy <= SEA ? B.WATER : id]);
+      s.y = s.base + 1;
     } else {
       s.base = Math.max(11, oldH) + SHIFT;
       s.padBlock = STRUCTURE_BLOCK[kind];
@@ -181,13 +233,69 @@ export class Generator {
     if (this.type !== 'flat' && !(this.type === 'island' && !this.classic) && hash(this.seed, rx, rz, S.region) < 0.55) {
       const x = rx * REGION + 24 + Math.floor(hash(this.seed, rx, rz, S.rx) * 80);
       const z = rz * REGION + 24 + Math.floor(hash(this.seed, rx, rz, S.rz) * 80);
-      const raw = this.raw(x, z), kinds = BIOMES[raw.biome]?.bouwwerken || [];
-      if (Math.hypot(x - CENTER, z - CENTER) > 170 && raw.h > SEA + 1 && kinds.length) {
-        s = this.makeStructure(kinds[Math.floor(hash(this.seed, rx, rz, S.kind) * kinds.length)], x, z);
+      const raw = this.raw(x, z);
+      // in ondiepe zee kan een schipwrak liggen (onder water)
+      const kinds = raw.biome === 'ocean' && raw.h >= SEA - 4 && this.type === 'world' ? ['shipwreck'] : BIOMES[raw.biome]?.bouwwerken || [];
+      const kind = kinds[Math.floor(hash(this.seed, rx, rz, S.kind) * kinds.length)];
+      // een schipwrak ligt aan de waterkant, de rest op het droge
+      if (Math.hypot(x - CENTER, z - CENTER) > 170 && kinds.length && (raw.h > SEA + 1 || kind === 'shipwreck')) {
+        // een dorp alleen op vlakke grond, en niet over een ander bouwwerk heen
+        const ok = kind !== 'village' || (this.villageSpot(x, z) && !this.home.some((h) => Math.abs(h.x - x) < 60 && Math.abs(h.z - z) < 60));
+        if (ok) s = this.makeStructure(kind, x, z);
       }
     }
     this.regionCache.set(key, s);
     return s;
+  }
+
+  // Mijnschacht diep onder de grond: twee gangen in een kruis met houten stutten en lantaarns
+  mine(rx, rz) {
+    const key = rx * 65536 + rz;
+    if (this.mineCache.has(key)) return this.mineCache.get(key);
+    let m = null;
+    if ((this.type === 'world' || this.type === 'jungle' || this.type === 'desert' || this.type === 'tundra' || this.type === 'savanna') &&
+      hash(this.seed, rx, rz, S.mine) < 0.35) {
+      const x = rx * MINE_REGION + 28 + Math.floor(hash(this.seed, rx, rz, S.mine + 1) * 56);
+      const z = rz * MINE_REGION + 28 + Math.floor(hash(this.seed, rx, rz, S.mine + 2) * 56);
+      if (Math.hypot(x - CENTER, z - CENTER) > 40 && this.raw(x, z).h > SEA) m = { x, z, y: SEA - 20, cells: null };
+    }
+    this.mineCache.set(key, m);
+    return m;
+  }
+
+  mineCells(m) {
+    if (m.cells) return m.cells;
+    const cells = [], put = (x, y, z, id) => cells.push([x, y, z, id]);
+    for (const [ax, az] of [[1, 0], [0, 1]]) {
+      for (let t = -MINE_ARM; t <= MINE_ARM; t++) {
+        const cx = m.x + ax * t, cz = m.z + az * t;
+        if (this.raw(cx, cz).h < m.y + 8) continue; // nooit vlak onder de zeebodem
+        for (let s = -1; s <= 1; s++) {
+          const x = cx + az * s, z = cz + ax * s;
+          for (let y = 0; y < 3; y++) put(x, m.y + y, z, AIR);
+          put(x, m.y - 1, z, (t + s) % 3 ? B.STONE : B.PLANKS);
+        }
+        if (t % 4 === 0 && Math.abs(t) > 1) {
+          for (const s of [-1, 1]) { put(cx + az * s, m.y, cz + ax * s, B.FENCE); put(cx + az * s, m.y + 1, cz + ax * s, B.FENCE); }
+          for (let s = -1; s <= 1; s++) put(cx + az * s, m.y + 2, cz + ax * s, B.PLANKS);
+          if (t % 8 === 0) put(cx, m.y + 1, cz, B.LANTERN_HANGING);
+        }
+      }
+    }
+    put(m.x + MINE_ARM, m.y, m.z, B.TREASURE);
+    m.cells = cells;
+    return cells;
+  }
+
+  minesNear(x0, z0, x1, z1) {
+    const out = [];
+    for (let rx = Math.floor((x0 - MINE_ARM) / MINE_REGION); rx <= Math.floor((x1 + MINE_ARM) / MINE_REGION); rx++) {
+      for (let rz = Math.floor((z0 - MINE_ARM) / MINE_REGION); rz <= Math.floor((z1 + MINE_ARM) / MINE_REGION); rz++) {
+        const m = this.mine(rx, rz);
+        if (m && m.x + MINE_ARM + 1 >= x0 && m.x - MINE_ARM - 1 <= x1 && m.z + MINE_ARM + 1 >= z0 && m.z - MINE_ARM - 1 <= z1) out.push(m);
+      }
+    }
+    return out;
   }
 
   // Bouwwerken waarvan het vlakke stuk grond deze kolom raakt
@@ -282,7 +390,7 @@ export class Generator {
     const s = c.pad;
     if (!s) return;
     // Vlak stuk grond voor een bouwwerk, zonder water erboven
-    for (let y = Math.min(h, s.base); y <= Math.max(h, s.base, SEA); y++) buf[index(lx, y, lz)] = y <= s.base ? s.padBlock : AIR;
+    for (let y = Math.min(h, s.base); y <= Math.max(h, s.base, SEA); y++) buf[index(lx, y, lz)] = y <= s.base ? s.padBlock : s.wet && y <= SEA ? B.WATER : AIR;
     if (c.pond === 'water') {
       buf[index(lx, s.base - 3, lz)] = s.kind === 'oasis' ? B.SAND : B.MUD;
       buf[index(lx, s.base - 2, lz)] = B.WATER;
@@ -394,6 +502,7 @@ export class Generator {
       }
       this.underground.carve(buf, cx, cz, cols, this.type === 'world');
       this.underground.veins(buf, cx, cz, cols, cols.some((c) => c.biome === 'mountains'));
+      for (const m of this.minesNear(x0, z0, x0 + CHUNK - 1, z0 + CHUNK - 1)) for (const [x, y, z, id] of this.mineCells(m)) put(x, y, z, id);
     }
     if (this.rawCache.size > 6000) { this.rawCache.clear(); this.colCache.clear(); this.treeCache.clear(); }
     return buf;

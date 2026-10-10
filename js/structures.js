@@ -1,5 +1,5 @@
 // Bouwwerken voor nieuwe werelden én stempels. Alles wordt één keer bij het maken gebouwd.
-import { AIR, B } from './blocks.js';
+import { AIR, B, stairsId, slabId } from './blocks.js';
 
 export function structureCells(kind, small = false) {
   const cells = new Map();
@@ -36,6 +36,35 @@ export function structureCells(kind, small = false) {
       for (let y = 0; y <= 1; y++) put(0, y, z, AIR);
     }
     put(1, 0, 1, B.WOOL_BLUE);
+  } else if (kind === 'shipwreck') {
+    // Een gestrand schip: romp van sparrenhout, een gebroken mast met een gescheurd zeil en een schatkist
+    const hull = B.SPRUCE_PLANKS;
+    for (let z = -6; z <= 6; z++) {
+      const half = Math.abs(z) >= 5 ? 1 : 2; // smaller bij de punten
+      for (let x = -half; x <= half; x++) {
+        put(x, -1, z, hull);
+        if (Math.abs(x) === half) { put(x, 0, z, hull); if (Math.abs(z) < 5 && z < 3) put(x, 1, z, hull); }
+        else put(x, 0, z, AIR);
+      }
+      if (Math.abs(z) === 6) put(0, 0, z, hull);
+    }
+    for (let x = -1; x <= 1; x++) for (const z of [-3, 2]) put(x, 1, z, slabId(2)); // stukken dek
+    for (let y = 0; y <= 4; y++) put(0, y, -1, B.SPRUCE_LOG);           // gebroken mast
+    put(0, 2, 0, B.WOOL_WHITE); put(0, 3, 0, B.WOOL_WHITE); put(0, 3, 1, B.WOOL_WHITE);
+    put(1, 0, 4, B.TREASURE);
+    put(-2, 0, 6, stairsId(2, 0)); put(2, 0, -6, stairsId(2, 2));
+  } else if (kind === 'ruin') {
+    // Een oude ruïne in het bos: half ingestorte muren van mossige keien, met een schatkist
+    const height = [[2, 1, 3, 0, 2, 1, 2], [1, 0, 0, 0, 0, 0, 2], [3, 0, 0, 0, 0, 0, 1], [0, 0, 0, 0, 0, 0, 0], [2, 0, 0, 0, 0, 0, 3], [1, 0, 0, 0, 0, 0, 2], [3, 2, 1, 0, 1, 2, 2]];
+    for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
+      const wall = Math.abs(x) === 3 || Math.abs(z) === 3;
+      put(x, -1, z, (x * 7 + z * 3) % 3 ? B.MOSSY_COBBLE : B.COBBLE);
+      if (wall) for (let y = 0; y < height[x + 3][z + 3]; y++) put(x, y, z, (x + y + z) % 2 ? B.MOSSY_COBBLE : B.COBBLE);
+      else for (let y = 0; y < 4; y++) put(x, y, z, AIR);
+    }
+    put(0, 0, 1, B.TREASURE);
+    put(-1, 0, -1, B.MOSSY_COBBLE); put(1, 0, 2, slabId(5));
+    put(-2, 0, 2, B.MUSHROOM_BROWN); put(2, 0, -2, B.FERN);
   } else if (kind === 'lionRock') {
     for (let x = -4; x <= 4; x++) for (let z = 0; z <= 5; z++) {
       const h = Math.abs(x) <= 2 && z >= 2 ? 6 : Math.abs(x) <= 3 ? 2 : 1;
@@ -54,6 +83,8 @@ export function structureCells(kind, small = false) {
 export function structureBounds(kind, small = false) {
   if (kind === 'igloo') return [-3, 3, -5, 3];
   if (kind === 'lionRock') return [-4, 4, -3, 5];
+  if (kind === 'shipwreck') return [-2, 2, -6, 6];
+  if (kind === 'ruin') return [-3, 3, -3, 3];
   const r = kind === 'temple' || small ? 4 : 7;
   return [-r, r, -r, r];
 }

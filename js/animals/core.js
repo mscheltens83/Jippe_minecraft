@@ -242,6 +242,7 @@ export class Animal {
   show(dt) {
     for (const [node, rest] of this.rest) { node.position.copy(rest.p); node.rotation.copy(rest.r); }
     if (this.saddle) this.saddle.visible = this.tame;
+    if (this.flower) this.flower.visible = !!this.holdFlower;
     const asleep = this.state === 'slapen', happy = this.happy > 0, motion = Math.sin(this.phase) * 0.6 * this.swing;
     const size = this.baby > 0 ? 0.55 : 1; // een jong dier is half zo groot
     this.group.scale.set(size, size, size);
@@ -284,6 +285,8 @@ export class Animal {
     if (this.type === 'polarBear' && happy) this.body.rotation.z = Math.sin(this.time * 8) * .45;
     if (this.type === 'seal' && happy) this.wings.forEach((wing, i) => { wing.rotation.z = (i ? -1 : 1) * Math.sin(this.time * 15) * .75; });
     if (this.type === 'snowyOwl' && happy) this.head.rotation.y = Math.sin(this.time * 4) * Math.PI;
+    if (this.type === 'villager' && happy) this.head.rotation.x = Math.sin(this.time * 12) * 0.3; // knikken: hmm!
+    if (this.type === 'golem' && happy) this.legs[1].rotation.x = -1.3; // steekt de bloem naar je uit
   }
 
   pet(px, pz) {

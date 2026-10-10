@@ -16,6 +16,7 @@ const SPECIAL_ICONS = {
   [ITEM.CAMEL]: 'camel', [ITEM.FENNEC]: 'fennec', [ITEM.LIZARD]: 'lizard', [ITEM.TURTLE]: 'turtle',
   [ITEM.POLAR_BEAR]: 'polarBear', [ITEM.PENGUIN]: 'penguin', [ITEM.REINDEER]: 'reindeer', [ITEM.ARCTIC_FOX]: 'arcticFox', [ITEM.SEAL]: 'seal', [ITEM.SNOWY_OWL]: 'snowyOwl',
   [ITEM.COW]: 'cow', [ITEM.HORSE]: 'horse', [ITEM.DOG]: 'dog', [ITEM.CAT]: 'cat', [ITEM.RABBIT]: 'rabbit', [ITEM.FOX]: 'fox', [ITEM.BEE]: 'bee', [ITEM.GOAT]: 'goat', [ITEM.LLAMA]: 'llama', [ITEM.FISH]: 'fish', [ITEM.DOLPHIN]: 'dolphin', [ITEM.SQUID]: 'squid',
+  [ITEM.VILLAGER]: 'villager', [ITEM.GOLEM]: 'golem', [ITEM.VILLAGE_HOUSE]: 'villageHouse', [ITEM.WELL]: 'well',
   [ITEM.BUCKET]: 'bucket', [ITEM.WHEAT_SEEDS]: 'seeds', [ITEM.CARROT]: 'carrot', [ITEM.POTATO]: 'potato',
   [ITEM.IGLOO]: 'igloo', [ITEM.PYRAMID]: 'pyramid', [ITEM.TEMPLE]: 'temple', [ITEM.LION_ROCK]: 'lionRock',
 };

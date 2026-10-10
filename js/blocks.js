@@ -530,11 +530,16 @@ export const ITEM = {
   POLAR_BEAR: 60031, PENGUIN: 60032, REINDEER: 60033, ARCTIC_FOX: 60034, SEAL: 60035, SNOWY_OWL: 60036,
   // Minecraft-dieren (fase 4G)
   COW: 60037, HORSE: 60038, DOG: 60039, CAT: 60040, RABBIT: 60041, FOX: 60042, BEE: 60043, GOAT: 60044, LLAMA: 60045, FISH: 60046, DOLPHIN: 60047, SQUID: 60048,
+  VILLAGER: 60049, GOLEM: 60050, VILLAGE_HOUSE: 60051, WELL: 60052,
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
 };
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
+  [ITEM.VILLAGE_HOUSE]: { name: 'Dorpshuis', kind: 'stamp', stamp: 'villageHouse' },
+  [ITEM.WELL]: { name: 'Waterput', kind: 'stamp', stamp: 'well' },
+  [ITEM.VILLAGER]: { name: 'Dorpeling', kind: 'animal', animal: 'villager' },
+  [ITEM.GOLEM]: { name: 'IJzergolem', kind: 'animal', animal: 'golem' },
   [ITEM.BUCKET]: { name: 'Emmer water', kind: 'bucket' },
   [ITEM.WHEAT_SEEDS]: { name: 'Tarwezaadjes', kind: 'seed', crop: B.WHEAT },
   [ITEM.CARROT]: { name: 'Wortel', kind: 'seed', crop: B.CARROTS },
@@ -648,7 +653,7 @@ export const PALETTE_GROUPS = [
     { title: 'Water', icon: 'worlds', items: [B.SUGAR_CANE, B.LILY_PAD, B.SEAWEED, B.CORAL_RED, B.CORAL_YELLOW, B.CORAL_BLUE, ITEM.BUCKET] },
     { title: 'Moestuin', icon: 'flower', items: [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO] },
   ]),
-  { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
+  { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK, ITEM.VILLAGE_HOUSE, ITEM.WELL] },
   group('Dieren', [
     { title: 'Boerderij', icon: 'island', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
     { title: 'Savanne', icon: 'savanna', items: [ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH, ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT] },
@@ -658,6 +663,7 @@ export const PALETTE_GROUPS = [
     { title: 'Vlakte en bos', icon: 'tree', items: [ITEM.COW, ITEM.HORSE, ITEM.DOG, ITEM.CAT, ITEM.RABBIT, ITEM.FOX, ITEM.BEE] },
     { title: 'Bergen', icon: 'bigWorld', items: [ITEM.GOAT, ITEM.LLAMA] },
     { title: 'Zee', icon: 'worlds', items: [ITEM.FISH, ITEM.DOLPHIN, ITEM.SQUID] },
+    { title: 'Dorp', icon: 'house', items: [ITEM.VILLAGER, ITEM.GOLEM] },
   ]),
 ];
 // Alles wat je kunt kiezen (ook de soorten binnen een familie), zonder dubbele

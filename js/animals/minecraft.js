@@ -10,7 +10,10 @@ export const VARIANTS = {
   rabbit: [['#9a7653', '#e9d7c0'], ['#f2efe9', '#ffffff'], ['#55453a', '#8e7766']],
   llama: [['#d84a3a'], ['#3f7fd0'], ['#5cb84a'], ['#f0c030']],
   fish: [['#c99b5a', '#e8d2a8'], ['#e8642a', '#ffffff'], ['#3b82d6', '#f2d33a'], ['#f2d33a', '#2b2b30']],
+  // dorpelingen: boer, bakker, bibliothecaris [mantel, schort of rand, hoed]
+  villager: [['#8a6a3d', '#6d5230', '#e8c95a'], ['#5a4a3a', '#f4f1ea', '#f4f1ea'], ['#e9e4d8', '#b8342f', null]],
 };
+export const PROFESSIONS = ['Boer', 'Bakker', 'Bibliothecaris'];
 
 const EYE = '#1f252a';
 
@@ -148,6 +151,37 @@ function squid() {
   return { parts: [body, head], body, head, wings: [], ears: [], legs, pattern: [1, -1, 1, -1, 1, -1, 1, -1] };
 }
 
+// Dorpeling: lange mantel, grote neus, armen over elkaar; een hoed of schort bij het beroep
+function villager(v) {
+  const skin = '#c99a76', w = 0.56, d = 0.42, legH = 0.62, bodyH = 0.8, bodyY = legH + bodyH / 2;
+  const bodyGeo = [box(w, bodyH, d, v[0], 0, bodyY, 0), box(w + 0.02, bodyH * 0.55, 0.04, v[1], 0, bodyY - bodyH * 0.15, -d / 2 - 0.01),
+    box(0.62, 0.2, 0.22, v[0], 0, bodyY + 0.08, -d / 2 - 0.1), box(0.26, 0.14, 0.24, skin, 0, bodyY + 0.08, -d / 2 - 0.1)];
+  const body = part(bodyGeo, 0, bodyY, 0);
+  const headY = legH + bodyH + 0.28;
+  const headGeo = [box(0.48, 0.56, 0.48, skin, 0, headY, 0), box(0.12, 0.22, 0.1, '#b0805e', 0, headY - 0.08, -0.29),
+    box(0.4, 0.06, 0.02, '#3b2a20', 0, headY + 0.18, -0.245)];
+  for (const s of [-1, 1]) headGeo.push(box(0.08, 0.06, 0.02, '#2e7d3a', s * 0.12, headY + 0.06, -0.245));
+  if (v[2]) { headGeo.push(box(0.7, 0.05, 0.7, v[2], 0, headY + 0.3, 0)); headGeo.push(box(0.5, 0.14, 0.5, v[2], 0, headY + 0.38, 0)); }
+  const head = part(headGeo, 0, legH + bodyH, 0);
+  const legs = [-1, 1].map((s) => part([box(0.24, legH, 0.26, v[0] === '#e9e4d8' ? '#8a7a6a' : '#3f3328', s * 0.13, legH / 2, 0)], s * 0.13, legH, 0));
+  return { parts: [body, head], body, head, wings: [], ears: [], legs, pattern: [1, -1] };
+}
+
+// IJzergolem: groot en grijs met klimop, lange armen (die als "poten" meezwaaien) en soms een bloem
+function golem() {
+  const iron = '#d2ccc1', vine = '#5a8a3a', legH = 1.0, bodyH = 1.0, bodyY = legH + bodyH / 2;
+  const body = part([box(1.25, bodyH, 0.75, iron, 0, bodyY, 0), box(0.8, 0.3, 0.6, iron, 0, legH + 0.1, 0),
+    box(0.2, 0.5, 0.02, vine, -0.3, bodyY + 0.1, -0.385), box(0.15, 0.3, 0.02, vine, 0.35, bodyY - 0.2, -0.385), box(0.02, 0.6, 0.2, vine, 0.63, bodyY, 0.1)], 0, bodyY, 0);
+  const headY = legH + bodyH + 0.3;
+  const head = part([box(0.6, 0.6, 0.55, iron, 0, headY, -0.1), box(0.14, 0.28, 0.14, '#bdb6aa', 0, headY - 0.18, -0.43),
+    box(0.12, 0.06, 0.02, '#c23b2f', -0.15, headY + 0.08, -0.385), box(0.12, 0.06, 0.02, '#c23b2f', 0.15, headY + 0.08, -0.385)], 0, legH + bodyH, -0.1);
+  const arms = [-1, 1].map((s) => part([box(0.3, 1.4, 0.3, iron, s * 0.78, legH + bodyH - 0.62, 0)], s * 0.78, legH + bodyH, 0));
+  const flower = part([box(0.06, 0.25, 0.06, '#3f7a2b', 0.78, legH + bodyH - 1.42, -0.18), box(0.2, 0.14, 0.2, '#d83b3b', 0.78, legH + bodyH - 1.25, -0.18)], 0.78, legH + bodyH, 0);
+  arms[1].add(flower); flower.position.set(0, 0, 0);
+  const legs = [-1, 1].map((s) => part([box(0.4, legH, 0.4, iron, s * 0.3, legH / 2, 0)], s * 0.3, legH, 0));
+  return { parts: [body, head], body, head, flower, wings: [], ears: [], legs: [...arms, ...legs], pattern: [-1, 1, 1, -1] };
+}
+
 export function buildMc(type, variant = 0) {
   const v = VARIANTS[type]?.[variant % (VARIANTS[type]?.length || 1)];
   switch (type) {
@@ -163,6 +197,8 @@ export function buildMc(type, variant = 0) {
     case 'fish': return swimmer({ w: 0.18, h: 0.3, d: 0.55, body: v[0], stripe: v[1], tailColor: v[1] });
     case 'dolphin': return swimmer({ w: 0.48, h: 0.5, d: 1.6, body: '#7f96ab', belly: '#dfe6ec', fin: true, beak: true });
     case 'squid': return squid();
+    case 'villager': return villager(v);
+    case 'golem': return golem();
     default: throw new Error('onbekend dier: ' + type);
   }
 }

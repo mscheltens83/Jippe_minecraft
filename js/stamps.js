@@ -3,6 +3,7 @@
 
 import { AIR, B, BLOCKS, DIRS, doorId } from './blocks.js';
 import { structureCells, structureBounds } from './structures.js';
+import { house, well, VILLAGE_STYLES } from './engine/village.js';
 
 // Geeft een lijst met veranderingen {x, y, z, from, to} terug (zodat "terug" ook werkt)
 export function buildStamp(kind, world, ox, oy, oz, dir) {
@@ -80,6 +81,26 @@ export function buildStamp(kind, world, ox, oy, oz, dir) {
       put(0, 1, lz, AIR);
     }
     put(0, -1, 0, B.PLANKS);
+  } else if (kind === 'villageHouse' || kind === 'well') {
+    // Uit het dorp: in wereld-richtingen gebouwd (de deur kijkt naar jou), 4 blokken voor je
+    const cx = ox + fx * 4, cz = oz + fz * 4, cols = new Set();
+    const putWorld = (x, y, z, id) => {
+      const wx = cx + x, wy = oy + y, wz = cz + z;
+      if (!world.inside(wx, wy, wz) || world.get(wx, wy, wz) === B.BEDROCK) return;
+      cells.set(key(wx, wy, wz), { x: wx, y: wy, z: wz, to: id });
+      if (y === -1) cols.add(wx + ',' + wz);
+    };
+    if (kind === 'well') well(putWorld, VILLAGE_STYLES.plains);
+    else house(putWorld, VILLAGE_STYLES.plains, 0, 0, (dir + 2) % 4, { bed: 0 });
+    // fundering onder de vloer tot op de grond
+    for (const c of cols) {
+      const [wx, wz] = c.split(',').map(Number);
+      for (let y = oy - 2; y >= oy - 8; y--) {
+        const cur = world.get(wx, y, wz);
+        if (BLOCKS[cur].solid && cur !== B.LEAVES) break;
+        cells.set(key(wx, y, wz), { x: wx, y, z: wz, to: B.COBBLE });
+      }
+    }
   } else if (['igloo', 'pyramid', 'temple', 'lionRock'].includes(kind)) {
     const bounds = structureBounds(kind, true);
     for (const [x, y, z, id] of structureCells(kind, true)) {

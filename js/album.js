@@ -13,6 +13,7 @@ const GROUPS = [
   { title: 'Vlakte en bos', icon: 'tree', types: ['cow', 'horse', 'dog', 'cat', 'rabbit', 'fox', 'bee'] },
   { title: 'Bergen', icon: 'bigWorld', types: ['goat', 'llama'] },
   { title: 'Zee', icon: 'worlds', types: ['fish', 'dolphin', 'squid'] },
+  { title: 'Dorp', icon: 'house', types: ['villager', 'golem'] },
 ];
 
 function button(cls, icon, label) {

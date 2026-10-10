@@ -6,6 +6,7 @@ import { hash } from './engine/noise.js';
 import { BIOMES, biomeAt } from './biomes.js';
 import { Animal } from './animals/core.js';
 import { SPECIES, MAX_ANIMALS } from './animals/species.js';
+import { VILLAGE_RADIUS } from './engine/village.js';
 import { updateHunt } from './animals/hunt.js';
 export { SPECIES, MAX_ANIMALS } from './animals/species.js';
 
@@ -96,6 +97,8 @@ export class Animals {
   // als het vol raakt, maken de wilde dieren die het verst weg zijn plaats voor nieuwe.
   spawnInChunk(world, cx, cz, viewer = null) {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
+    const village = this.spawnVillages(world, cx, cz, viewer);
+    if (village) return village;
     // Bij de bouwplek wonen al dieren; verderop af en toe een groepje (ongeveer 1 op de 14 chunks)
     if (Math.hypot(x0 + 8 - HOME / 2, z0 + 8 - HOME / 2) < 80 || hash(world.seed, cx, cz, 701) > 0.07) return 0;
     const biome = world.biomeAt ? world.biomeAt(x0 + 8, z0 + 8) : biomeAt(world.type, x0 + 8, z0 + 8);
@@ -115,6 +118,30 @@ export class Animals {
       if (this.full && !this.recycle(viewer)) break;
       const a = this.spawn(type, x + 0.5, y + 1, z + 0.5, probe.yaw);
       if (a) { a.wild = true; made++; }
+    }
+    return made;
+  }
+
+  // Een dorp in deze chunk (het midden): dorpelingen bij hun huis, twee katten en een ijzergolem
+  spawnVillages(world, cx, cz, viewer = null) {
+    const x0 = cx * CHUNK, z0 = cz * CHUNK;
+    const list = world.gen?.structuresNear?.(x0, z0, x0 + CHUNK - 1, z0 + CHUNK - 1) || [];
+    let made = 0;
+    for (const v of list) {
+      if (v.kind !== 'village' || v.x < x0 || v.x >= x0 + CHUNK || v.z < z0 || v.z >= z0 + CHUNK) continue;
+      const village = { x: v.x + .5, z: v.z + .5, r: VILLAGE_RADIUS - 2 }, y = v.base + 1;
+      const add = (type, x, z, variant = null) => {
+        if (this.full && !this.recycle(viewer)) return null;
+        const a = this.spawn(type, x, y, z, Math.random() * Math.PI * 2, variant);
+        if (a) { a.village = village; made++; }
+        return a;
+      };
+      v.beds.forEach((b, i) => {
+        const a = add('villager', b.outX + .5, b.outZ + .5, i % 3);
+        if (a) a.home = { x: b.x, y, z: b.z, outX: b.outX, outZ: b.outZ };
+      });
+      add('cat', v.x + 3.5, v.z - 3.5); add('cat', v.x - 3.5, v.z + 4.5);
+      add('golem', v.x + 4.5, v.z + 4.5);
     }
     return made;
   }
@@ -179,6 +206,10 @@ export class Animals {
       if (viewer) a.setFar(a.lodOn ? dist > 26 : dist > 30);
       a.elapsed += dt;
       a.clockElapsed += clockDt;
+      // Wie in een dorp woont, blijft in de buurt van de waterput
+      if (a.village && !a.tame && !a.inBed && Math.hypot(a.x - a.village.x, a.z - a.village.z) > a.village.r) {
+        a.targetYaw = Math.atan2(-(a.village.x - a.x), -(a.village.z - a.z)); a.walking = true; a.timer = Math.max(a.timer, 1.5);
+      }
       if (!far || (this.frame + i) % 4 === 0) {
         if (a.tame && (a.def.rijdbaar || a.def.volger) && !a.sitting && viewer && a.clockElapsed > 0) {
           const dist = Math.hypot(a.x - viewer.x, a.z - viewer.z);
@@ -253,7 +284,8 @@ export class Animals {
   serialize() {
     const r = (v) => Math.round(v * 100) / 100;
     return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw), ...(a.def.varianten ? { v: a.variant } : {}),
-      tame: !!a.tame, ...(a.wild ? { wild: true } : {}), ...(a.baby ? { baby: Math.round(a.baby) } : {}), ...(a.sitting ? { sit: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
+      tame: !!a.tame, ...(a.wild ? { wild: true } : {}), ...(a.baby ? { baby: Math.round(a.baby) } : {}), ...(a.sitting ? { sit: true } : {}),
+      ...(a.village ? { village: a.village } : {}), ...(a.home ? { home: a.home } : {}), ...(a.inBed ? { bed: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
       sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
       huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 }));
   }
@@ -268,6 +300,9 @@ export class Animals {
       a.wild = !!o.wild;
       a.baby = Number.isFinite(o.baby) ? Math.max(0, o.baby) : 0;
       a.sitting = !!o.sit;
+      if (o.village && Number.isFinite(o.village.x)) a.village = o.village;
+      if (o.home && Number.isFinite(o.home.x)) a.home = o.home;
+      a.inBed = !!o.bed;
       a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
       a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
       a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;

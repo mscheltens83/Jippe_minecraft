@@ -269,6 +269,8 @@ class Game {
 
   freshWorld(type, seed) {
     this.openWorld(() => this.world.generate(type, seed));
+    // Dorpen die meteen al geladen zijn, krijgen nu hun dorpelingen
+    if (!this.readOnly) for (const c of this.world.chunks.values()) this.animals.spawnVillages(this.world, c.cx, c.cz, this.player);
     this.resetSlot = true; // bij het eerstvolgende bewaren eerst de oude chunks van deze plek weghalen
     this.player.setPos(this.world.spawnPoint());
     this.player.yaw = 0;
@@ -1077,6 +1079,15 @@ class Game {
 
   petAnimal(a) {
     if (a.tame && a.def.rijdbaar && !a.baby) { this.mountAnimal(a); return; }
+    // De ijzergolem geeft je soms een bloem
+    if (a.type === 'golem') {
+      const now = performance.now() / 1000;
+      if (now >= (a.flowerAt || 0)) {
+        a.flowerAt = now + 20; a.holdFlower = false;
+        this.pick(B.FLOWER_RED);
+        this.ui.say('De ijzergolem geeft je een bloem!', 'flower');
+      }
+    }
     // Een tamme hond gaat zitten of staat weer op als je erop tikt
     if (a.tame && a.type === 'dog') {
       a.sitting = !a.sitting; a.walking = false;

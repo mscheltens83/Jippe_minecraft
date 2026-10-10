@@ -36,8 +36,8 @@ export async function testPhaseB({ newPage, check, out }) {
   await run(() => { const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear(); j.scene.rebuildAll(j.world); });
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Dieren"]').tap();
-  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 39, 'dierenkist bevat de boerderijdieren, alle wilde dieren en de Minecraft-dieren');
-  check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-section')].map((e) => e.textContent).join(',') === 'Boerderij,Savanne,Jungle,Woestijn,Toendra,Vlakte en bos,Bergen,Zee'), 'dierenkist groepeert de plaatjes per wereld');
+  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 41, 'dierenkist bevat de boerderijdieren, alle wilde dieren, de Minecraft-dieren en het dorp');
+  check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-section')].map((e) => e.textContent).join(',') === 'Boerderij,Savanne,Jungle,Woestijn,Toendra,Vlakte en bos,Bergen,Zee,Dorp'), 'dierenkist groepeert de plaatjes per wereld');
   check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-item')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && e.querySelector('img').src.includes('svg');
   })), 'alle dieren hebben een herkenbaar plaatje en een grote aanraakknop');
