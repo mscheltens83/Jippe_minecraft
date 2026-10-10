@@ -15,7 +15,8 @@ export async function testPhase4C({ newPage, check, out }) {
     for (let r = 64; r < 2000; r += 32) for (let a = 0; a < 32; a++) {
       const x = Math.round(48 + Math.cos(a / 32 * 6.283) * r), z = Math.round(48 + Math.sin(a / 32 * 6.283) * r);
       const c = g.raw(x, z);
-      if (c.biome === 'mountains' && c.h > 95) return { x, z, h: c.h };
+      // ook de plek waar de speler komt te hangen (31 blokken ervoor, zie p.setPos hieronder) moet in de bergen liggen
+      if (c.biome === 'mountains' && c.h > 95 && g.raw(x, z - 31).biome === 'mountains') return { x, z, h: c.h };
     }
     return null;
   });
