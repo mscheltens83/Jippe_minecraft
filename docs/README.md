@@ -7,6 +7,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Document | Waarvoor |
 |---|---|
 | [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad en op de testcomputer |
+| [`fase-5-plan.md`](fase-5-plan.md) | Het plan voor fase 5: de Dinowereld, opdrachtjes met stickers, schatkisten en verkleden, rails met karretje, bootje, knoppen en hendels |
 | [`fase-4-plan.md`](fase-4-plan.md) | Het plan voor fase 4: van blokkenspel naar echte Minecraft-kloon. Eindeloze wereld met biomen, grotten, licht en dag en nacht, veel meer blokken, Minecraft-dieren en dorpen, en de themawerelden als extra werelden via portalen |
 | [`fase-3-plan.md`](fase-3-plan.md) | Het grote plan voor fase 3: jungle, woestijn, toendra, savanne en avontuur; wilde dieren (leeuw, cheetah, tijger en 20 meer); roofdieren en stallen; temmen en rijden op de leeuw; dierenalbum |
 | [`codex-prompt.md`](codex-prompt.md) | Prompt om OpenAI Codex fase voor fase te laten bouwen |
@@ -39,3 +40,8 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 4G deel 2 | Dorpen met dorpelingen, katten en een ijzergolem; schipwrak, ruïne en mijnschacht; dorpshuis en waterput als stempel | Klaar (versie 4.9.0) |
 | 4H deel 1 | Themawerelden eindeloos met meerdere landschappen (en een bamboebos) | Klaar (versie 4.10.0) |
 | 4H deel 2 | Portalen naar de themawerelden: portaalsteen in 4 kleuren, toverstaf, portaal-stempel; je dier gaat mee | Klaar (versie 4.11.0) |
+| 5A | Dinowereld: landschappen, 7 dino's, dino-eieren, fossielen, rode portaalsteen ([plan](fase-5-plan.md)) | Bezig |
+| 5B | Opdrachtjes en stickers, met voorlezen | Gepland |
+| 5C | Schatkisten en verkleden | Gepland |
+| 5D | Rails met karretje, bootje | Gepland |
+| 5E | Knoppen, hendels, drukplaten en lampen | Gepland |
