@@ -63,6 +63,7 @@ export class ParentPanel {
       ['Beeldkaart', dev.gpu],
       ['Scherm', dev.screen],
       ['Beeldscherpte nu', String(this.h.pixelRatio())],
+      ['Opstarten', this.h.bootTime() ? (this.h.bootTime() / 1000).toFixed(1).replace('.', ',') + ' s' : '…'],
       ['Werelden bewaard', String(this.h.savedWorlds())],
       ['Opslag', this.storage || '…'],
     ];

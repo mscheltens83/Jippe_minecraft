@@ -22,9 +22,10 @@
   <div id="app"></div>
   <script type="module" src="js/main.js"></script>
   <script>
-    // Start het spel niet (te oude browser)? Laat dan een duidelijke melding zien.
+    // Start het spel helemaal niet (te oude browser: js/main.js kan niet eens beginnen)?
+    // Laat dan een duidelijke melding zien. Een iPad die er alleen lang over doet, krijgt hem niet.
     setTimeout(function () {
-      if (!window.__jippecraft && !document.querySelector('.error')) {
+      if (!window.__jippecraftBoot && !window.__jippecraft && !document.querySelector('.error')) {
         document.getElementById('app').innerHTML = '<div class="error"><h1>Oeps!</h1>' +
           '<p>Deze iPad is te oud voor JippeCraft. Werk de iPad bij via Instellingen &rarr; Algemeen &rarr; Software-update.</p></div>';
       }

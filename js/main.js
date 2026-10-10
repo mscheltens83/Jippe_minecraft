@@ -120,6 +120,7 @@ class Game {
       parent: {
         renderer: () => this.scene.renderer,
         pixelRatio: () => this.scene.pixelRatio,
+        bootTime: () => this.bootTime,
         savedWorlds: () => this.slotInfo().filter((s) => !s.empty).length,
         fpsOn: () => this.perf.visible,
         onFps: () => this.toggleFps(),
@@ -200,17 +201,20 @@ class Game {
   }
 
   // Opstarten: werelden uit de opslag halen (dat gaat in IndexedDB niet in één keer)
-  async init() {
+  // bench: de meetrit maakt zelf een eigen wereld, dan hoeft de bewaarde wereld niet eerst te laden
+  async init({ bench = false } = {}) {
     await this.store.open();
     this.migrateOldSaves();
     await this.migrateToV4();
     this.metas = await this.store.loadMetas(SLOTS.map((n) => 'slot' + n));
     const meta = this.storage.loadLocal('meta') || {};
     this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
-    const loaded = await this.loadSlot(this.slot);
-    if (!loaded) this.freshWorld('world'); // een nieuwe speler begint in de Grote wereld
+    if (!bench) {
+      const loaded = await this.loadSlot(this.slot);
+      if (!loaded) this.freshWorld('world'); // een nieuwe speler begint in de Grote wereld
+      this.scene.rebuildAll(this.world);
+    }
     this.savedPos = this.posKey();
-    this.scene.rebuildAll(this.world);
     this.scene.precompile();
     this.refreshUI();
     this.ui.showMenu();
@@ -1467,9 +1471,12 @@ class Game {
 
 async function start() {
   const root = document.getElementById('app');
+  window.__jippecraftBoot = true; // de browser kan het spel aan; vanaf hier mag het opstarten even duren
+  const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
   try {
     const game = new Game(root);
-    await game.init();
+    await game.init({ bench: !!meet });
+    game.bootTime = performance.now(); // hoe lang het opstarten duurde (zie het ouderscherm)
     window.__jippecraft = game;
     // ?tijd=nacht (of ochtend, middag, avond, of een getal van 0 tot 1): voor tests en foto's
     const tijd = location.search.match(/[?&]tijd=([a-z0-9.]+)/);
@@ -1477,7 +1484,6 @@ async function start() {
     // ?texturen: alle tegels op een raster (om de texturen te beoordelen)
     if (/[?&]texturen\b/.test(location.search)) showTextures(root, game.atlas);
     // ?meet = meetrit (30 seconden), ?meet=10 = 10 seconden
-    const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
     if (meet) {
       // Meten gebeurt altijd op het middaguur, dan zijn de metingen te vergelijken
       game.daynight.set(NOON);

@@ -17,6 +17,7 @@ export async function testPhase4A({ newPage, check, out, version }) {
     check(!early && await waitTrue(page, () => !document.querySelector('.parent').hidden, null, 8000),
       'pas na 3 seconden vasthouden gaat het ouderscherm open');
     check(/Versie\s*4/.test(await page.locator('.parent-info').textContent()), 'ouderscherm toont de versie');
+    check(/Opstarten\s*\d+,\d s/.test(await page.locator('.parent-info').textContent()), 'ouderscherm toont hoe lang het opstarten duurde');
     check(await page.locator('.parent-none').isVisible(), 'ouderscherm: nog geen fouten');
 
     await run(() => window.dispatchEvent(new ErrorEvent('error', { message: 'testfout 4A' })));
@@ -56,6 +57,7 @@ export async function testPhase4A({ newPage, check, out, version }) {
     check(r && r.beeldjes > 0 && r.fps > 0 && r.p95 >= r.p50 && r.tekenen > 0 && r.driehoeken > 0, 'meetrit meet beeldjes, tekenopdrachten en driehoeken');
     check(r && r.dieren === 60 && r.versie === version, 'meetrit rijdt met 60 dieren en noemt de versie');
     check(await page.locator('.bench-card').isVisible(), 'uitslag van de meetrit staat in beeld');
+    check(await run(() => window.__jippecraftBoot === true && !document.querySelector('.error')), 'geen melding "te oud" bij een iPad die er even over doet');
     const keys = await run(() => Object.keys(localStorage).filter((k) => k.startsWith('jippecraft.')).sort());
     const idb = await run(async () => { const j = window.__jippecraft; await j.store.flush(); return Object.values(await j.store.loadMetas(['slot1', 'slot2'])).filter(Boolean).length; });
     check(keys.join() === 'jippecraft.metingen.v1' && idb === 0, 'meetrit bewaart niets aan de werelden' + (keys.join() === 'jippecraft.metingen.v1' ? '' : ': ' + keys.join()));
