@@ -5,6 +5,7 @@
 import { CHUNK, chunkKey } from './constants.js';
 import { buildPad, meshChunk } from './mesher.js';
 import { regionFor } from './light.js';
+import { tintsFor } from './tint.js';
 
 export class ChunkLoader {
   constructor(world, scene, pool) {
@@ -114,10 +115,12 @@ export class ChunkLoader {
     const { blocks, versions: around } = this.world.around(c.cx, c.cz);
     c.meshing = true;
     this.meshJobs.add(c.key);
-    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
+    const w = this.world;
+    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz, worldType: w.type, seed: w.seed, classic: w.classic }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
       // c.meshing blijft aan tot de chunk echt getekend is, anders vragen we hem nog eens aan
+      c.tints ||= res.tints;
       this.ready.push({ c, sections: res.sections, versions, light: res.light, around });
     }, () => {
       if (epoch !== this.epoch) return;
@@ -130,7 +133,8 @@ export class ChunkLoader {
     const versions = c.sectionVersion.slice();
     const region = regionFor(this.world, c.cx - 1, c.cz - 1, 3, 3);
     c.light = region.chunkLight(c.cx, c.cz);
-    const sections = meshChunk(buildPad(this.world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.scene.atlas.faceTiles, c.cx, c.cz);
+    c.tints ||= tintsFor(this.world.gen, c.cx, c.cz);
+    const sections = meshChunk(buildPad(this.world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.scene.atlas.faceTiles, c.cx, c.cz, c.tints);
     this.apply(c, sections, versions, c.light, null);
   }
 

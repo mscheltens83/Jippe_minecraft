@@ -18,6 +18,9 @@ const STYLES = {
     scale: [72, 74, 76, 79, 81, 84, 86, 88, 91], beat: 60 / 60, lead: 'sine', pad: 'sine', noteLength: 1.5 },
   savanne: { chords: [[48, 52, 55], [45, 48, 52], [41, 45, 48], [43, 47, 50]],
     scale: [60, 62, 64, 67, 69, 72, 74, 76, 79], beat: 60 / 82, lead: 'triangle', pad: 'sine', noteLength: .75, drum: true },
+  // 's Nachts: langzaam en zacht, een beetje een slaapliedje
+  nacht: { chords: [[45, 48, 52], [41, 45, 48], [48, 52, 55], [43, 47, 50]],
+    scale: [57, 60, 62, 64, 67, 69, 72], beat: 60 / 52, lead: 'sine', pad: 'sine', noteLength: 1.7 },
 };
 
 const freq = (n) => 440 * Math.pow(2, (n - 69) / 12);

@@ -4,6 +4,7 @@ import * as THREE from '../lib/three.module.min.js';
 import { CHUNK, SY, SEA, SECTION } from './engine/constants.js';
 import { buildPad, meshChunk, meshSection, mergeSections, KINDS } from './engine/mesher.js';
 import { buildLightPad, regionFor, LIGHT_LINEAR } from './engine/light.js';
+import { tintsFor } from './engine/tint.js';
 import { NIGHT_LIGHT } from './daynight.js';
 import { createCrackCanvases } from './textures.js';
 
@@ -13,6 +14,7 @@ const NIGHT = { boven: new THREE.Color('#070b1f'), horizon: new THREE.Color('#18
 const GLOW = new THREE.Color('#ff8d45'), SUN_LOW = new THREE.Color('#ffb066');
 const MOONLIGHT = new THREE.Color(0.62, 0.72, 1), DUSKLIGHT = new THREE.Color(1, 0.82, 0.66);
 const SEA_COLOR = new THREE.Color('#3d7fd8'), CLOUD_NIGHT = new THREE.Color('#3b4562');
+const UNDERWATER = new THREE.Color('#1f56a8');
 const lin = (v) => Math.pow(v, 2.2);
 
 export class GameScene {
@@ -38,11 +40,19 @@ export class GameScene {
     this.camera = new THREE.PerspectiveCamera(72, 1, 0.08, 400);
     this.camera.rotation.order = 'YXZ';
 
-    const tex = new THREE.CanvasTexture(atlas.canvas);
-    tex.magFilter = THREE.NearestFilter;
-    tex.minFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
-    tex.colorSpace = THREE.SRGBColorSpace;
+    // Alle tegels in één texture-array (één laag per tegel). Zo kunnen er mipmaps bij zonder dat
+    // tegels in elkaar overlopen: dichtbij scherpe pixels, in de verte rustig in plaats van flikkerend.
+    const tiles = this.tiles = new THREE.DataArrayTexture(atlas.layers, 16, 16, atlas.count);
+    tiles.format = THREE.RGBAFormat;
+    tiles.type = THREE.UnsignedByteType;
+    tiles.magFilter = THREE.NearestFilter;
+    // Zoals Minecraft: per mipmap de dichtstbijzijnde pixel. Zacht filteren (lineair) was op de
+    // testcomputer een derde trager en geeft wazige blokken; dit houdt de pixels scherp.
+    tiles.minFilter = THREE.NearestMipmapNearestFilter;
+    tiles.wrapS = tiles.wrapT = THREE.RepeatWrapping;
+    tiles.generateMipmaps = true;
+    tiles.colorSpace = THREE.SRGBColorSpace;
+    tiles.needsUpdate = true;
     this.atlas = atlas;
 
     // Licht: per hoekpunt zon (groen) en lamp (blauw), per beeldje het daglicht.
@@ -51,27 +61,55 @@ export class GameScene {
       uSkyLight: { value: new THREE.Color(1, 1, 1) },   // kleur en sterkte van het zonlicht nu
       uLampLight: { value: new THREE.Color(1, 0.9, 0.72) }, // warm licht van fakkels en lampen
       uMinLight: { value: Math.pow(0.18, 2.2) },          // nooit helemaal donker
+      uTiles: { value: tiles },
+      uTime: { value: 0 },                                // voor golvend water
     };
-    const lit = (m) => {
+    // Per hoekpunt: tuv = plek op de tegel + tegelnummer, tint = kleur van het landschap (gras, blad, water).
+    // Bij dichte blokken bepaalt de doorzichtigheid van de tegel waar de landschapskleur komt
+    // (de grasrand aan de zijkant van een grasblok wel, de aarde eronder niet).
+    const lit = (m, kind) => {
+      m.defines = { ['JC_' + kind.toUpperCase()]: '' };
       m.onBeforeCompile = (shader) => {
         Object.assign(shader.uniforms, this.light);
-        shader.fragmentShader = 'uniform vec3 uSkyLight;\nuniform vec3 uLampLight;\nuniform float uMinLight;\n' +
-          shader.fragmentShader.replace('#include <color_fragment>', `
+        shader.vertexShader = 'attribute vec3 tuv;\nattribute vec3 tint;\nvarying vec3 vTuv;\nvarying vec3 vTint;\n' +
+          shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvTuv = tuv; vTint = pow(tint, vec3(2.2));');
+        shader.fragmentShader = `uniform vec3 uSkyLight;\nuniform vec3 uLampLight;\nuniform float uMinLight;
+uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\nvarying vec3 vTint;\n` +
+          shader.fragmentShader.replace('#include <map_fragment>', `
+            #ifdef JC_WATER
+              vec4 jcTex = mix(texture(uTiles, vec3(vTuv.xy + vec2(uTime * 0.031, uTime * 0.017), vTuv.z)),
+                texture(uTiles, vec3(vTuv.xy * 0.83 + vec2(-uTime * 0.022, uTime * 0.027), vTuv.z)), 0.5);
+            #else
+              vec4 jcTex = texture(uTiles, vTuv);
+            #endif
+            #ifdef JC_SOLID
+              jcTex.rgb *= mix(vec3(1.0), vTint, 1.0 - jcTex.a);
+              jcTex.a = 1.0;
+            #else
+              jcTex.rgb *= vTint;
+            #endif
+            #ifdef JC_CUTOUT
+              // In de verte (kleinere mipmap) minder doorzichtig, anders verdwijnen de bladeren
+              vec2 jcD = vTuv.xy * 16.0;
+              float jcLod = max(0.0, 0.5 * log2(max(dot(dFdx(jcD), dFdx(jcD)), dot(dFdy(jcD), dFdy(jcD)))));
+              jcTex.a *= 1.0 + jcLod * 0.25;
+            #endif
+            diffuseColor *= jcTex;`).replace('#include <color_fragment>', `
             vec3 jcLight = max(vColor.g * uSkyLight, vColor.b * uLampLight);
             jcLight = max(jcLight, vec3(uMinLight));
             jcLight = mix(jcLight, vec3(1.0), step(1.5, vColor.g));
             diffuseColor.rgb *= vColor.r * jcLight;`);
       };
-      m.customProgramCacheKey = () => 'jippecraft-licht';
+      m.customProgramCacheKey = () => 'jippecraft-' + kind;
       return m;
     };
     this.materials = {
-      solid: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true })),
-      cutout: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide })),
-      glass: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, depthWrite: false })),
+      solid: lit(new THREE.MeshBasicMaterial({ vertexColors: true }), 'solid'),
+      cutout: lit(new THREE.MeshBasicMaterial({ vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide }), 'cutout'),
+      glass: lit(new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, depthWrite: false }), 'glass'),
       water: lit(new THREE.MeshBasicMaterial({
-        map: tex, vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide,
-      })),
+        vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide,
+      }), 'water'),
     };
 
     this.chunks = new Map();     // sleutel -> { cx, cz, sections, meshes }
@@ -243,13 +281,17 @@ export class GameScene {
     mix.horizon.copy(b.horizon).lerp(NIGHT.horizon, night).lerp(GLOW, glow * 0.6);
     mix.mist.copy(b.mist).lerp(NIGHT.mist, night).lerp(GLOW, glow * 0.35);
     mix.zon.copy(b.zon).lerp(SUN_LOW, glow);
-    this.scene.background.copy(mix.mist);
-    this.scene.fog.color.copy(mix.mist);
+    if (!this.underwater) {
+      this.scene.background.copy(mix.mist);
+      this.scene.fog.color.copy(mix.mist);
+    }
     // Mist van het landschap, maar nooit verder dan de geladen wereld
     this.scene.fog.far = Math.min(b.mistEind, this.viewFar);
     this.scene.fog.near = Math.min(b.mistBegin, this.scene.fog.far * 0.6);
     this.sun.material.color.copy(mix.zon);
-    this.clouds.count = Math.max(0, Math.min(this.cloudData.length, Math.round(b.wolken)));
+    // Meer of minder wolken per landschap (wolken: 0 tot 46, zoals vroeger het aantal wolkenblokken)
+    this.cloudCut.value = 1 - Math.max(0, Math.min(1, b.wolken / 46)) * 0.5;
+    this.clouds.visible = b.wolken > 1;
     const positions = this.sky.geometry.attributes.position, colors = this.sky.geometry.attributes.color;
     const color = this.biomeColor || (this.biomeColor = new THREE.Color());
     for (let i = 0; i < positions.count; i++) {
@@ -282,40 +324,58 @@ export class GameScene {
     if (this.biomeCurrent) this.applyBiome();
   }
 
+  // Wolken zoals in Minecraft: één platte laag blokwolken uit een patroon, die langzaam
+  // wegdrijft. Eén vlak van 768 x 768 blokken dat met de camera meeschuift (één tekenopdracht).
   buildClouds() {
-    // Wolken: platte witte blokken die langzaam wegdrijven
-    const geo = new THREE.BoxGeometry(1, 1, 1);
-    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff', transparent: true, opacity: 0.88 });
-    const count = 46;
-    this.clouds = new THREE.InstancedMesh(geo, mat, count);
-    this.cloudData = [];
-    const m = new THREE.Matrix4();
-    for (let i = 0; i < count; i++) {
-      const c = {
-        x: Math.random() * 360 - 180,
-        z: Math.random() * 360 - 180,
-        w: 6 + Math.random() * 16,
-        d: 5 + Math.random() * 12,
-        y: SY + 8 + Math.random() * 4,
-      };
-      this.cloudData.push(c);
-      m.makeScale(c.w, 2, c.d).setPosition(c.x, c.y, c.z);
-      this.clouds.setMatrixAt(i, m);
+    const N = 64, CELL = 12;                 // 64 x 64 vakjes van 12 blokken
+    this.cloudSize = N * CELL;
+    // Herhalend patroon (geen naad als het rondschuift): ruis op een rooster dat rondloopt
+    const rnd = (i, j, g) => { const h = Math.sin((i % g) * 127.1 + (j % g) * 311.7 + g * 74.7) * 43758.5453; return h - Math.floor(h); };
+    const smooth = (t) => t * t * (3 - 2 * t);
+    const noise = (x, y, g) => {
+      const fx = x / N * g, fy = y / N * g, i = Math.floor(fx), j = Math.floor(fy), u = smooth(fx - i), v = smooth(fy - j);
+      const a = rnd(i, j, g), b = rnd(i + 1, j, g), c = rnd(i, j + 1, g), d = rnd(i + 1, j + 1, g);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    };
+    const data = new Uint8Array(N * N * 4);
+    for (let y = 0; y < N; y++) for (let x = 0; x < N; x++) {
+      const v = noise(x, y, 8) * 0.65 + noise(x, y, 16) * 0.35, o = (x + N * y) * 4;
+      data[o] = data[o + 1] = data[o + 2] = 255; data[o + 3] = Math.round(v * 255);
     }
+    const tex = new THREE.DataTexture(data, N, N);
+    tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.needsUpdate = true;
+    this.cloudCut = { value: 0.55 };       // hoe hoger, hoe minder wolken
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0.85, fog: false, depthWrite: false, side: THREE.DoubleSide });
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uCut = this.cloudCut;
+      shader.fragmentShader = 'uniform float uCut;\n' + shader.fragmentShader.replace('#include <map_fragment>', `
+        vec4 cloud = texture2D(map, vMapUv);
+        if (cloud.a < uCut) discard;
+        diffuseColor.rgb *= cloud.rgb;
+        // naar de rand toe vervagen (het vlak beweegt mee met de camera)
+        vec2 jcFar = (vMapUv - uvCenter) * 768.0;
+        diffuseColor.a *= 1.0 - smoothstep(160.0, 370.0, length(jcFar));`).replace('void main() {', 'uniform vec2 uvCenter;\nvoid main() {');
+      shader.uniforms.uvCenter = this.cloudCenter;
+    };
+    this.cloudCenter = { value: new THREE.Vector2() };
+    const geo = new THREE.PlaneGeometry(this.cloudSize, this.cloudSize);
+    geo.rotateX(-Math.PI / 2);
+    this.clouds = new THREE.Mesh(geo, mat);
+    this.clouds.position.y = SY + 10;
+    this.clouds.renderOrder = 2;
+    this.cloudDrift = 0;
     this.scene.add(this.clouds);
   }
 
-  // Wolken drijven langzaam weg en blijven altijd rond de speler (360 x 360 blokken)
+  // Wolken drijven langzaam naar het oosten en blijven boven de speler
   updateClouds(dt) {
-    const m = new THREE.Matrix4(), cam = this.camera.position;
-    const wrap = (v, around) => around + ((((v - around + 180) % 360) + 360) % 360) - 180;
-    this.cloudData.forEach((c, i) => {
-      c.x += dt * 0.8;
-      c.x = wrap(c.x, cam.x); c.z = wrap(c.z, cam.z);
-      m.makeScale(c.w, 2, c.d).setPosition(c.x, c.y, c.z);
-      this.clouds.setMatrixAt(i, m);
-    });
-    this.clouds.instanceMatrix.needsUpdate = true;
+    const cam = this.camera.position, size = this.cloudSize, map = this.clouds.material.map;
+    this.cloudDrift += dt * 0.8;
+    this.clouds.position.x = cam.x; this.clouds.position.z = cam.z;
+    map.offset.set((cam.x - this.cloudDrift) / size, -cam.z / size);
+    this.cloudCenter.value.set(0.5 + map.offset.x, 0.5 + map.offset.y);
   }
 
   buildHighlight() {
@@ -355,7 +415,8 @@ export class GameScene {
       if (!d) continue;
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
-      geo.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
+      geo.setAttribute('tuv', new THREE.BufferAttribute(d.uv, 3));
+      geo.setAttribute('tint', new THREE.BufferAttribute(d.tint, 3, true));
       geo.setAttribute('color', new THREE.BufferAttribute(d.col, 3));
       geo.setIndex(new THREE.BufferAttribute(d.idx, 1));
       geo.boundingSphere = new THREE.Sphere(center.clone(), radius);
@@ -387,7 +448,8 @@ export class GameScene {
       const c = world.chunks.get(key), e = this.chunks.get(key);
       if (!c || !e) continue;
       const pad = buildPad(world, c.cx, c.cz), lpad = buildLightPad(world, c.cx, c.cz);
-      for (let s = 0; s < SY / SECTION; s++) if (mask & (1 << s)) e.sections[s] = meshSection(pad, lpad, this.atlas.faceTiles, c.cx, c.cz, s);
+      c.tints ||= tintsFor(world.gen, c.cx, c.cz);
+      for (let s = 0; s < SY / SECTION; s++) if (mask & (1 << s)) e.sections[s] = meshSection(pad, lpad, this.atlas.faceTiles, c.cx, c.cz, s, c.tints);
       this.rebuildMeshes(e);
       done++;
     }
@@ -404,7 +466,8 @@ export class GameScene {
       for (const c of todo) {
         const region = big || regionFor(world, c.cx - 1, c.cz - 1, 3, 3);
         c.light = region.chunkLight(c.cx, c.cz);
-        this.setChunkSections(c, meshChunk(buildPad(world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.atlas.faceTiles, c.cx, c.cz));
+        c.tints ||= tintsFor(world.gen, c.cx, c.cz);
+        this.setChunkSections(c, meshChunk(buildPad(world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.atlas.faceTiles, c.cx, c.cz, c.tints));
         c.meshed = true;
       }
     }
@@ -422,7 +485,21 @@ export class GameScene {
     this.renderer.setPixelRatio(r);
   }
 
+  // Onder water: blauwe mist dichtbij (de rest doet main.js: blauwe tint en gedempt geluid)
+  setUnderwater(on) {
+    if (on === !!this.underwater) return;
+    this.underwater = on;
+    if (!on && this.biomeCurrent) this.applyBiome();
+  }
+
   render() {
+    this.light.uTime.value = performance.now() / 1000;
+    if (this.underwater) {
+      const day = lin(NIGHT_LIGHT + (1 - NIGHT_LIGHT) * this.time.sun);
+      this.scene.fog.color.copy(UNDERWATER).multiplyScalar(Math.max(0.25, day));
+      this.scene.background.copy(this.scene.fog.color);
+      this.scene.fog.near = 1; this.scene.fog.far = 26;
+    }
     this.sky.position.copy(this.camera.position);
     this.sea.position.x = this.camera.position.x;
     this.sea.position.z = this.camera.position.z;

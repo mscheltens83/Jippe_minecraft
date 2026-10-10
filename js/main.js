@@ -29,7 +29,9 @@ import { PerfMeter } from './perf.js';
 import { Bench } from './bench.js';
 import { VERSION } from './version.js';
 import { DayNight, NOON, sunAmount, glowAmount, sunAngle } from './daynight.js';
+import { TINT_KIND } from './engine/tint.js';
 import { Animal } from './animals/core.js';
+import { showTextures } from './texview.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
@@ -57,6 +59,7 @@ class Game {
     this.sounds = new Sounds();
     this.music = new Music(this.sounds);
     this.particles = new Particles(this.scene.scene);
+    this.particles.setTiles(this.scene.tiles);
     this.animals = new Animals(this.scene.scene, this.particles);
     this.weather = new Weather(this.scene.scene, this.sounds);
     this.snowmen = new Snowmen(this.scene.scene);
@@ -986,10 +989,18 @@ class Game {
     this.sounds.magic();
   }
 
+  // Brokjes van een blok: stukjes van de echte textuur (gras en bladeren in hun eigen kleur)
+  crumbs(hit, n) {
+    const id = BLOCKS[hit.id].family ?? hit.id, tiles = this.atlas.faceTiles[id];
+    if (!tiles || TINT_KIND[id] || BLOCKS[id].render === 'cross') {
+      this.particles.burst(hit.x, hit.y, hit.z, this.atlas.particleColors[id] || this.atlas.particleColors[hit.id] || [[1, 1, 1]], n);
+    } else this.particles.burstTile(hit.x, hit.y, hit.z, tiles[2], n);
+  }
+
   // Kort tikken in de sloop-stand: laat zien dat je moet vasthouden
   hintHold(hit) {
     this.sounds.tick();
-    this.particles.burst(hit.x, hit.y, hit.z, this.atlas.particleColors[hit.id] || [[1, 1, 1]], 3);
+    this.crumbs(hit, 3);
   }
 
   breakBlock(hit) {
@@ -1017,7 +1028,7 @@ class Game {
     if (BLOCKS[above].render === 'cross' && !BLOCKS[above].climb) changes.push({ x, y: y + 1, z, from: above, to: AIR });
     this.apply(changes);
     this.sounds.break(b.sound);
-    this.particles.burst(x, y, z, this.atlas.particleColors[BLOCKS[hit.id].family] || this.atlas.particleColors[hit.id], 18);
+    this.crumbs(hit, 18);
   }
 
   apply(changes) {
@@ -1073,7 +1084,7 @@ class Game {
       if (st.tick <= 0) {
         st.tick = 0.12;
         this.sounds.tick();
-        this.particles.burst(hit.x, hit.y, hit.z, this.atlas.particleColors[hit.id] || [[1, 1, 1]], 2);
+        this.crumbs(hit, 2);
       }
     }
     if (progress >= 1) {
@@ -1092,7 +1103,12 @@ class Game {
     this.biomeNow = biome;
     this.scene.setBiome(this.world.biomeView(this.player.x, this.player.z), instant);
     this.weather.setBiome(biome);
-    this.music.setStyle(BIOMES[biome].muziek);
+    this.updateMusicStyle();
+  }
+
+  // Muziek van het landschap, of 's nachts het rustige nachtliedje
+  updateMusicStyle() {
+    this.music.setStyle(this.daynight.night ? 'nacht' : BIOMES[this.biomeNow]?.muziek);
   }
 
   resize() {
@@ -1174,6 +1190,7 @@ class Game {
       this.updateBiome(); this.nextBiome = now + 0.5;
     }
     this.scene.updateBiome(dt);
+    this.updateUnderwater();
     this.scene.render();
     this.bench?.after(rawDt, this.scene.renderer.info);
     if (this.playing && !this.readOnly && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
@@ -1197,18 +1214,53 @@ class Game {
     }
   }
 
+  // Voetstappen: elke anderhalve stap een geluidje van de ondergrond
+  footsteps(dt) {
+    const p = this.player, speed = Math.hypot(p.vx, p.vz);
+    if (p.flying || speed < 0.5 || !(p.onGround || p.inWater)) { this.stepDist = Math.min(this.stepDist || 0, 1); return; }
+    this.stepDist = (this.stepDist || 0) + speed * dt;
+    if (this.stepDist < (p.riding ? 2.4 : 1.7)) return;
+    this.stepDist = 0;
+    if (p.inWater) { this.sounds.step('water'); return; }
+    const id = this.world.get(Math.floor(p.x), Math.floor(p.y - 0.2), Math.floor(p.z));
+    this.sounds.step(id === B.SNOW ? 'snow' : BLOCKS[id]?.sound);
+  }
+
+  // Zit de camera onder water? Dan blauwe mist, een blauwe tint en gedempt geluid
+  updateUnderwater() {
+    const c = this.scene.camera.position;
+    const under = this.world.get(Math.floor(c.x), Math.floor(c.y), Math.floor(c.z)) === B.WATER;
+    if (under === !!this.underwater) return;
+    this.underwater = under;
+    this.scene.setUnderwater(under);
+    this.ui.setUnderwater(under);
+    this.sounds.setMuffled(under);
+  }
+
   // Dag en nacht, het licht op de dieren en het poppetje, nachtgeluiden en rook
   updateTime(dt, now) {
     const dn = this.daynight, w = this.world, p = this.player;
     dn.update(dt);
     const t = dn.now;
     this.scene.setTime(sunAmount(t), glowAmount(t), sunAngle(t));
-    Animal.night = dn.night;
+    if (Animal.night !== dn.night) { Animal.night = dn.night; this.updateMusicStyle(); }
     const sc = this.scene;
     for (const a of this.animals.list) sc.tint(w.lightAt(a.x, a.y + 0.5, a.z), a.mat.color);
     for (const s of this.snowmen.list) sc.tint(w.lightAt(s.x, s.y + 1, s.z), s.mat.color);
     sc.tint(w.lightAt(p.x, p.y + 1, p.z), this.avatar.mat.color);
     if (!this.playing || document.hidden) return;
+    // Waar ben je? (voor het omgevingsgeluid)
+    if (now >= (this.nextAmbient || 0)) {
+      this.nextAmbient = now + 1;
+      const sky = w.lightAt(p.x, p.y + 1, p.z) >> 4, px = Math.floor(p.x), pz = Math.floor(p.z);
+      let sea = false;
+      for (const [dx, dz] of [[0, 0], [8, 0], [-8, 0], [0, 8], [0, -8]]) {
+        const top = w.surfaceY(px + dx, pz + dz);
+        if (w.get(px + dx, top + 1, pz + dz) === B.WATER || w.get(px + dx, top, pz + dz) === B.WATER) sea = true;
+      }
+      this.weather.context = { night: dn.night, cave: sky < 4 && p.y < 60, sea };
+    }
+    this.footsteps(dt);
     // Krekels en uilen, alleen buiten
     if (dn.night && (w.lightAt(p.x, p.y + 1, p.z) >> 4) > 7 && now >= (this.nextNightSound || 0)) {
       if (Math.random() < 0.15) this.sounds.owl(); else this.sounds.cricket();
@@ -1266,6 +1318,8 @@ async function start() {
     // ?tijd=nacht (of ochtend, middag, avond, of een getal van 0 tot 1): voor tests en foto's
     const tijd = location.search.match(/[?&]tijd=([a-z0-9.]+)/);
     if (tijd) game.daynight.set(TIME_NAMES[tijd[1]] ?? Number(tijd[1]));
+    // ?texturen: alle tegels op een raster (om de texturen te beoordelen)
+    if (/[?&]texturen\b/.test(location.search)) showTextures(root, game.atlas);
     // ?meet = meetrit (30 seconden), ?meet=10 = 10 seconden
     const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
     if (meet) {
@@ -1290,6 +1344,6 @@ async function start() {
 // Geen zoomen, scrollen of selecteren op de iPad
 document.addEventListener('gesturestart', (e) => e.preventDefault());
 document.addEventListener('dblclick', (e) => e.preventDefault());
-document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card, .album-grid, .bench-card')) e.preventDefault(); }, { passive: false });
+document.addEventListener('touchmove', (e) => { if (!e.target.closest?.('.palette-grid, .menu-card, .album-grid, .bench-card, .texview')) e.preventDefault(); }, { passive: false });
 
 start();

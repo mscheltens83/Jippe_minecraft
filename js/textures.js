@@ -2,6 +2,7 @@
 // Ze komen samen in één "atlas" (een groot plaatje met alle tegeltjes).
 
 import { BLOCKS } from './blocks.js';
+import { DEFAULT_TINT } from './engine/tint.js';
 
 export const TILE = 16;
 export const ATLAS_COLS = 16;
@@ -386,10 +387,7 @@ for (const [name, c] of Object.entries(WOOL)) {
 
 // De nieuwe tegels staan achter de oude: hun kleuren blijven bij oude werelden gelijk.
 function bark(t, color, moss = false) {
-  t.noise(color, 0.16);
-  for (let x = 1; x < 16; x += 4) for (let y = 0; y < 16; y++) {
-    if (t.r() < 0.85) t.set(x, y, shade(color, 0.65));
-  }
+  mcBark(t, color, shade(color, 0.7)); // zelfde stijl als de eik (fase 4E)
   if (moss) t.specks([81, 112, 40], 0.12);
 }
 
@@ -728,6 +726,142 @@ for (const [name, color] of Object.entries(WOOL)) GEN['bed_' + name] = (t) => be
 // Namen van alle tegels (ook voor de tests: bestaat elke textuur die een blok noemt?)
 export const TEXTURE_NAMES = Object.keys(GEN);
 
+// ---------- Minecraft-stijl (fase 4E) ----------
+// Elke tegel gebruikt een klein palet (3 tot 5 kleuren) en herkenbare vormen in plaats van ruis.
+// Ze vervangen de oude tekeningen op dezelfde plek in de atlas.
+
+// Kies per pixel een kleur uit het palet, met de kansen in `w` (samen 1)
+function paletteNoise(t, pal, w) {
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    let r = t.r(), i = 0;
+    while (i < w.length - 1 && r > w[i]) { r -= w[i]; i++; }
+    t.set(x, y, pal[i]);
+  }
+}
+// Een klein plukje (blob) van een kleur
+function blob(t, x, y, c, n = 3) {
+  for (let k = 0; k < n; k++) { t.set(x, y, c); if (t.r() < 0.5) x = (x + 1) % 16; else y = (y + 1) % 16; }
+}
+
+const DIRT_PAL = [[134, 96, 67], [116, 83, 57], [96, 68, 46], [151, 110, 78]];
+function mcDirt(t) {
+  paletteNoise(t, DIRT_PAL, [0.5, 0.22, 0.12, 0.16]);
+  for (let i = 0; i < 5; i++) blob(t, Math.floor(t.r() * 16), Math.floor(t.r() * 16), [148, 128, 106], 2);
+}
+function mcStone(t) {
+  paletteNoise(t, [[127, 127, 127], [118, 118, 118], [136, 136, 136]], [0.6, 0.22, 0.18]);
+  for (let i = 0; i < 9; i++) {
+    const x = Math.floor(t.r() * 16), y = Math.floor(t.r() * 16), len = 2 + Math.floor(t.r() * 3);
+    for (let k = 0; k < len; k++) t.set((x + k) % 16, y, i % 3 ? [104, 104, 104] : [148, 148, 148]);
+    if (i % 3) t.set(x, (y + 1) % 16, [110, 110, 110]);
+  }
+}
+function mcPlanks(t, base = [162, 130, 78]) {
+  const dark = shade(base, 0.84), light = shade(base, 1.12), gap = shade(base, 0.64);
+  for (let b = 0; b < 4; b++) {
+    const seam = [3, 11, 6, 13][b];
+    for (let y = b * 4; y < b * 4 + 4; y++) for (let x = 0; x < 16; x++) {
+      let c = t.r() < 0.07 ? light : t.r() < 0.05 ? dark : base;
+      if (y % 4 === 3) c = gap;
+      else if (x === seam) c = gap;
+      t.set(x, y, c);
+    }
+    // nerf: een paar korte donkere streepjes
+    for (let k = 0; k < 2; k++) {
+      const x = Math.floor(t.r() * 12), y = b * 4 + Math.floor(t.r() * 3);
+      for (let i = 0; i < 3; i++) if (x + i !== seam) t.set(x + i, y, dark);
+    }
+  }
+}
+function mcBark(t, base, groove) {
+  for (let x = 0; x < 16; x++) {
+    const col = x % 4 === 1 ? groove : (x % 4 === 3 ? shade(base, 0.9) : base);
+    for (let y = 0; y < 16; y++) {
+      let c = col;
+      if (x % 4 === 1 && t.r() < 0.18) c = base;           // onderbroken groef
+      else if (x % 4 !== 1 && t.r() < 0.1) c = shade(base, 1.1);
+      t.set(x, y, c);
+    }
+  }
+}
+function mcLeaves(t, base, holes = 0.14) {
+  const dark = shade(base, 0.74), light = shade(base, 1.18);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) t.set(x, y, t.r() < 0.25 ? dark : t.r() < 0.2 ? light : base);
+  // gaatjes in plukjes van 1 tot 3 pixels
+  for (let i = 0; i < 256 * holes / 2; i++) blob(t, Math.floor(t.r() * 16), Math.floor(t.r() * 16), [0, 0, 0, 0], 1 + Math.floor(t.r() * 3));
+}
+function mcWool(t, c) {
+  const light = shade(c, 1.07), dark = shade(c, 0.9);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    // geweven: schuine streepjes, om en om
+    const k = (x + 2 * y) % 4, l = (x - 2 * y + 64) % 4;
+    t.set(x, y, k === 0 ? light : l === 0 ? dark : c);
+  }
+}
+
+Object.assign(GEN, {
+  dirt: mcDirt,
+  grass_top(t) {
+    paletteNoise(t, [[104, 168, 64], [92, 152, 56], [116, 182, 72], [82, 140, 50]], [0.45, 0.25, 0.18, 0.12]);
+    for (let i = 0; i < 10; i++) { const x = Math.floor(t.r() * 16), y = Math.floor(t.r() * 15); t.set(x, y, [124, 192, 78]); t.set(x, y + 1, [92, 152, 56]); }
+  },
+  grass_side(t) {
+    mcDirt(t);
+    // de grasrand hangt over de zijkant, met druppels van verschillende lengte
+    const drip = [3, 4, 3, 5, 4, 3, 3, 6, 4, 3, 5, 3, 4, 4, 3, 5];
+    for (let x = 0; x < 16; x++) {
+      const len = drip[(x * 7 + Math.floor(t.r() * 2)) % 16];
+      for (let y = 0; y < len; y++) t.set(x, y, y === len - 1 ? [86, 144, 52] : t.r() < 0.3 ? [116, 182, 72] : [104, 168, 64]);
+    }
+  },
+  stone: mcStone,
+  planks: (t) => mcPlanks(t),
+  log_side: (t) => mcBark(t, [109, 85, 50], [78, 60, 34]),
+  leaves: (t) => mcLeaves(t, [72, 150, 52]),
+  jungle_leaves: (t) => mcLeaves(t, [50, 128, 40], 0.1),
+  birch_leaves: (t) => mcLeaves(t, [112, 162, 74]),
+  spruce_leaves: (t) => mcLeaves(t, [44, 96, 74], 0.1),
+  acacia_leaves: (t) => mcLeaves(t, [118, 146, 58]),
+  palm_leaves: (t) => mcLeaves(t, [80, 170, 66], 0.16),
+  sand(t) {
+    paletteNoise(t, [[219, 207, 163], [207, 193, 146], [230, 221, 182], [196, 180, 132]], [0.55, 0.2, 0.15, 0.1]);
+  },
+  snow(t) {
+    paletteNoise(t, [[245, 250, 255], [232, 240, 250], [252, 254, 255]], [0.6, 0.22, 0.18]);
+  },
+  water(t) {
+    paletteNoise(t, [[60, 110, 210], [54, 100, 198], [66, 118, 220]], [0.6, 0.25, 0.15]);
+    // golfjes: korte lichte streepjes, telkens een rij lager iets verschoven
+    for (let y = 1; y < 16; y += 3) {
+      const x0 = (y * 5) % 16;
+      for (let k = 0; k < 5; k++) t.set((x0 + k) % 16, y + (k > 1 && k < 4 ? -1 : 0), [116, 162, 240]);
+    }
+  },
+});
+for (const [name, c] of Object.entries(WOOL)) GEN['wool_' + name] = (t) => mcWool(t, name === 'black' ? shade(c, 1.15) : c);
+
+// Tegels die meekleuren met het landschap (0 = gras, 1 = blad, 2 = water). In de wereld worden ze
+// grijs getekend en kleurt de shader ze; in de kist en de onderbalk krijgen ze de kleur van de vlakte.
+const TINT_TILES = { grass_top: 0, grass_side: 0, tallgrass: 0, fern: 0, leaves: 1, jungle_leaves: 1, vine: 1, water: 2 };
+// Bij deze dichte tegels kleurt maar een deel mee (de grasrand); dat staat in de doorzichtigheid van de laag
+const PARTLY = { grass_side: (c) => c[1] > c[0] * 1.15 && c[1] > c[2] };
+const lum = (r, g, b) => 0.299 * r + 0.587 * g + 0.114 * b;
+
+// Kleurtegel omzetten naar grijs (voor de shader) en terug naar de kleur van de vlakte (voor plaatjes)
+function makeTintable(t, name) {
+  const tint = DEFAULT_TINT[TINT_TILES[name]], tr = tint >> 16, tg = (tint >> 8) & 255, tb = tint & 255;
+  const lt = lum(tr, tg, tb), d = t.d, part = PARTLY[name];
+  t.grey = new Uint8ClampedArray(d);
+  t.mask = new Uint8Array(TILE * TILE);
+  for (let i = 0, p = 0; p < d.length; i++, p += 4) {
+    if (d[p + 3] === 0 || (part && !part([d[p], d[p + 1], d[p + 2]]))) continue;
+    const g = Math.min(255, lum(d[p], d[p + 1], d[p + 2]) / lt * 255);
+    t.grey[p] = t.grey[p + 1] = t.grey[p + 2] = g;
+    d[p] = g * tr / 255; d[p + 1] = g * tg / 255; d[p + 2] = g * tb / 255;
+    t.mask[i] = 1;
+  }
+}
+
 // Maak de atlas: een canvas met alle tegels, plus handige opzoektabellen
 export function createAtlas() {
   const names = TEXTURE_NAMES;
@@ -740,10 +874,28 @@ export function createAtlas() {
   names.forEach((name, i) => {
     const t = new Tile(1000 + i * 7919);
     GEN[name](t);
+    if (name in TINT_TILES) makeTintable(t, name);
     const img = new ImageData(t.d, TILE, TILE);
     ctx.putImageData(img, (i % ATLAS_COLS) * TILE, Math.floor(i / ATLAS_COLS) * TILE);
     index[name] = i;
     tiles[name] = t;
+  });
+
+  // Alle tegels ook als lagen onder elkaar (voor de texture-array met mipmaps in scene.js).
+  // Doorzichtige pixels krijgen de gemiddelde kleur van de tegel, anders worden bladeren
+  // in de verte donker omrand.
+  const layers = new Uint8Array(TILE * TILE * 4 * names.length);
+  names.forEach((name, i) => {
+    const t = tiles[name], d = t.grey || t.d, out = layers.subarray(i * TILE * TILE * 4, (i + 1) * TILE * TILE * 4);
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let p = 0; p < d.length; p += 4) if (d[p + 3] > 128) { r += d[p]; g += d[p + 1]; b += d[p + 2]; n++; }
+    const avg = n ? [r / n, g / n, b / n] : [0, 0, 0];
+    for (let p = 0; p < d.length; p += 4) {
+      const see = d[p + 3] > 0;
+      out[p] = see ? d[p] : avg[0]; out[p + 1] = see ? d[p + 1] : avg[1]; out[p + 2] = see ? d[p + 2] : avg[2];
+      out[p + 3] = d[p + 3];
+      if (PARTLY[name] || name === 'grass_top') out[p + 3] = t.mask[p >> 2] ? 0 : 255; // dicht blok: 0 = hier komt de graskleur
+    }
   });
 
   // Per blok: tegelnummer voor [boven, onder, zijkant]
@@ -763,7 +915,7 @@ export function createAtlas() {
     if (!cols.length) cols.push([0.9, 0.95, 1]);
     particleColors[b.id] = cols;
   }
-  return { canvas, index, faceTiles, particleColors };
+  return { canvas, index, faceTiles, particleColors, layers, count: names.length };
 }
 
 // Teken een klein 3D-blokje (voor de onderbalk en de kist).

@@ -162,6 +162,10 @@ export class UI {
     this.toast = el('div', 'toast');
     this.toast.hidden = true;
     root.appendChild(this.toast);
+    // Blauwe tint onder water
+    this.waterTint = el('div', 'underwater');
+    this.waterTint.hidden = true;
+    root.insertBefore(this.waterTint, this.hud);
     // Zwart scherm als je gaat slapen
     this.fader = el('div', 'sleep-fade');
     root.appendChild(this.fader);
@@ -178,6 +182,8 @@ export class UI {
   }
 
   fade(on) { this.fader.classList.toggle('on', on); }
+
+  setUnderwater(on) { this.waterTint.hidden = !on; }
 
   // --- de kist met blokken, natuur, stempels en dieren ---
   buildPalette(root) {

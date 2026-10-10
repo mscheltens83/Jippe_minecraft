@@ -12,11 +12,23 @@ const FIREWORK_COLORS = [
 
 export class Particles {
   constructor(scene) {
-    this.mesh = new THREE.InstancedMesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshBasicMaterial({ color: '#ffffff' }),
-      MAX,
-    );
+    // Brokjes van een blok tonen een stukje (4 x 4 pixels) van de echte textuur van dat blok.
+    // ptile per brokje: plek op de tegel (x, y), tegelnummer (-1 = gewoon een kleur) en grootte.
+    const geo = new THREE.BoxGeometry(1, 1, 1);
+    this.ptile = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 4), 4);
+    geo.setAttribute('ptile', this.ptile);
+    this.tiles = { value: null };
+    const mat = new THREE.MeshBasicMaterial({ color: '#ffffff' });
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uTiles = this.tiles;
+      shader.vertexShader = 'attribute vec4 ptile;\nvarying vec4 vPtile;\nvarying vec2 vPuv;\n' +
+        shader.vertexShader.replace('#include <begin_vertex>', '#include <begin_vertex>\nvPtile = ptile; vPuv = uv;');
+      shader.fragmentShader = 'uniform highp sampler2DArray uTiles;\nvarying vec4 vPtile;\nvarying vec2 vPuv;\n' +
+        shader.fragmentShader.replace('#include <color_fragment>', `#include <color_fragment>
+          if (vPtile.z >= 0.0) diffuseColor.rgb *= texture(uTiles, vec3(vPtile.xy + vPuv * vPtile.w, vPtile.z)).rgb;`);
+    };
+    mat.customProgramCacheKey = () => 'jippecraft-brokjes';
+    this.mesh = new THREE.InstancedMesh(geo, mat, MAX);
     this.mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(MAX * 3), 3);
     this.mesh.frustumCulled = false;
     this.mesh.count = 0;
@@ -56,9 +68,20 @@ export class Particles {
     this.list.push(p);
   }
 
-  burst(x, y, z, colors, n = 16, puff = false) {
+  // De texture-array met alle tegels (uit scene.js)
+  setTiles(tex) { this.tiles.value = tex; }
+
+  // Brokjes met de echte textuur van een blok (tile = tegelnummer)
+  burstTile(x, y, z, tile, n = 16) {
+    this.burst(x, y, z, [[1, 1, 1]], n, false, () => ({
+      tile, tu: Math.floor(Math.random() * 12) / 16, tv: Math.floor(Math.random() * 12) / 16, size: 0.09 + Math.random() * 0.08,
+    }));
+  }
+
+  // extra(): geeft per brokje nog eigenschappen (bijvoorbeeld een stukje textuur)
+  burst(x, y, z, colors, n = 16, puff = false, extra = null) {
     for (let i = 0; i < n; i++) {
-      this.add({
+      const p = {
         x: x + 0.2 + Math.random() * 0.6,
         y: y + 0.2 + Math.random() * 0.6,
         z: z + 0.2 + Math.random() * 0.6,
@@ -72,7 +95,9 @@ export class Particles {
         size: puff ? 0.1 + Math.random() * 0.08 : 0.07 + Math.random() * 0.08,
         col: colors[Math.floor(Math.random() * colors.length)],
         collide: true,
-      });
+      };
+      if (extra) Object.assign(p, extra());
+      this.add(p);
     }
   }
 
@@ -232,10 +257,13 @@ export class Particles {
       this.mesh.setMatrixAt(n, this.m);
       this.c.setRGB(p.col[0], p.col[1], p.col[2], THREE.SRGBColorSpace);
       this.mesh.setColorAt(n, this.c);
+      if (p.tile !== undefined) this.ptile.setXYZW(n, p.tu, p.tv, p.tile, 0.25);
+      else this.ptile.setXYZW(n, 0, 0, -1, 0);
       n++;
     }
     this.mesh.count = n;
     this.mesh.instanceMatrix.needsUpdate = true;
     if (this.mesh.instanceColor) this.mesh.instanceColor.needsUpdate = true;
+    this.ptile.needsUpdate = true;
   }
 }

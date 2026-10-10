@@ -25,7 +25,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Dierenalbum** | Aai een soort voor het eerst en krijg een sticker. Open het boek in het spel of in het menu om je gevonden dieren te bekijken. Tik op een sticker voor het dierengeluid |
 | **Schatkist** | Tik op een schatkist in de tempel of piramide: hij gaat open met gouden glitters en confetti. Terugzetten sluit hem weer |
 | **Sneeuwpop** | Stapel twee sneeuwblokken en zet er een pompoen op. De blokken worden een sneeuwpop die rondloopt; terugzetten haalt hem weg |
-| **Weer en muziek** | In de toendra valt sneeuw, in de jungle dwarrelen blaadjes. Elk landschap heeft zijn eigen zachte muziek en omgevingsgeluid |
+| **Weer en muziek** | In de toendra valt sneeuw, in de jungle dwarrelen blaadjes. Elk landschap heeft zijn eigen zachte muziek en omgevingsgeluid; 's nachts klinkt een rustig nachtliedje |
 | **Wilde dieren** | Jungle: tijger, aap, papegaai, panda, kikker en luiaard. Woestijn: stokstaartje, kameel, woestijnvos, hagedis en schildpad. Toendra: ijsbeer, pinguïn, rendier, poolvos, zeehond en sneeuwuil. Ook de savanne zit vol dieren |
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
@@ -47,6 +47,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Dag en nacht** | Een hele dag duurt 20 minuten. 's Avonds kleurt de lucht oranje, 's nachts zie je de maan en sterren, gaan de dieren slapen en hoor je krekels en een uil |
 | **Licht** | In de kist onder **Licht**: fakkel (op de grond of tegen een muur), lantaarn (staand, of hangend als je onder een blok tikt), gloeisteen, pompoenlantaarn en kampvuur. Ze geven een cirkel van licht, ook in donkere grotten. De lamp en het regenboogblok geven nu ook echt licht |
 | **Bed** | Tien kleuren bedden in de kist onder **Licht**. Tik op een bed: dat is nu je thuis (de huisknop brengt je erheen). Is het nacht, dan slaap je en is het meteen weer ochtend |
+| **Mooie wereld** | Texturen in Minecraft-stijl, gras en bladeren in de kleur van het landschap (felgroen in de jungle, geelgroen op de savanne), golvend water, blokwolken en brokjes van het echte blok als je sloopt |
+| **Onder water** | Alles wordt blauw en klinkt gedempt |
+| **Geluid** | Voetstappen op gras, steen, hout, zand en sneeuw; vogels overdag, druppels in grotten en golven bij de zee |
 | **Naar huis** | Kompasje linksboven: met een wolkje glitters sta je weer op je bouwplek (rijd je op een dier, dan gaat het mee). Ben je ver weg, dan wijst een geel pijltje boven de onderbalk de weg naar huis |
 
 In het menu onder **Werelden** staan zes plekken in twee rijen, elk met een plaatje van je wereld.
@@ -99,6 +102,7 @@ Onderin het menu staat klein het **versienummer**. Zo zie je of de iPad de nieuw
 - **Meetrit**: de camera vliegt 30 seconden over een savanne met 60 dieren en laat daarna zien
   hoe vlot het spel liep. Maak er een schermafbeelding van. De werelden van Jippe blijven precies
   zoals ze waren. Op een computer: `?meet` achter het adres (`?meet=10` voor 10 seconden).
+- **Texturen bekijken**: zet `?texturen` achter het adres voor een pagina met alle tegels groot op een rij.
 
 ## Op de iPad zetten
 
@@ -148,11 +152,12 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
 | `js/textures.js` | De pixel-art texturen, getekend met code |
 | `js/world.js` | Doorgeefluik naar `js/engine/world.js` (de oude imports blijven werken) |
-| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `climate.js` (biomen, bergen en rivieren van de Grote wereld), `caves.js` (grotten en ertsen), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie, met licht), `light.js` (zonlicht en lamplicht per blok), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
+| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `climate.js` (biomen, bergen en rivieren van de Grote wereld), `caves.js` (grotten en ertsen), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie, met licht), `light.js` (zonlicht en lamplicht per blok), `tint.js` (kleur van gras, blad en water per landschap), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
 | `js/biomes.js` | Landschap, bomen, planten, lucht en mist per wereld |
 | `js/structures.js` | Tempels, piramides, iglo's, leeuwenrotsen, drinkplaatsen en oases |
 | `js/scene.js` | Lucht, zon, maan, sterren, wolken, de zee rondom en de licht-shader |
 | `js/daynight.js` | De tijd van de dag (20 minuten per dag) |
+| `js/texview.js` | De testpagina `?texturen` |
 | `js/player.js` | Lopen, springen, vliegen, zwemmen en botsen |
 | `js/raycast.js` | Welk blok tik je aan? |
 | `js/input.js` | Touch, muis en toetsenbord |

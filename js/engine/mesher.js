@@ -11,6 +11,7 @@
 import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from '../blocks.js';
 import { CHUNK, SY, SECTION } from './constants.js';
 import { local } from './chunk.js';
+import { TINT_KIND } from './tint.js';
 
 // Helderheid (sRGB) bij lichtwaarde 0..15: een zachte kromme, zodat een fakkel een mooie cirkel geeft
 export const LIGHT_CURVE = Array.from({ length: 16 }, (_, l) => Math.pow(l / 15, 1.25));
@@ -19,10 +20,8 @@ export const LIGHT_LINEAR = new Float32Array(LIGHT_CURVE.map((v) => Math.pow(v, 
 const LT = LIGHT_LINEAR;
 export const GLOW = 2;
 
-const ATLAS_COLS = 16;
 const AO = [0.5, 0.68, 0.84, 1.0];
 const WATER_TOP = 0.875;
-const EPS = 0.0005;
 export const KINDS = ['solid', 'cutout', 'glass', 'water'];
 
 export const PW = CHUNK + 2, PH = SY + 2;
@@ -40,15 +39,19 @@ const CORNERS_NEG = [[0, 0], [0, 1], [1, 1], [1, 0]];
 // helderheid is in sRGB bedacht; de renderer rekent lineair
 const toLinear = (v) => Math.pow(v, 2.2);
 
+const WHITE4 = [0xffffff, 0xffffff, 0xffffff, 0xffffff];
+
 class Buf {
-  constructor() { this.pos = []; this.uv = []; this.col = []; this.idx = []; this.n = 0; }
-  // cols = schaduw, skys = zonlicht, lamps = lamplicht (per hoekpunt)
-  quad(verts, uvs, cols, flip, skys, lamps) {
+  constructor() { this.pos = []; this.uv = []; this.col = []; this.tint = []; this.idx = []; this.n = 0; }
+  // cols = schaduw, skys = zonlicht, lamps = lamplicht, tints = kleur van het landschap (0xRRGGBB), per hoekpunt
+  quad(verts, uvs, cols, flip, skys, lamps, tints = WHITE4) {
     const n = this.n;
     for (let i = 0; i < 4; i++) {
       this.pos.push(verts[i][0], verts[i][1], verts[i][2]);
-      this.uv.push(uvs[i][0], uvs[i][1]);
+      this.uv.push(uvs[i][0], uvs[i][1], uvs[i][2]);
       this.col.push(cols[i], skys[i], lamps[i]);
+      const t = tints[i];
+      this.tint.push(t >> 16, (t >> 8) & 255, t & 255);
     }
     if (flip) this.idx.push(n, n + 1, n + 3, n + 1, n + 2, n + 3);
     else this.idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
@@ -56,15 +59,17 @@ class Buf {
   }
   result() {
     if (!this.n) return null;
-    return { n: this.n, pos: new Float32Array(this.pos), uv: new Float32Array(this.uv), col: new Float32Array(this.col), idx: new Uint32Array(this.idx) };
+    return {
+      n: this.n, pos: new Float32Array(this.pos), uv: new Float32Array(this.uv), col: new Float32Array(this.col),
+      tint: new Uint8Array(this.tint), idx: new Uint32Array(this.idx),
+    };
   }
 }
 
+// Plek op de tegel (s naar rechts, t omhoog) en het nummer van de tegel (de laag in de texture-array).
+// Rij 0 van een tegel is de bovenkant, dus v = 1 - t.
 function tileUV(tile, s, t) {
-  const col = tile % ATLAS_COLS, row = Math.floor(tile / ATLAS_COLS);
-  s = EPS + s * (1 - 2 * EPS);
-  t = EPS + t * (1 - 2 * EPS);
-  return [(col + s) / ATLAS_COLS, 1 - (row + 1 - t) / ATLAS_COLS];
+  return [s, 1 - t, tile];
 }
 
 // Texture-coördinaten zo dat "boven" op de zijkanten ook echt boven is
@@ -117,7 +122,8 @@ export function filledSections(pad) {
   return mask;
 }
 
-export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
+// tints: kleur van gras, blad en water per kolom (uit tint.js); zonder tints blijft alles grijs-wit
+export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
   const bufs = { solid: new Buf(), cutout: new Buf(), glass: new Buf(), water: new Buf() };
   const X0 = cx * CHUNK, Z0 = cz * CHUNK;
   const get = (x, y, z) => {
@@ -134,10 +140,11 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
   const padWorld = { get };
   const q = [0, 0, 0], L = [0, 0, 0];
   const verts = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
-  const uvs = [[0, 0], [0, 0], [0, 0], [0, 0]];
+  const uvs = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const cols = [0, 0, 0, 0];
   const skys = [0, 0, 0, 0], lamps = [0, 0, 0, 0];
   const aos = [0, 0, 0, 0];
+  const tint4 = [0xffffff, 0xffffff, 0xffffff, 0xffffff];
   // Hetzelfde licht op alle 4 hoeken
   const flat = (l) => { const a = LT[l >> 4], b = LT[l & 15]; skys[0] = skys[1] = skys[2] = skys[3] = a; lamps[0] = lamps[1] = lamps[2] = lamps[3] = b; };
   // Gloeit zelf: altijd helemaal licht
@@ -153,6 +160,8 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
         const tiles = faceTiles[id];
         if (!b || !tiles) continue;
         const x = X0 + lx, z = Z0 + lz;
+        const tk = TINT_KIND[id];
+        tint4[0] = tint4[1] = tint4[2] = tint4[3] = tk && tints ? tints[(lx + CHUNK * lz) * 3 + tk - 1] : 0xffffff;
 
         // Plantjes: twee gekruiste vlakjes
         if (b.render === 'cross') {
@@ -164,7 +173,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
             verts[0] = [x + ax, y, z + az]; verts[1] = [x + bx, y, z + bz];
             verts[2] = [x + bx, y + 1, z + bz]; verts[3] = [x + ax, y + 1, z + az];
             uvs[0] = tileUV(t, 0, 0); uvs[1] = tileUV(t, 1, 0); uvs[2] = tileUV(t, 1, 1); uvs[3] = tileUV(t, 0, 1);
-            bufs.cutout.quad(verts, uvs, [c, c, c, c], false, skys, lamps);
+            bufs.cutout.quad(verts, uvs, [c, c, c, c], false, skys, lamps, tint4);
           }
           continue;
         }
@@ -251,7 +260,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
             cols[i] = toLinear(b.glow ? 0.9 + 0.1 * F.shade : F.shade * AO[ao]);
           }
           const flip = aos[0] + aos[2] < aos[1] + aos[3];
-          buf.quad(verts, uvs, cols, flip, skys, lamps);
+          buf.quad(verts, uvs, cols, flip, skys, lamps, tint4);
         }
       }
     }
@@ -262,9 +271,9 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
 }
 
 // Alle secties van een chunk (lege secties slaan we over)
-export function meshChunk(pad, lpad, faceTiles, cx, cz, mask = filledSections(pad)) {
+export function meshChunk(pad, lpad, faceTiles, cx, cz, tints = null, mask = filledSections(pad)) {
   const sections = [];
-  for (let s = 0; s < SY / SECTION; s++) sections.push(mask & (1 << s) ? meshSection(pad, lpad, faceTiles, cx, cz, s) : null);
+  for (let s = 0; s < SY / SECTION; s++) sections.push(mask & (1 << s) ? meshSection(pad, lpad, faceTiles, cx, cz, s, tints) : null);
   return sections;
 }
 
@@ -273,15 +282,15 @@ export function mergeSections(sections, kind) {
   let n = 0, ni = 0;
   for (const s of sections) { const d = s?.[kind]; if (d) { n += d.n; ni += d.idx.length; } }
   if (!n) return null;
-  const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2), col = new Float32Array(n * 3);
+  const pos = new Float32Array(n * 3), uv = new Float32Array(n * 3), col = new Float32Array(n * 3), tint = new Uint8Array(n * 3);
   const idx = n > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   let ov = 0, oi = 0;
   for (const s of sections) {
     const d = s?.[kind];
     if (!d) continue;
-    pos.set(d.pos, ov * 3); uv.set(d.uv, ov * 2); col.set(d.col, ov * 3);
+    pos.set(d.pos, ov * 3); uv.set(d.uv, ov * 3); col.set(d.col, ov * 3); tint.set(d.tint, ov * 3);
     for (let i = 0; i < d.idx.length; i++) idx[oi + i] = d.idx[i] + ov;
     ov += d.n; oi += d.idx.length;
   }
-  return { pos, uv, col, idx };
+  return { pos, uv, col, tint, idx };
 }

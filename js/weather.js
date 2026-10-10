@@ -6,6 +6,7 @@ export class Weather {
   constructor(scene, sounds) {
     this.sounds = sounds;
     this.kind = null; this.ambience = null; this.ambientTimer = 3;
+    this.context = { night: false, cave: false, sea: false }; // gezet door het spel (main.js)
     this.snowPos = Array.from({ length: 150 }, () => null);
     this.leafPos = Array.from({ length: 24 }, () => null);
     this.dummy = new THREE.Object3D();
@@ -65,9 +66,15 @@ export class Weather {
     mesh.instanceMatrix.needsUpdate = true;
   }
 
+  // Omgevingsgeluid per landschap en per moment: in een grot druppels, bij de zee golven,
+  // 's nachts geen vogels (dan zijn er krekels en uilen, zie main.js)
   background(dt) {
-    if (!this.ambience || !this.sounds.ok() || (this.ambientTimer -= dt) > 0) return;
+    if (!this.sounds.ok() || (this.ambientTimer -= dt) > 0) return;
     this.ambientTimer = 2.5 + Math.random() * 3;
+    const { night, cave, sea } = this.context;
+    if (cave) { const f = 1400 + Math.random() * 900; this.sounds.tone('sine', f, f * 0.55, 0.12, 0.05); return; } // druppel
+    if (sea && Math.random() < 0.6) { this.sounds.hiss('lowpass', 380, 0.5, 1.6, 0.05); this.sounds.hiss('lowpass', 650, 0.6, 1.0, 0.025, 0.5); return; } // golven
+    if (!this.ambience || (night && this.ambience !== 'wind')) return;
     if (this.ambience === 'vogels') {
       this.sounds.tone('sine', 1100, 1550, .09, .035);
       this.sounds.tone('sine', 1250, 1750, .08, .025, .15);

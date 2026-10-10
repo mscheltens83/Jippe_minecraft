@@ -16,7 +16,11 @@ export class Sounds {
         this.ctx = new AC();
         this.master = this.ctx.createGain();
         this.master.gain.value = 0.55;
-        this.master.connect(this.ctx.destination);
+        // Onder water klinkt alles gedempt: een filter dat de hoge tonen weghaalt
+        this.muffle = this.ctx.createBiquadFilter();
+        this.muffle.type = 'lowpass';
+        this.muffle.frequency.value = this.muffled ? 700 : 20000;
+        this.master.connect(this.muffle).connect(this.ctx.destination);
         const len = this.ctx.sampleRate;
         this.noise = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
         const d = this.noise.getChannelData(0);
@@ -24,6 +28,11 @@ export class Sounds {
       }
       if (this.ctx.state === 'suspended') this.ctx.resume();
     } catch { this.ctx = null; }
+  }
+
+  setMuffled(on) {
+    this.muffled = on;
+    if (this.muffle) this.muffle.frequency.setTargetAtTime(on ? 700 : 20000, this.ctx.currentTime, 0.08);
   }
 
   ok() { return this.ctx && !this.muted && this.ctx.state === 'running'; }
@@ -165,6 +174,22 @@ export class Sounds {
   magic() {
     if (!this.ok()) return;
     [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone('sine', f, f, 0.18, 0.12, i * 0.06));
+  }
+
+  // Een voetstap, per ondergrond een ander geluidje (zacht, je hoort het heel vaak)
+  step(kind) {
+    if (!this.ok()) return;
+    const p = 0.85 + Math.random() * 0.3;
+    switch (kind) {
+      case 'grass': this.hiss('lowpass', 900 * p, 0.7, 0.07, 0.11); break;
+      case 'sand': this.hiss('highpass', 2200 * p, 0.6, 0.06, 0.06); break;
+      case 'snow': this.hiss('lowpass', 1500 * p, 1.2, 0.09, 0.09); this.hiss('bandpass', 3000, 2, 0.03, 0.03, 0.03); break;
+      case 'wood': this.tone('triangle', 190 * p, 120, 0.06, 0.08); this.hiss('bandpass', 800, 1.5, 0.04, 0.06); break;
+      case 'wool': this.hiss('lowpass', 500 * p, 0.6, 0.06, 0.06); break;
+      case 'glass': case 'metal': this.tone('sine', 900 * p, 850, 0.05, 0.04); break;
+      case 'water': this.tone('sine', 260 * p, 520 * p, 0.12, 0.06); this.hiss('lowpass', 700, 0.7, 0.12, 0.05); break;
+      default: this.hiss('bandpass', 1300 * p, 1.4, 0.05, 0.1); this.tone('sine', 140 * p, 90, 0.04, 0.06);
+    }
   }
 
   // 's Nachts: krekels en af en toe een uil; een knisperend kampvuur

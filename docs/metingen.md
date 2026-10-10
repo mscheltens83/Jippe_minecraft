@@ -38,6 +38,10 @@ driehoeken bij, of wordt het trager?
 | 2026-10-10 10:56 | 4.1.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 6,9 | 149,9 | 250 | 350 | 271 (max 370) | 119.094 | 1,5 · 1791×1251 |
 | 2026-10-10 12:49 | 4.2.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,2 | 233,3 | 466,6 | 600 | 410 (max 484) | 350.615 | 1,5 · 1791×1251 |
 | 2026-10-10 12:50 | 4.3.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,0 | 233,3 | 516,6 | 583,4 | 410 (max 489) | 352.960 | 1,5 · 1791×1251 |
+| 2026-10-10 13:55 | 4.3.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,9 | 249,9 | 499,9 | 650 | 427 (max 503) | 351.360 | 1,5 · 1791×1251 |
+| 2026-10-10 13:58 | 4.3.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,7 | 266,6 | 566,7 | 700 | 404 (max 487) | 349.846 | 1,5 · 1791×1251 |
+| 2026-10-10 14:04 | 4.4.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,6 | 266,7 | 566,6 | 900 | 417 (max 476) | 353.515 | 1,5 · 1791×1251 |
+| 2026-10-10 14:05 | 4.4.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,7 | 250,1 | 583,2 | 733,4 | 420 (max 476) | 351.333 | 1,5 · 1791×1251 |
 
 ## Wat opvalt (nulmeting 4.0.0)
 
@@ -77,4 +81,16 @@ driehoeken bij, of wordt het trager?
   worden ook getekend als je ze niet ziet) en misschien door een andere zichtafstand; dat zoeken we nog uit. Voor een iPad is dat nog
   weinig, maar het is een goede kandidaat om in 4E op te ruimen (grotten die je niet kunt zien overslaan).
 - De meetrit meet altijd op het middaguur, zodat de metingen te vergelijken blijven.
+
+## Wat opvalt (4.4.0, mooier beeld en geluid)
+
+- **±4% trager dan 4.3.0** op de testcomputer (gemiddeld 3,8 → 3,65 fps, telkens twee metingen vlak na
+  elkaar); het doel was hoogstens 5%. Tekenopdrachten en driehoeken blijven gelijk: de wolken zijn nu
+  één vlak in plaats van 46 blokken, en de landschapskleur zit in een klein extra getal per hoekpunt.
+- **Eerst was 4.4.0 een derde trager** (2,55 fps). Dat kwam helemaal door het *zachte* filteren van de
+  texturen tussen twee pixels en twee mipmaps (`LinearMipmapLinear`); zonder videokaart is dat duur.
+  Nu gebruikt het spel net als Minecraft per mipmap de dichtstbijzijnde pixel (`NearestMipmapNearest`):
+  even snel als zonder mipmaps, scherpe pixels dichtbij, en in de verte toch geen geflikker meer.
+  Op een echte iPad is zacht filteren waarschijnlijk wel goedkoop; dat kan later met een meting op de
+  iPad opnieuw bekeken worden.
 

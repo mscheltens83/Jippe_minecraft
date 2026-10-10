@@ -31,4 +31,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 4B | Eindeloze wereld: chunks, workers, opslag in IndexedDB, oude werelden omgezet, huisknop, reservekopie | Klaar (versie 4.1.0); op de iPad nog proberen |
 | 4C | Grote wereld: 15 biomen, bergen, rivieren, stranden, grotten, ertsen en 20 nieuwe blokken | Klaar (versie 4.2.0) |
 | 4D | Licht per blok, dag en nacht (zon, maan, sterren), fakkels, lantaarns, kampvuur en bedden | Klaar (versie 4.3.0) |
-| 4E–4H | Beeld, blokken, dieren en dorpen, portalen ([plan](fase-4-plan.md)) | Gepland |
+| 4E | Texturen in Minecraft-stijl, mipmaps, graskleur per landschap, golvend water, wolken, onder water, brokjes en geluid | Klaar (versie 4.4.0) |
+| 4F–4H | Blokken, dieren en dorpen, portalen ([plan](fase-4-plan.md)) | Gepland |

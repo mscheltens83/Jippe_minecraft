@@ -599,3 +599,22 @@ body, #app {
   transition: opacity 0.7s ease; pointer-events: none; z-index: 25;
 }
 .sleep-fade.on { opacity: 1; pointer-events: auto; }
+
+/* Testpagina ?texturen */
+.texview {
+  position: absolute; inset: 0; z-index: 60; overflow-y: auto; padding: 20px 24px 40px;
+  background: #2b2f36; color: #f2f2f2; font-family: var(--font); -webkit-overflow-scrolling: touch;
+}
+.texview h1 { margin: 0 0 6px; font-size: 26px; }
+.texview p { margin: 0 0 16px; max-width: 760px; opacity: 0.85; }
+.texview-close { position: fixed; top: 16px; right: 20px; font: inherit; font-size: 18px; padding: 8px 18px; border-radius: 12px; border: 2px solid #fff; background: #e8553d; color: #fff; }
+.texview-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 12px; }
+.texview figure { margin: 0; text-align: center; }
+.texview canvas { width: 80px; height: 80px; image-rendering: pixelated; background: #4a505a; border-radius: 4px; }
+.texview figcaption { font-size: 11px; opacity: 0.8; word-break: break-all; }
+
+/* Onder water: alles een beetje blauw */
+.underwater {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(40, 110, 220, 0.18), rgba(20, 60, 160, 0.38));
+}

@@ -54,7 +54,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4B** | Nieuwe wereldmotor: eindeloze chunks, workers, opslag in IndexedDB, oude werelden omzetten | Zeer groot (2–3 PR's) | 4A | ✅ Klaar (versie 4.1.0); iPad-meting nog doen |
 | **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | ✅ Klaar (versie 4.2.0) |
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | ✅ Klaar (versie 4.3.0) |
-| **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | Gepland |
+| **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | Gepland |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
@@ -307,6 +307,15 @@ Gras, bladeren, varens en water worden in grijs getekend en per hoekpunt gekleur
 - In de verte flikkert het niet meer (vergelijk screenshots op dezelfde plek, voor en na).
 - Gras kleurt mee met het biome.
 - De meetrit op de iPad is niet meer dan 5% langzamer dan na 4D.
+
+### 8.7 Zo is het gebouwd (versie 4.4.0)
+- Alle tegels zitten in één `DataArrayTexture` (één laag per tegel) met mipmaps; de mesher geeft per hoekpunt plek op de tegel en tegelnummer mee (`tuv`). Bladeren blijven in de verte zichtbaar doordat de shader hun doorzichtigheid laat afnemen met het mipmap-niveau, en doorzichtige pixels krijgen de gemiddelde kleur van de tegel (geen donkere randjes).
+- Filter: per mipmap de dichtstbijzijnde pixel, zoals Minecraft. Zacht filteren maakte de meetrit op de testcomputer een derde trager (zie `metingen.md`).
+- `js/engine/tint.js`: kleur van gras, blad en water per landschap, per kolom gemengd over 5 × 5. Gras, eikenbladeren, junglebladeren, varens, lianen en water worden grijs getekend; bij een grasblok bepaalt de doorzichtigheid van de laag dat alleen de grasrand kleurt. In de kist staan ze in de kleur van de vlakte.
+- Nieuwe tekeningen in Minecraft-stijl (klein palet per tegel) voor gras, aarde, steen, planken, schors, bladeren (met gaatjes), zand, sneeuw, water en wol; de ertsen gebruiken de nieuwe steen. Testpagina: `?texturen`.
+- Water golft in de shader (twee bewegende lagen). Onder water: blauwe mist dichtbij, een blauwe tint en gedempt geluid. Wolken: één plat vlak met een herhalend blokpatroon dat langzaam verschuift (één tekenopdracht).
+- Brokjes bij slopen zijn stukjes van 4 × 4 pixels van de echte textuur. Voetstappen per ondergrond, druppels in grotten, golven bij de zee, overdag vogels en 's nachts een rustig nachtliedje.
+- Niet gedaan: water dat op diepte donkerder wordt (dat vraagt water dat zonlicht tegenhoudt; komt eventueel later).
 
 ---
 
