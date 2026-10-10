@@ -104,6 +104,8 @@ export class Generator {
         h = h * f + (SEA + 3) * (1 - f);
       }
       const cold = this.climate.theme ? !!THEMES[this.climate.theme].cold : c.k.T < -0.42;
+      // In de toendra ligt naast de bouwplek een bevroren meertje (zoals in de oude toendra)
+      if (this.climate.theme === 'tundra' && Math.hypot(x - CENTER - 20, z - CENTER - 5) < 6) return { h: SEA - 2, biome: 'tundra', plateau: 0, cold };
       return { h: Math.round(h), biome: dist < 14 ? start : c.biome, plateau: c.biome === 'mesa' ? 1 : 0, cold };
     }
     if (type === 'island') {
