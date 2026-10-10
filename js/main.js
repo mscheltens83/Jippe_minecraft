@@ -4,7 +4,7 @@ import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens 
 import * as THREE from '../lib/three.module.min.js';
 import {
   AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, WOODS, MATERIALS, ITEM,
-  doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId,
+  doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId, portalId,
 } from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World, CHUNK } from './world.js';
@@ -25,6 +25,7 @@ import { Animals, SPECIES } from './animals.js';
 import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
+import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
 import { Snowmen } from './snowman.js';
@@ -175,7 +176,16 @@ class Game {
         if (ok) this.sounds.place(BLOCKS[f.id].sound); else this.particles.burst(f.x, f.y, f.z, this.atlas.particleColors[f.id] || [[0.8, 0.7, 0.5]], 12);
       },
     });
-    this.world.onBlockChanged = (x, y, z, old, id) => this.physics.notify(x, y, z, id);
+    this.world.onBlockChanged = (x, y, z, old, id) => {
+      this.physics.notify(x, y, z, id);
+      // Een stuk van het portaal (frame of licht) weg? Dan gaat het hele portaal uit
+      const was = BLOCKS[old];
+      if ((was?.portalColor !== undefined || was?.portal !== undefined) && BLOCKS[id]?.portal === undefined) {
+        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+          if (BLOCKS[this.world.get(x + dx, y + dy, z + dz)]?.portal !== undefined) this.world.set(x + dx, y + dy, z + dz, AIR);
+        }
+      }
+    };
     this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
     this.maxView = touch ? 7 : 10;
@@ -307,6 +317,7 @@ class Game {
       riding: false, // je stapt bij het laden altijd af, naast je dier
       spawned: [...this.spawned],
       thumb: this.thumb,
+      ...(this.portalPos ? { portal: this.portalPos } : {}),
     };
   }
 
@@ -332,6 +343,7 @@ class Game {
       this.player.flying = !!p.flying;
       this.player.unstick(this.world);
       this.home = s.home && Number.isFinite(s.home.x) ? s.home : null;
+      this.portalPos = s.portal && Number.isFinite(s.portal.x) ? s.portal : null;
       this.daynight.set(s.time ?? 0.02);
       const hotbar = Array.isArray(s.hotbar) ? s.hotbar.map(upgradeItemId) : null;
       this.hotbar = hotbar && hotbar.length === DEFAULT_HOTBAR.length && hotbar.every((id) => PALETTE.includes(id))
@@ -354,10 +366,26 @@ class Game {
   }
 
   async loadSlot(n) {
+    // Was Jippe in een extra wereld (door een portaal)? Dan daar verder
+    const extra = (this.storage.loadLocal('meta') || {}).worlds?.[n] || null;
+    if (extra && PORTAL_THEMES.includes(extra)) {
+      const key = this.worldKey(n, extra), m = (await this.store.loadMetas([key]))[key];
+      if (m && this.applySave(m, await this.store.loadChunks(key))) { this.extra = extra; this.metas[key] = m; return true; }
+    }
+    this.extra = null;
     const meta = this.metas['slot' + n];
     if (!meta) return false;
     const chunks = await this.store.loadChunks('slot' + n);
     return this.applySave(meta, chunks);
+  }
+
+  // Elke wereldplek heeft een hoofdwereld en (door portalen) extra werelden: 'slot1', 'slot1~jungle', ...
+  worldKey(n = this.slot, extra = this.extra) { return extra ? `slot${n}~${extra}` : 'slot' + n; }
+
+  // Onthouden in welke wereldplek (en welke wereld daarin) Jippe is
+  setActiveWorld() {
+    const meta = this.storage.loadLocal('meta') || {};
+    this.storage.saveLocal('meta', { ...meta, current: this.slot, worlds: { ...(meta.worlds || {}), [this.slot]: this.extra } });
   }
 
   // De eerste versie had één wereld + "vorige wereld": die worden wereld 1 en 2
@@ -394,7 +422,7 @@ class Game {
   saveNow() {
     if (this.readOnly || !this.worldReady) return Promise.resolve();
     const s = this.makeSave();
-    const slot = 'slot' + this.slot;
+    const slot = this.worldKey();
     if (this.resetSlot) { this.store.clearSlot(slot); this.resetSlot = false; }
     this.metas[slot] = s;
     this.saving = this.store.save(slot, s, this.world.takeUnsaved()).catch((e) => logError(e, 'bewaren'));
@@ -467,11 +495,11 @@ class Game {
     this.switching = true;
     try {
       this.captureThumb();
-      this.saveNow();
-      const chunks = await this.store.loadChunks('slot' + n);
-      if (!this.applySave(meta, chunks)) { this.sounds.nope(); return; }
+      await this.saveNow();
+      const before = this.slot;
+      if (!(await this.loadSlot(n))) { this.sounds.nope(); this.slot = before; return; }
       this.slot = n;
-      this.storage.saveLocal('meta', { current: n });
+      this.setActiveWorld();
       this.saveT = meta.t;
       this.edits = 0;
       this.scene.rebuildAll(this.world);
@@ -487,10 +515,13 @@ class Game {
     this.switching = true;
     try {
       if (n !== this.slot) { this.captureThumb(); this.saveNow(); }
-      await this.store.clearSlot('slot' + n);
-      delete this.metas['slot' + n];
+      for (const key of [this.worldKey(n, null), ...PORTAL_THEMES.map((t) => this.worldKey(n, t))]) {
+        await this.store.clearSlot(key);
+        delete this.metas[key];
+      }
       this.slot = n;
-      this.storage.saveLocal('meta', { current: n });
+      this.extra = null;
+      this.setActiveWorld();
       this.freshWorld(type);
       this.scene.rebuildAll(this.world);
       this.saveNow();
@@ -651,7 +682,7 @@ class Game {
     const data = {
       app: 'JippeCraft', versie: VERSION, datum: new Date().toISOString(),
       instellingen: this.storage.loadLocal('settings'), huidige: this.slot,
-      werelden: await this.store.exportAll(SLOTS.map((n) => 'slot' + n)),
+      werelden: await this.store.exportAll(SLOTS.flatMap((n) => [this.worldKey(n, null), ...PORTAL_THEMES.map((t) => this.worldKey(n, t))])),
     };
     const name = `jippecraft-reservekopie-${data.datum.slice(0, 10)}.json`;
     const file = new File([JSON.stringify(data)], name, { type: 'application/json' });
@@ -671,7 +702,7 @@ class Game {
   async restore(data) {
     if (data?.app !== 'JippeCraft' || !data.werelden) throw new Error('dit is geen reservekopie van JippeCraft');
     this.readOnly = true; // niets meer bewaren tot het spel opnieuw start
-    await this.store.importAll(SLOTS.map((n) => 'slot' + n), data.werelden);
+    await this.store.importAll(SLOTS.flatMap((n) => [this.worldKey(n, null), ...PORTAL_THEMES.map((t) => this.worldKey(n, t))]), data.werelden);
     if (data.instellingen) this.storage.saveLocal('settings', data.instellingen);
     if (SLOTS.includes(data.huidige)) this.storage.saveLocal('meta', { current: data.huidige });
     setTimeout(() => location.reload(), 800);
@@ -848,6 +879,7 @@ class Game {
     if (sp.kind === 'stamp') this.placeStamp(hit, sp.stamp);
     else if (sp.kind === 'bucket') this.useBucket(hit);
     else if (sp.kind === 'seed') this.plantSeed(hit, sp.crop);
+    else if (sp.kind === 'wand') this.lightPortal(hit);
     else this.placeAnimal(hit, sp.animal);
   }
 
@@ -1035,6 +1067,84 @@ class Game {
     }
     this.particles.sparkle(lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], 80);
     this.sounds.magic();
+  }
+
+  // ---------- portalen (fase 4H) ----------
+
+  // Tik met de toverstaf op een frame van portaalsteen: het portaal gaat aan
+  lightPortal(hit) {
+    const found = findPortal(this.world, hit.x, hit.y, hit.z);
+    if (!found) {
+      this.ui.say('Bouw een frame van portaalsteen (4 breed, 5 hoog) en tik erop met de toverstaf', 'portal');
+      this.sounds.nope();
+      return false;
+    }
+    this.apply(found.cells.map(([x, y, z]) => ({ x, y, z, from: this.world.get(x, y, z), to: portalId(found.color, found.axis) })));
+    const [x0, y0, z0] = found.cells[0];
+    this.particles.sparkle(x0 - 2, y0 - 1, z0 - 2, x0 + 3, y0 + 4, z0 + 3, 90);
+    this.sounds.magic();
+    return true;
+  }
+
+  // Door het portaal: naar de themawereld van die kleur, of terug naar de hoofdwereld.
+  // Je dier gaat mee, net als je onderbalk en de tijd van de dag.
+  async travel(color) {
+    if (this.travelling || this.switching || this.readOnly) return;
+    this.travelling = true; this.switching = true;
+    const theme = PORTAL_THEMES[color], target = this.extra === theme ? null : theme;
+    const p = this.player;
+    this.ui.warp?.(true);
+    this.sounds.whoosh(); this.sounds.magic();
+    try {
+      const riding = p.riding;
+      if (riding) this.dismount();
+      const friends = this.animals.list.filter((a) => a === riding || (a.tame && !a.sitting && Math.hypot(a.x - p.x, a.z - p.z) < 10));
+      const carry = friends.map((a) => ({ data: this.animals.serializeOne(a), riding: a === riding }));
+      for (const a of friends) this.animals.remove(a);
+      this.portalPos = { x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) };
+      const hotbar = [...this.hotbar], sel = this.sel, time = this.daynight.time;
+      await new Promise((r) => setTimeout(r, 600)); // het beeld draait en vervaagt
+      await this.saveNow();
+      await this.store.flush();
+      const key = this.worldKey(this.slot, target);
+      const meta = this.metas[key] || (await this.store.loadMetas([key]))[key];
+      if (meta) {
+        if (!this.applySave(meta, await this.store.loadChunks(key))) throw new Error('kon de wereld achter het portaal niet laden');
+        this.extra = target;
+      } else {
+        // Voor het eerst door dit portaal: een nieuwe themawereld, met een portaal terug bij de start
+        this.extra = target;
+        this.freshWorld(target || this.world.type, this.extraSeed(target));
+        const sp = this.world.spawnPoint(), x = Math.floor(sp.x) - 1, y = Math.floor(sp.y), z = Math.floor(sp.z) - 4;
+        for (let u = -2; u <= 3; u++) for (let v = 0; v <= 5; v++) for (let d = -1; d <= 1; d++) this.world.set(x + u, y + v, z + d, AIR);
+        for (const [cx, cy, cz, id] of portalCells(color, 0, x, y, z)) this.world.set(cx, cy, cz, id);
+        this.portalPos = { x, y, z };
+      }
+      this.hotbar = hotbar; this.sel = sel;
+      this.daynight.set(time);
+      for (const c of carry) {
+        const a = this.animals.loadOne({ ...c.data, x: p.x + (c.riding ? 0 : 1.5), y: p.y, z: p.z + (c.riding ? 0 : 1.5) });
+        if (a && c.riding) this.mountAnimal(a);
+      }
+      this.setActiveWorld();
+      this.scene.rebuildAll(this.world);
+      this.refreshUI();
+      this.inPortal = true; // eerst uit het portaal stappen voordat je weer terug kunt
+      await this.saveNow();
+      this.ui.say(target ? `Welkom in de ${BIOMES[target]?.naam || target}!` : 'Weer thuis!', target ? BIOMES[target]?.icon : 'goHome');
+    } catch (e) {
+      logError(e, 'portaal');
+      this.sounds.nope();
+    } finally {
+      setTimeout(() => this.ui.warp?.(false), 150);
+      this.travelling = false; this.switching = false;
+    }
+  }
+
+  // De seed van een extra wereld volgt uit die van de wereldplek, zodat hij altijd hetzelfde is
+  extraSeed(theme) {
+    const main = this.metas['slot' + this.slot]?.seed ?? this.world.seed;
+    return theme ? (main ^ Math.imul(PORTAL_THEMES.indexOf(theme) + 1, 0x9e3779b1)) | 0 : main;
   }
 
   placeAnimal(hit, type) {
@@ -1382,6 +1492,10 @@ class Game {
       const wasClimbing = p.climbing;
       p.update(dt, this.input, this.world, now);
       this.syncRide(dt);
+      // In een portaal gestapt? Dan op reis (pas weer als je er eerst uit bent gestapt)
+      const inPortal = portalAt(this.world, p.x, p.y, p.z);
+      if (inPortal !== null && !this.inPortal && !this.readOnly) this.travel(inPortal);
+      this.inPortal = inPortal !== null;
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();

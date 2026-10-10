@@ -59,7 +59,18 @@ export const B = {
   SUGAR_CANE: 542, SEAWEED: 543, CORAL_RED: 544, CORAL_YELLOW: 545, CORAL_BLUE: 546, FARMLAND: 547,
   WHEAT: 548, CARROTS: 552, POTATOES: 556, // elk 4 groeistappen
   WATER_FLOW: 560,   // 560..566: stromend water (1 = vlak bij de bron, 7 = het verst); 567: vallend water
+  PORTAL_STONE: 570, // 570..573: portaalsteen in 4 kleuren (fase 4H)
+  PORTAL: 574,       // 574..581: portaallicht (kleur x 2 + richting: 0 = langs x, 1 = langs z)
 };
+
+// Portalen (fase 4H): elke kleur portaalsteen gaat naar een andere themawereld
+export const PORTAL_COLORS = [
+  { key: 'green', name: 'Groene', short: 'Groen', theme: 'jungle' },
+  { key: 'yellow', name: 'Gele', short: 'Geel', theme: 'desert' },
+  { key: 'white', name: 'Witte', short: 'Wit', theme: 'tundra' },
+  { key: 'orange', name: 'Oranje', short: 'Oranje', theme: 'savanna' },
+];
+export const portalId = (color, axis) => B.PORTAL + color * 2 + axis;
 
 // De 16 kleuren (zelfde volgorde als in Minecraft) met het id van de wol in die kleur
 export const COLORS = [
@@ -112,7 +123,7 @@ export const EMIT = new Uint8Array(MAX_ID);   // hoeveel licht een blok zelf gee
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
-const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf'];
+const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal'];
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const render = opts.render || 'solid';
@@ -375,6 +386,16 @@ def(B.COPPER_BLOCK, 'Koperblok', 'copper_block', { sound: 'metal' });
 def(B.EMERALD_BLOCK, 'Smaragdblok', 'emerald_block', { sound: 'metal' });
 def(B.LAPIS_BLOCK, 'Lapisblok', 'lapis_block', { sound: 'metal' });
 def(B.SEA_LANTERN, 'Zeelantaarn', 'sea_lantern', { glow: true, light: 15, sound: 'glass' });
+PORTAL_COLORS.forEach((c, i) => {
+  def(B.PORTAL_STONE + i, c.name + ' portaalsteen', 'portal_stone_' + c.key, { light: 5, sound: 'stone', portalColor: i });
+  // Het portaal zelf: een dun, gloeiend vlak waar je doorheen loopt
+  for (const axis of [0, 1]) {
+    def(portalId(i, axis), 'Portaal', 'portal_' + c.key, {
+      render: 'shape', boxBuf: 'glass', glow: true, light: 11, solid: false, replaceable: false, sound: 'glass',
+      boxes: [axis ? [7 / 16, 0, 0, 9 / 16, 1, 1] : [0, 0, 7 / 16, 1, 1, 9 / 16]], portal: i, family: B.PORTAL_STONE + i,
+    });
+  }
+});
 
 // Hout: planken van de andere soorten en liggende stammen
 WOODS.forEach((w, i) => {
@@ -531,12 +552,16 @@ export const ITEM = {
   // Minecraft-dieren (fase 4G)
   COW: 60037, HORSE: 60038, DOG: 60039, CAT: 60040, RABBIT: 60041, FOX: 60042, BEE: 60043, GOAT: 60044, LLAMA: 60045, FISH: 60046, DOLPHIN: 60047, SQUID: 60048,
   VILLAGER: 60049, GOLEM: 60050, VILLAGE_HOUSE: 60051, WELL: 60052,
+  PORTAL_STAMP: 60053, // 60053..60056: portaal-stempel in 4 kleuren (fase 4H)
+  WAND: 60104,         // toverstaf: steekt een portaal aan
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
 };
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
   [ITEM.VILLAGE_HOUSE]: { name: 'Dorpshuis', kind: 'stamp', stamp: 'villageHouse' },
+  [ITEM.WAND]: { name: 'Toverstaf', kind: 'wand' },
+  ...Object.fromEntries(PORTAL_COLORS.map((c, i) => [ITEM.PORTAL_STAMP + i, { name: c.short + ' portaal', kind: 'stamp', stamp: 'portal' + i }])),
   [ITEM.WELL]: { name: 'Waterput', kind: 'stamp', stamp: 'well' },
   [ITEM.VILLAGER]: { name: 'Dorpeling', kind: 'animal', animal: 'villager' },
   [ITEM.GOLEM]: { name: 'IJzergolem', kind: 'animal', animal: 'golem' },
@@ -612,6 +637,7 @@ export const FAMILIES = new Map([
   [B.GATE, WOODS.map((_, w) => gateId(0, false, w))],
   [B.DOOR, WOODS.map((_, w) => doorId(0, false, false, w))],
   [bedId(0, false), BED_COLORS.map((_, c) => bedId(c, false))],
+  [ITEM.PORTAL_STAMP, PORTAL_COLORS.map((_, i) => ITEM.PORTAL_STAMP + i)],
 ]);
 export const PALETTE_GROUPS = [
   group('Bouwen', [
@@ -654,6 +680,10 @@ export const PALETTE_GROUPS = [
     { title: 'Moestuin', icon: 'flower', items: [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO] },
   ]),
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK, ITEM.VILLAGE_HOUSE, ITEM.WELL] },
+  group('Portalen', [
+    { title: 'Portaalsteen', icon: 'portal', items: PORTAL_COLORS.map((_, i) => B.PORTAL_STONE + i) },
+    { title: 'Toverstaf en stempel', icon: 'wand', items: [ITEM.WAND, ITEM.PORTAL_STAMP] },
+  ]),
   group('Dieren', [
     { title: 'Boerderij', icon: 'island', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
     { title: 'Savanne', icon: 'savanna', items: [ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH, ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT] },

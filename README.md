@@ -52,6 +52,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
 | **Grote wereld** | De echte Minecraft-wereld: vlaktes, bossen, berkenbossen, bloemenvelden, sparrenbossen, sneeuw, hoge bergen, woestijn, mesa, savanne, jungle, moeras, stranden, zee en slingerende rivieren. Onder de grond liggen grotten met kolen, ijzer, goud, redstone, lapis en diamant |
 | **Themawerelden** | Jungle, Woestijn, Toendra en Savanne zijn eindeloos en hebben elk hun eigen landschappen: jungle met bamboebos en moeras; woestijn met mesa; toendra met sparrenbos, bergen en een bevroren zee; savanne met vlaktes. Werelden die je al eerder bewaard had, blijven zoals ze waren |
+| **Portalen** | In de kist onder **Portalen**: portaalsteen in 4 kleuren en de toverstaf. Bouw een frame van portaalsteen (4 breed en 5 hoog, of groter), tik erop met de toverstaf en het portaal gaat aan. Groen gaat naar de Jungle, geel naar de Woestijn, wit naar de Toendra en oranje naar de Savanne. Loop erdoorheen: daar staat een portaal terug. Je dier (waar je op rijdt, of een tam dier dat je volgt) gaat mee. Te moeilijk? De portaal-stempel zet er in één tik een neer |
 | **Eindeloze wereld** | De wereld houdt nergens op: loop, zwem of vlieg zo ver je wilt. Verderop liggen nieuwe stukken land, bomen, dieren en soms een tempel, piramide, iglo of leeuwenrots |
 | **Dag en nacht** | Een hele dag duurt 20 minuten. 's Avonds kleurt de lucht oranje, 's nachts zie je de maan en sterren, gaan de dieren slapen en hoor je krekels en een uil |
 | **Licht** | In de kist onder **Licht**: fakkel (op de grond of tegen een muur), lantaarn (staand, of hangend als je onder een blok tikt), gloeisteen, pompoenlantaarn en kampvuur. Ze geven een cirkel van licht, ook in donkere grotten. De lamp en het regenboogblok geven nu ook echt licht |
@@ -186,6 +187,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/animals/` | Recepten, gedeelde 3D-figuren, beweging, slapen, zwemmen, sprinten en kunstjes |
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
 | `js/stamps.js` | De stempels: huisje, boom, toren en brug |
+| `js/portal.js` | Portalen: een frame van portaalsteen herkennen, een kant-en-klaar portaal bouwen, zien of je in een portaal staat |
 | `js/particles.js` | Brokjes, vuurwerk, hartjes, glitters, Zzz, stof, waterdruppels en rook |
 | `js/version.js` | Het versienummer (hoort bij `CACHE` in `sw.js`) |
 | `js/errors.js` | Foutenlogboek: de laatste 20 fouten |

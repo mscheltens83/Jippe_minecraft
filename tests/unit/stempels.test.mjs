@@ -6,7 +6,7 @@ import { buildStamp } from '../../js/stamps.js';
 
 const snapshot = (w) => [...w.chunks.values()].map((c) => c.blocks.slice());
 
-for (const kind of ['house', 'tree', 'tower', 'bridge', 'igloo', 'pyramid', 'temple', 'lionRock']) {
+for (const kind of ['house', 'tree', 'tower', 'bridge', 'igloo', 'pyramid', 'temple', 'lionRock', 'portal0', 'portal3']) {
   test(`stempel '${kind}' bouwt iets en is helemaal terug te draaien`, () => {
     const w = new World();
     w.generate('flat', 7);

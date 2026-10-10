@@ -931,6 +931,25 @@ Object.assign(GEN, {
   copper_block: (t) => metalBlock(t, [196, 108, 72]),
   emerald_block: (t) => metalBlock(t, [42, 196, 96]),
   lapis_block: (t) => metalBlock(t, [38, 74, 168]),
+  // Portaalsteen (fase 4H): donkere steenblokken met een gloeiende steen in de kleur van de wereld
+  ...Object.fromEntries([['green', [76, 214, 96]], ['yellow', [246, 214, 72]], ['white', [236, 244, 255]], ['orange', [246, 148, 52]]].flatMap(([key, c]) => [
+    ['portal_stone_' + key, (t) => {
+      paletteNoise(t, [[44, 40, 58], [56, 50, 72], [34, 30, 46]], [0.5, 0.3, 0.2]);
+      for (let i = 0; i < 16; i++) { t.set(i, 0, [24, 20, 32]); t.set(0, i, [24, 20, 32]); t.set(i, 8, [28, 24, 38]); }
+      for (let y = 5; y < 11; y++) for (let x = 5; x < 11; x++) {
+        const d = Math.abs(x - 7.5) + Math.abs(y - 7.5);
+        if (d < 3.6) t.set(x, y, shade(c, d < 1.6 ? 1.15 : 0.85));
+      }
+    }],
+    ['portal_' + key, (t) => {
+      // golvend licht: kringen rond het midden, een beetje doorzichtig
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const r = Math.hypot(x - 7.5, y - 7.5), a = Math.atan2(y - 7.5, x - 7.5);
+        const swirl = 0.5 + 0.5 * Math.sin(r * 1.3 + a * 2 + t.r() * 0.6);
+        t.set(x, y, shade(c, 0.55 + swirl * 0.6), 150 + Math.floor(swirl * 80));
+      }
+    }],
+  ])),
   sea_lantern: (t) => {
     paletteNoise(t, [[186, 222, 214], [212, 236, 230], [160, 204, 196]], [0.5, 0.3, 0.2]);
     for (let i = 0; i < 16; i++) { t.set(i, i, [240, 252, 248]); t.set(15 - i, i, [240, 252, 248]); }

@@ -58,7 +58,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
 | **Snel** | Sneller maken na de eerste iPad-meting (38 fps): onzichtbare grotten niet tekenen, meetrit met extra rondjes | Klein | 4F | ✅ Klaar (versie 4.7.0) |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot (2 PR's) | 4C | ✅ Klaar (G1 versie 4.8.0, G2 versie 4.9.0) |
-| **4H** | Extra werelden en portalen | Middel (2 PR's) | 4C, 4G | H1 ✅ klaar (versie 4.10.0), H2 gepland |
+| **4H** | Extra werelden en portalen | Middel (2 PR's) | 4C, 4G | ✅ klaar (H1 versie 4.10.0, H2 versie 4.11.0) |
 
 Na elke fase: samenvoegen, op de iPad proberen (checklist in §13) en dan pas verder.
 
@@ -517,6 +517,13 @@ Wolkenland (zwevende eilanden), een onderwaterwereld, een dinowereld, een snoepw
 - Generatorversie in de opslag (`gv`): nieuwe werelden krijgen versie 2. Bewaarde werelden zonder versie houden de oude themawereld, zodat er geen rare randen komen tussen wat al gebouwd was en nieuwe stukken. De meetrit gebruikt ook de oude savanne, zodat metingen te vergelijken blijven.
 - Themawerelden hebben dorpen en (onder de grond) mijnschachten, net als de Grote wereld.
 - Nog niet gedaan: ijsbergen, een droge rivier in de woestijn en nijlpaarden in de rivier van de savanne.
+
+### 12.6 Zo is deel 2 gebouwd (versie 4.11.0)
+- `portal.js`: `findPortal` zoekt vanaf een stuk portaalsteen de binnenkant van het frame (in beide richtingen) en controleert dat het een rechthoek is (vanbinnen minstens 2 x 3, hoogstens 21 x 21) met een rand van portaalsteen in één kleur. `portalCells` bouwt een kant-en-klaar portaal (frame 4 x 5); `portalAt` kijkt of de speler in een portaal staat.
+- Nieuwe blokken: portaalsteen in 4 kleuren (geeft een beetje licht) en het portaallicht zelf (dun, doorzichtig, je loopt erdoorheen; één blok per kleur en richting). Nieuw in de kist: tabblad **Portalen** met de portaalsteen, de **toverstaf** en de **portaal-stempel** (4 kleuren, ingedrukt houden).
+- Sloop je een stuk van het frame of van het licht, dan gaat het hele portaal uit (in `onBlockChanged`).
+- Opslag: de extra werelden staan onder hun eigen sleutel (`slot1~jungle`, in plaats van in de chunksleutel zoals eerst gepland). In `localStorage` (`meta.worlds`) staat in welke wereld van de plek Jippe was, zodat het spel daar ook weer begint. "Nieuwe wereld" wist ook de extra werelden van die plek; de reservekopie neemt ze mee.
+- Door het portaal: het beeld draait en vervaagt (CSS), de wereld wordt bewaard en de andere geladen. De eerste keer wordt de themawereld gemaakt met een seed die volgt uit die van de plek, met bij de start een portaal terug. Je dier (waar je op rijdt, of tamme dieren die je volgen binnen 10 blokken) gaat mee, net als de onderbalk en de tijd van de dag. Terug kom je uit bij het portaal waar je in stapte. Pas als je eerst uit het portaal stapt, kun je weer terug.
 
 ### 12.4 Klaar als
 - Je kunt een portaal bouwen en aansteken, er doorheen en weer terug.

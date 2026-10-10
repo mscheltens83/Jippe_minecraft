@@ -641,3 +641,10 @@ body, #app {
 .pal-variant:active { transform: scale(0.94); }
 /* Kistknop vastgehouden: tik op een blok om het te kopiëren */
 .slot.chest.picking { background: #ffd84a; transform: scale(1.08); }
+
+/* Door een portaal (fase 4H): het beeld draait, wordt wazig en paars */
+body.warp canvas { animation: warp 0.9s ease-in forwards; }
+@keyframes warp {
+  0% { transform: none; filter: none; }
+  100% { transform: rotate(25deg) scale(1.6); filter: blur(10px) hue-rotate(90deg) brightness(1.6); opacity: 0.2; }
+}

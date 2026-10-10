@@ -281,32 +281,40 @@ export class Animals {
     return best;
   }
 
-  serialize() {
+  serialize() { return this.list.map((a) => this.serializeOne(a)); }
+
+  // Eén dier als gewone gegevens (ook om mee te nemen door een portaal)
+  serializeOne(a) {
     const r = (v) => Math.round(v * 100) / 100;
-    return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw), ...(a.def.varianten ? { v: a.variant } : {}),
+    return { t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw), ...(a.def.varianten ? { v: a.variant } : {}),
       tame: !!a.tame, ...(a.wild ? { wild: true } : {}), ...(a.baby ? { baby: Math.round(a.baby) } : {}), ...(a.sitting ? { sit: true } : {}),
       ...(a.village ? { village: a.village } : {}), ...(a.home ? { home: a.home } : {}), ...(a.inBed ? { bed: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
       sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
-      huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 }));
+      huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 };
   }
+
   load(arr) {
     this.clear();
     if (!Array.isArray(arr)) return;
-    for (const o of arr) {
-      if (!SPECIES[o?.t] || ![o.x, o.y, o.z, o.yaw].every(Number.isFinite)) continue;
-      const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw, Number.isInteger(o.v) ? o.v : null);
-      if (!a) break;
-      a.tame = !!o.tame;
-      a.wild = !!o.wild;
-      a.baby = Number.isFinite(o.baby) ? Math.max(0, o.baby) : 0;
-      a.sitting = !!o.sit;
-      if (o.village && Number.isFinite(o.village.x)) a.village = o.village;
-      if (o.home && Number.isFinite(o.home.x)) a.home = o.home;
-      a.inBed = !!o.bed;
-      a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
-      a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
-      a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;
-      a.state = a.sleep ? 'slapen' : 'rust'; a.show(0);
-    }
+    for (const o of arr) if (this.loadOne(o) === false) break;
+  }
+
+  // Eén dier terugzetten; false als er geen plek meer is
+  loadOne(o) {
+    if (!SPECIES[o?.t] || ![o.x, o.y, o.z, o.yaw].every(Number.isFinite)) return null;
+    const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw, Number.isInteger(o.v) ? o.v : null);
+    if (!a) return false;
+    a.tame = !!o.tame;
+    a.wild = !!o.wild;
+    a.baby = Number.isFinite(o.baby) ? Math.max(0, o.baby) : 0;
+    a.sitting = !!o.sit;
+    if (o.village && Number.isFinite(o.village.x)) a.village = o.village;
+    if (o.home && Number.isFinite(o.home.x)) a.home = o.home;
+    a.inBed = !!o.bed;
+    a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
+    a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
+    a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;
+    a.state = a.sleep ? 'slapen' : 'rust'; a.show(0);
+    return a;
   }
 }

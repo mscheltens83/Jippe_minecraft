@@ -4,6 +4,7 @@
 import { AIR, B, BLOCKS, DIRS, doorId } from './blocks.js';
 import { structureCells, structureBounds } from './structures.js';
 import { house, well, VILLAGE_STYLES } from './engine/village.js';
+import { portalCells } from './portal.js';
 
 // Geeft een lijst met veranderingen {x, y, z, from, to} terug (zodat "terug" ook werkt)
 export function buildStamp(kind, world, ox, oy, oz, dir) {
@@ -81,6 +82,13 @@ export function buildStamp(kind, world, ox, oy, oz, dir) {
       put(0, 1, lz, AIR);
     }
     put(0, -1, 0, B.PLANKS);
+  } else if (kind.startsWith('portal')) {
+    // Een kant-en-klaar portaal (al aangestoken), 3 blokken voor je, dwars op je kijkrichting
+    const color = Number(kind.slice(6)) || 0, axis = dir % 2 === 0 ? 0 : 1;
+    const x = ox + fx * 3, z = oz + fz * 3;
+    for (const [cx, cy, cz, id] of portalCells(color, axis, x, oy, z)) {
+      if (world.inside(cx, cy, cz) && world.get(cx, cy, cz) !== B.BEDROCK) cells.set(key(cx, cy, cz), { x: cx, y: cy, z: cz, to: id });
+    }
   } else if (kind === 'villageHouse' || kind === 'well') {
     // Uit het dorp: in wereld-richtingen gebouwd (de deur kijkt naar jou), 4 blokken voor je
     const cx = ox + fx * 4, cz = oz + fz * 4, cols = new Set();
