@@ -23,7 +23,8 @@ export class Weather {
     const recipe = BIOMES[biome] || BIOMES.island;
     this.kind = recipe.weer;
     this.ambience = recipe.achtergrond || null;
-    this.snow.visible = this.kind === 'sneeuw';
+    this.snow.visible = this.kind === 'sneeuw' || this.kind === 'as';
+    this.snow.material.color.set(this.kind === 'as' ? '#8d8a88' : '#ffffff'); // bij de vulkanen dwarrelt grijze as
     this.leaves.visible = this.kind === 'blaadjes';
   }
 
@@ -31,6 +32,7 @@ export class Weather {
     if (!playing || dt <= 0) return;
     if (this.kind === 'sneeuw') this.fall(this.snow, this.snowPos, quality < 1 ? 75 : 150,
       dt, world, player, .95);
+    else if (this.kind === 'as') this.fall(this.snow, this.snowPos, quality < 1 ? 40 : 80, dt, world, player, .5);
     else if (this.kind === 'blaadjes') this.fall(this.leaves, this.leafPos, 24,
       dt, world, player, .42);
     this.background(dt);

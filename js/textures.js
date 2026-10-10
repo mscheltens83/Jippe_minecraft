@@ -916,6 +916,28 @@ function crop(t, stage, top) {
   if (stage === 3 && top) for (const x of [2, 5, 9, 12]) for (let y = 16 - h; y < 19 - h; y++) { t.set(x, y, top); t.set(x + 1, y, shade(top, 0.85)); }
 }
 
+// Portaalsteen (fase 4H): donkere steenblokken met een gloeiende steen in de kleur van de wereld,
+// en het portaal zelf: golvend licht, kringen rond het midden, een beetje doorzichtig
+function portalTiles(list) {
+  return Object.fromEntries(list.flatMap(([key, c]) => [
+    ['portal_stone_' + key, (t) => {
+      paletteNoise(t, [[44, 40, 58], [56, 50, 72], [34, 30, 46]], [0.5, 0.3, 0.2]);
+      for (let i = 0; i < 16; i++) { t.set(i, 0, [24, 20, 32]); t.set(0, i, [24, 20, 32]); t.set(i, 8, [28, 24, 38]); }
+      for (let y = 5; y < 11; y++) for (let x = 5; x < 11; x++) {
+        const d = Math.abs(x - 7.5) + Math.abs(y - 7.5);
+        if (d < 3.6) t.set(x, y, shade(c, d < 1.6 ? 1.15 : 0.85));
+      }
+    }],
+    ['portal_' + key, (t) => {
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const r = Math.hypot(x - 7.5, y - 7.5), a = Math.atan2(y - 7.5, x - 7.5);
+        const swirl = 0.5 + 0.5 * Math.sin(r * 1.3 + a * 2 + t.r() * 0.6);
+        t.set(x, y, shade(c, 0.55 + swirl * 0.6), 150 + Math.floor(swirl * 80));
+      }
+    }],
+  ]));
+}
+
 const WOODS4 = { birch: [196, 178, 120], spruce: [116, 86, 52], jungle: [160, 116, 80], acacia: [168, 90, 50] };
 Object.assign(GEN, {
   polished_granite: (t) => smoothBlock(t, [160, 108, 86]),
@@ -932,24 +954,7 @@ Object.assign(GEN, {
   emerald_block: (t) => metalBlock(t, [42, 196, 96]),
   lapis_block: (t) => metalBlock(t, [38, 74, 168]),
   // Portaalsteen (fase 4H): donkere steenblokken met een gloeiende steen in de kleur van de wereld
-  ...Object.fromEntries([['green', [76, 214, 96]], ['yellow', [246, 214, 72]], ['white', [236, 244, 255]], ['orange', [246, 148, 52]]].flatMap(([key, c]) => [
-    ['portal_stone_' + key, (t) => {
-      paletteNoise(t, [[44, 40, 58], [56, 50, 72], [34, 30, 46]], [0.5, 0.3, 0.2]);
-      for (let i = 0; i < 16; i++) { t.set(i, 0, [24, 20, 32]); t.set(0, i, [24, 20, 32]); t.set(i, 8, [28, 24, 38]); }
-      for (let y = 5; y < 11; y++) for (let x = 5; x < 11; x++) {
-        const d = Math.abs(x - 7.5) + Math.abs(y - 7.5);
-        if (d < 3.6) t.set(x, y, shade(c, d < 1.6 ? 1.15 : 0.85));
-      }
-    }],
-    ['portal_' + key, (t) => {
-      // golvend licht: kringen rond het midden, een beetje doorzichtig
-      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-        const r = Math.hypot(x - 7.5, y - 7.5), a = Math.atan2(y - 7.5, x - 7.5);
-        const swirl = 0.5 + 0.5 * Math.sin(r * 1.3 + a * 2 + t.r() * 0.6);
-        t.set(x, y, shade(c, 0.55 + swirl * 0.6), 150 + Math.floor(swirl * 80));
-      }
-    }],
-  ])),
+  ...portalTiles([['green', [76, 214, 96]], ['yellow', [246, 214, 72]], ['white', [236, 244, 255]], ['orange', [246, 148, 52]]]),
   sea_lantern: (t) => {
     paletteNoise(t, [[186, 222, 214], [212, 236, 230], [160, 204, 196]], [0.5, 0.3, 0.2]);
     for (let i = 0; i < 16; i++) { t.set(i, i, [240, 252, 248]); t.set(15 - i, i, [240, 252, 248]); }
@@ -1016,6 +1021,94 @@ for (const [name, c] of Object.entries(WOODS4)) {
   GEN['door_upper_' + name] = (t) => door(t, c, true);
 }
 for (const log of ['log_side', 'birch_log_side', 'spruce_log_side', 'jungle_log_side', 'acacia_log_side']) GEN[log + '_r'] = rotated(GEN[log]);
+
+// ---------- Dinowereld (fase 5A) ----------
+function egg(t, base, spots) {
+  t.clear();
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const d = Math.hypot((x - 7.5) / 6.5, (y - 9) / 7.5);
+    if (d > 1) continue;
+    t.set(x, y, shade(base, 1.12 - d * 0.25 + (t.r() - 0.5) * 0.06));
+  }
+  for (let i = 0; i < 9; i++) {
+    const x = 3 + Math.floor(t.r() * 10), y = 3 + Math.floor(t.r() * 12);
+    if (t.get(x, y)[3]) { t.set(x, y, spots); if (t.get(x + 1, y)[3]) t.set(x + 1, y, spots); }
+  }
+}
+Object.assign(GEN, {
+  basalt_side(t) {
+    paletteNoise(t, [[72, 72, 78], [58, 58, 64], [86, 86, 92]], [0.5, 0.3, 0.2]);
+    for (let x = 0; x < 16; x += 4) for (let y = 0; y < 16; y++) t.set(x, y, [44, 44, 50]); // zuilen
+  },
+  basalt_top(t) {
+    paletteNoise(t, [[78, 78, 84], [64, 64, 70], [90, 90, 96]], [0.5, 0.3, 0.2]);
+    for (let i = 0; i < 16; i++) { t.set(i, 7, [48, 48, 54]); t.set(7, i, [48, 48, 54]); t.set(i, 15, [48, 48, 54]); t.set(15, i, [48, 48, 54]); }
+  },
+  magma(t) {
+    paletteNoise(t, [[120, 40, 20], [150, 54, 22], [96, 30, 18]], [0.5, 0.3, 0.2]);
+    for (let i = 0; i < 7; i++) {
+      let x = Math.floor(t.r() * 16), y = Math.floor(t.r() * 16);
+      for (let k = 0; k < 7; k++) { t.set(x, y, k % 3 ? [255, 150, 40] : [255, 210, 90]); x = (x + (t.r() < 0.5 ? 1 : 15)) % 16; y = (y + 1) % 16; }
+    }
+  },
+  moss(t) {
+    paletteNoise(t, [[88, 120, 44], [76, 106, 38], [104, 136, 52], [66, 92, 34]], [0.45, 0.25, 0.18, 0.12]);
+    for (let i = 0; i < 8; i++) blob(t, Math.floor(t.r() * 16), Math.floor(t.r() * 16), [118, 150, 60], 2);
+  },
+  tree_fern_log_side(t) {
+    mcBark(t, [96, 74, 46], [62, 46, 28]);
+    for (let y = 1; y < 16; y += 4) for (let x = 0; x < 16; x++) if ((x + y) % 3) t.set(x, y, [74, 98, 42]); // oude bladvoeten
+  },
+  tree_fern_log_top: (t) => rings(t, [146, 112, 66], [76, 58, 34]),
+  tree_fern_leaves(t) {
+    t.clear();
+    for (let k = 0; k < 4; k++) {
+      const y0 = 1 + k * 4;
+      for (let x = 0; x < 16; x++) {
+        t.set(x, y0 + 1, [56, 128, 44]);
+        if (x % 2 === 0) { t.set(x, y0, [86, 160, 58]); t.set(x, y0 + 2, [44, 106, 38]); }
+      }
+    }
+  },
+  araucaria_log_side: (t) => mcBark(t, [118, 86, 60], [80, 58, 40]),
+  araucaria_log_top: (t) => rings(t, [176, 132, 88], [92, 66, 44]),
+  araucaria_leaves: (t) => mcLeaves(t, [46, 96, 58], 0.12),
+  giant_fern_bottom(t) {
+    t.clear();
+    for (let y = 0; y < 16; y++) { t.set(7, y, [70, 132, 44]); t.set(8, y, [58, 112, 38]); }
+    for (let y = 2; y < 16; y += 3) for (let dx = 1; dx <= 6; dx++) { t.set(7 - dx, y - (dx >> 1), [52, 128, 44]); t.set(8 + dx, y - (dx >> 1), [70, 150, 52]); }
+  },
+  giant_fern_top(t) {
+    t.clear();
+    for (let y = 4; y < 16; y++) { t.set(7, y, [70, 132, 44]); t.set(8, y, [58, 112, 38]); }
+    for (let y = 3; y < 16; y += 3) for (let dx = 1; dx <= Math.min(7, 2 + (y >> 1)); dx++) { t.set(7 - dx, y + (dx >> 1), [52, 128, 44]); t.set(8 + dx, y + (dx >> 1), [70, 150, 52]); }
+  },
+  horsetail(t) {
+    t.clear();
+    for (const x0 of [3, 8, 12]) {
+      const h = x0 === 8 ? 15 : 11;
+      for (let y = 16 - h; y < 16; y++) { t.set(x0, y, y % 3 === 0 ? [40, 70, 30] : [96, 150, 60]); if (y % 3 === 1) { t.set(x0 - 1, y, [118, 170, 72]); t.set(x0 + 1, y, [118, 170, 72]); } }
+    }
+  },
+  fossil(t) {
+    GEN.stone(t);
+    const bone = [232, 224, 200], dark = [196, 186, 160];
+    for (let x = 3; x < 13; x++) { t.set(x, 8, bone); t.set(x, 9, dark); }        // ruggengraat
+    for (const x of [4, 7, 10]) for (let y = 4; y < 13; y++) if (y !== 8 && y !== 9) t.set(x, y, y < 8 ? bone : dark); // ribben
+    for (let y = 6; y < 11; y++) { t.set(13, y, bone); t.set(14, y, bone); }      // kop
+  },
+  amber(t) {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const edge = x === 0 || y === 0 || x === 15 || y === 15;
+      t.set(x, y, edge ? [196, 110, 20] : shade([238, 160, 40], 0.9 + t.r() * 0.2), edge ? 255 : 190);
+    }
+    t.set(7, 7, [60, 40, 20]); t.set(8, 7, [60, 40, 20]); t.set(6, 6, [90, 70, 50]); t.set(9, 6, [90, 70, 50]); // een muggetje
+  },
+  dino_egg_green: (t) => egg(t, [176, 214, 140], [76, 130, 60]),
+  dino_egg_blue: (t) => egg(t, [168, 206, 236], [60, 104, 170]),
+  dino_egg_red: (t) => egg(t, [240, 214, 186], [196, 70, 52]),
+  ...portalTiles([['red', [236, 64, 56]]]),
+});
 
 // Tegels die meekleuren met het landschap (0 = gras, 1 = blad, 2 = water). In de wereld worden ze
 // grijs getekend en kleurt de shader ze; in de kist en de onderbalk krijgen ze de kleur van de vlakte.

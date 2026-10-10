@@ -17,6 +17,7 @@ export const THEMES = {
   desert: { main: 'desert', bergen: 0.35 },
   tundra: { main: 'tundra', bergen: 1, cold: true },
   savanna: { main: 'savanna', bergen: 0.45 },
+  dino: { main: 'dinoPlains', bergen: 0.85 }, // fase 5A: de bergen zijn vulkanen
 };
 
 export class Climate {
@@ -70,6 +71,7 @@ export class Climate {
       case 'desert': return E > 0.08 && H > -0.35 ? 'mesa' : 'desert';
       case 'tundra': return T < 0.05 ? 'tundra' : 'taiga';
       case 'savanna': return H > 0.35 ? 'plains' : 'savanna';
+      case 'dino': return k.M > 0.2 ? 'volcano' : H > 0.42 ? 'swamp' : this.patch(X / 150, Z / 150) > 0.2 ? 'dinoForest' : 'dinoPlains';
       default: return this.theme;
     }
   }
@@ -116,6 +118,8 @@ export class Climate {
       };
       const mid = at(0, 0);
       if (mid.biome !== (this.theme ? THEMES[this.theme].main : 'plains') || mid.k.L < 0.98 || mid.k.M > 0.05 || mid.k.R < RIVER_WIDTH * 3) continue;
+      // Dinowereld: geen vulkaan vlak bij de bouwplek (daar liggen het nest en de opgraving)
+      if (this.theme === 'dino' && [25, 45].some((r) => [0, 1, 2, 3, 4, 5, 6, 7].some((a) => at(Math.cos(a / 4 * Math.PI) * r, Math.sin(a / 4 * Math.PI) * r).k.M > 0.12))) continue;
       if (this.theme) return [sx, sz]; // in een themawereld is het hoofdlandschap genoeg
       let forest = false, water = false;
       for (let r = 50; r <= 250 && !(forest && water); r += 50) {

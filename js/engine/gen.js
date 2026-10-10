@@ -21,14 +21,16 @@ const REGION = 128;               // per stuk van 128 x 128 blokken hoogstens é
 const S = { biome: 1, tree: 2, prio: 3, treeSeed: 4, plant: 5, plantH: 6, flower: 7, region: 8, rx: 9, rz: 10, kind: 11, pond: 12, palms: 13, village: 14, mine: 15 };
 const MINE_REGION = 112;           // per stuk van 112 x 112 hoogstens één mijnschacht
 const MINE_ARM = 22;               // zo lang is elke gang vanaf het midden
+const MINE_WORLDS = new Set(['world', 'jungle', 'desert', 'tundra', 'savanna', 'dino']);
 const POND = new Set(['oasis', 'wateringHole']);
-const STRUCTURE_BLOCK = { igloo: B.SNOW, pyramid: B.SANDSTONE, temple: B.MOSSY_COBBLE, lionRock: B.STONE, shipwreck: B.SAND, ruin: B.GRASS };
+const STRUCTURE_BLOCK = { igloo: B.SNOW, pyramid: B.SANDSTONE, temple: B.MOSSY_COBBLE, lionRock: B.STONE, shipwreck: B.SAND, ruin: B.GRASS, nest: B.GRASS, dig: B.DIRT };
 // Bouwwerken bij de bouwplek: dezelfde plekken als in de oude werelden van 96 x 96
 const HOME_STRUCTURES = {
   jungle: [['temple', 20, -15]],
   desert: [['pyramid', -23, 8], ['oasis', 20, 12], ['oasis', -13, -23], ['oasis', 13, -23]],
   tundra: [['igloo', 13, -8], ['igloo', -18, 12]],
   savanna: [['lionRock', 15, -5], ['wateringHole', -17, 9]],
+  dino: [['nest', 15, -11], ['dig', -17, 12]],
   adventure: [['temple', -21, -21], ['igloo', 20, -20], ['pyramid', -22, 21], ['lionRock', 20, 20],
     ['oasis', -24, 5], ['wateringHole', 27, 6]],
 };
@@ -262,7 +264,7 @@ export class Generator {
     const key = rx * 65536 + rz;
     if (this.mineCache.has(key)) return this.mineCache.get(key);
     let m = null;
-    if ((this.type === 'world' || this.type === 'jungle' || this.type === 'desert' || this.type === 'tundra' || this.type === 'savanna') &&
+    if (MINE_WORLDS.has(this.type) &&
       hash(this.seed, rx, rz, S.mine) < 0.35) {
       const x = rx * MINE_REGION + 28 + Math.floor(hash(this.seed, rx, rz, S.mine + 1) * 56);
       const z = rz * MINE_REGION + 28 + Math.floor(hash(this.seed, rx, rz, S.mine + 2) * 56);
@@ -372,6 +374,10 @@ export class Generator {
       // Onder water: zand, in diepe zee grind, in rivieren soms klei
       c.top = c.biome === 'river' && hash(this.seed, x, z, S.flower) < 0.3 ? B.CLAY : h < SEA - 10 ? B.GRAVEL : B.SAND;
       c.fill = B.SAND;
+    } else if (c.biome === 'volcano') {
+      // Vulkanen: basalt, en hoe hoger hoe meer gloeiende magmasteen (bij de kraters)
+      const hot = h > SEA + 34 ? 0.3 : h > SEA + 20 ? 0.08 : 0.015;
+      c.top = hash(this.seed, x, z, S.flower) < hot ? B.MAGMA : B.BASALT; c.fill = B.BASALT;
     } else if (c.biome === 'mountains') {
       c.top = h > SEA + 44 ? B.SNOW : h > SEA + 24 ? B.STONE : B.GRASS;
       c.fill = c.top === B.GRASS ? B.DIRT : B.STONE;
@@ -510,7 +516,7 @@ export class Generator {
         c.noCaves = Math.hypot(x0 + lx - CENTER, z0 + lz - CENTER) < 24;
       }
       this.underground.carve(buf, cx, cz, cols, !!this.climate);
-      this.underground.veins(buf, cx, cz, cols, cols.some((c) => c.biome === 'mountains'));
+      this.underground.veins(buf, cx, cz, cols, cols.some((c) => c.biome === 'mountains'), this.type === 'dino');
       for (const m of this.minesNear(x0, z0, x0 + CHUNK - 1, z0 + CHUNK - 1)) for (const [x, y, z, id] of this.mineCells(m)) put(x, y, z, id);
     }
     if (this.rawCache.size > 6000) { this.rawCache.clear(); this.colCache.clear(); this.treeCache.clear(); }
@@ -543,6 +549,10 @@ export class Generator {
       for (const p of b.planten || []) {
         chance -= p.dichtheid * density;
         if (chance >= 0) continue;
+        if (p.boven) { // een plant van twee blokken hoog (reuzenvaren)
+          if (h + 2 < SY && buf[index(lx, h + 2, lz)] === AIR) { buf[index(lx, h + 1, lz)] = p.blok; buf[index(lx, h + 2, lz)] = p.boven; }
+          break;
+        }
         const height = p.hoog ? p.hoog[0] + Math.floor(hash(this.seed, x, z, S.plantH) * (p.hoog[1] - p.hoog[0] + 1)) : 1;
         for (let dy = 1; dy <= height && h + dy < SY; dy++) if (buf[index(lx, h + dy, lz)] === AIR) buf[index(lx, h + dy, lz)] = p.blok;
         if (p.blok === B.SNOW) { buf[index(lx, h + 1, lz)] = B.STONE; buf[index(lx, h + 2, lz)] = B.SNOW; }

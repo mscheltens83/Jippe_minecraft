@@ -8,7 +8,7 @@ Zoals altijd: alles in het Nederlands, groot en duidelijk voor een kind van 6, n
 
 | Deel | Wat | Versie |
 |---|---|---|
-| **5A** | Dinowereld: eigen landschappen, dino's, dino-eieren, rode portaalsteen | 5.0.0 |
+| **5A** | Dinowereld: eigen landschappen, dino's, dino-eieren, rode portaalsteen | 5.0.0 ✅ |
 | **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 |
 | **5C** | Schatkisten en verkleden | 5.2.0 |
 | **5D** | Rails en karretje, bootje | 5.3.0 |
@@ -50,6 +50,14 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 - Je kunt door een rood portaal naar de Dinowereld en weer terug.
 - De Dinowereld heeft de 3 landschappen, dino's, nesten en fossielen.
 - Een ei uitbroeden geeft een jonge dino; een T-rex kun je temmen en berijden.
+
+### 2.5 Zo is het gebouwd (versie 5.0.0)
+- `climate.js`: thema `dino` (bergen zijn vulkanen: waar het klimaat bergachtig is, ligt het landschap Vulkanen). De start ligt altijd in de Varenvlakte, zonder vulkaan binnen 45 blokken.
+- `gen.js`: vulkanen van basalt met magmasteen (hoger = meer), planten van twee blokken hoog (`boven`), fossielen en barnsteen bij de ertsen, mijnschachten ook in de Dinowereld. Bij de start liggen een dinonest en een opgraving (kuil met ladder en fossielen); verderop meer.
+- Bomen: boomvaren, apenboom en palmvaren (`trees.js`). Weer: grijze as bij de vulkanen; rookwolken uit de magmasteen bovenop de bergen.
+- `animals/dinos.js`: de zeven modellen; `zadel` in de soort bepaalt hoe hoog je zit (en de camera gaat mee omhoog). De Brachiosaurus eet bladeren uit de bomen (`bladeren`).
+- Portaalsteen heeft nu een eigen id per kleur (`PORTAL_COLORS[i].stone` en `.portal`), zodat er kleuren bij kunnen.
+- De textuuratlas heeft nu meer dan 256 tegels: de texture-array mag tot 2048 lagen op de iPad (een waarschuwing in de console als een toestel minder kan).
 
 ## 3. Fase 5B: opdrachtjes en stickers
 

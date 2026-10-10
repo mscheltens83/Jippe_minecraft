@@ -2,7 +2,7 @@
 // (minstens 4 breed en 5 hoog), aangestoken met de toverstaf, vult zich met gloeiend licht.
 // De kleur van de steen bepaalt naar welke themawereld het portaal gaat.
 
-import { AIR, B, BLOCKS, PORTAL_COLORS, portalId } from './blocks.js';
+import { AIR, BLOCKS, PORTAL_COLORS, portalId, portalStoneId } from './blocks.js';
 
 export const PORTAL_THEMES = PORTAL_COLORS.map((c) => c.theme);
 const MAX_INSIDE = 21; // een portaal is hoogstens 21 x 21 vanbinnen
@@ -60,7 +60,7 @@ export function portalCells(color, axis, x, y, z, lit = true) {
   const [ux, uz] = axis ? [0, 1] : [1, 0], out = [];
   for (let u = -1; u <= MIN_W; u++) for (let v = -1; v <= MIN_H; v++) {
     const frame = u < 0 || u >= MIN_W || v < 0 || v >= MIN_H;
-    out.push([x + ux * u, y + v, z + uz * u, frame ? B.PORTAL_STONE + color : lit ? portalId(color, axis) : AIR]);
+    out.push([x + ux * u, y + v, z + uz * u, frame ? portalStoneId(color) : lit ? portalId(color, axis) : AIR]);
   }
   return out;
 }

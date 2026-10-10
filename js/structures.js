@@ -65,6 +65,29 @@ export function structureCells(kind, small = false) {
     put(0, 0, 1, B.TREASURE);
     put(-1, 0, -1, B.MOSSY_COBBLE); put(1, 0, 2, slabId(5));
     put(-2, 0, 2, B.MUSHROOM_BROWN); put(2, 0, -2, B.FERN);
+  } else if (kind === 'nest') {
+    // Dinonest (fase 5A): een kring van hooi met drie eieren, tussen de varens
+    for (let x = -2; x <= 2; x++) for (let z = -2; z <= 2; z++) {
+      const d = Math.hypot(x, z);
+      if (d > 2.6) continue;
+      put(x, -1, z, B.HAY);
+      if (d > 1.6) put(x, 0, z, (x + z) % 2 ? B.HAY : AIR);
+      else for (let y = 0; y < 3; y++) put(x, y, z, AIR);
+    }
+    put(0, 0, 0, B.DINO_EGG); put(1, 0, 0, B.DINO_EGG + 1); put(0, 0, 1, B.DINO_EGG + 2);
+    for (const [x, z] of [[3, 0], [-3, 1], [0, -3], [2, 2]]) put(x, 0, z, B.FERN);
+  } else if (kind === 'dig') {
+    // Opgraving (fase 5A): een kuil met een ladder, en fossielen in de wanden en de bodem
+    for (let x = -3; x <= 3; x++) for (let z = -3; z <= 3; z++) {
+      const edge = Math.abs(x) === 3 || Math.abs(z) === 3;
+      if (edge) { put(x, 0, z, (x + z) % 2 ? B.FENCE : AIR); continue; }
+      for (let y = -4; y <= -1; y++) put(x, y, z, Math.abs(x) === 2 || Math.abs(z) === 2 ? ((x * 3 + y + z * 5) % 4 ? B.STONE : B.FOSSIL) : AIR);
+      put(x, -5, z, (x + z) % 3 ? B.GRAVEL : B.FOSSIL);
+      for (let y = 0; y < 3; y++) put(x, y, z, AIR);
+    }
+    for (let y = -4; y <= -1; y++) put(0, y, 1, B.LADDER + 2); // ladder tegen de wand aan de kant +z
+    put(0, 0, 3, AIR);
+    put(-1, -4, -1, B.FOSSIL); put(1, -4, 0, B.AMBER);
   } else if (kind === 'lionRock') {
     for (let x = -4; x <= 4; x++) for (let z = 0; z <= 5; z++) {
       const h = Math.abs(x) <= 2 && z >= 2 ? 6 : Math.abs(x) <= 3 ? 2 : 1;
@@ -84,7 +107,7 @@ export function structureBounds(kind, small = false) {
   if (kind === 'igloo') return [-3, 3, -5, 3];
   if (kind === 'lionRock') return [-4, 4, -3, 5];
   if (kind === 'shipwreck') return [-2, 2, -6, 6];
-  if (kind === 'ruin') return [-3, 3, -3, 3];
+  if (kind === 'ruin' || kind === 'nest' || kind === 'dig') return [-3, 3, -3, 3];
   const r = kind === 'temple' || small ? 4 : 7;
   return [-r, r, -r, r];
 }

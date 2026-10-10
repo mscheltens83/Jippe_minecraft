@@ -161,6 +161,20 @@ export class Sounds {
     } else if (sound === 'click') {
       for (let i = 0; i < 5; i++) this.tone('square', 1800 * p, 1500 * p, 0.03, 0.06, i * 0.06);
       this.tone('sine', 900 * p, 1500 * p, 0.25, 0.08, 0.32);
+    } else if (sound === 'dinoRoar') {
+      // Een vriendelijke brul: diep, maar kort en met een lachje aan het eind
+      this.vibrato('sawtooth', 70 * p, 0.9, 0.16); this.hiss('lowpass', 380, 0.8, 0.7, 0.16);
+      this.tone('triangle', 160 * p, 240 * p, 0.25, 0.08, 0.7);
+    } else if (sound === 'dinoLow') {
+      this.tone('sine', 85 * p, 55 * p, 0.9, 0.22); this.vibrato('triangle', 110 * p, 0.8, 0.08);
+    } else if (sound === 'dinoGrunt') {
+      for (let i = 0; i < 2; i++) { this.tone('sawtooth', 120 * p, 80 * p, 0.18, 0.12, i * 0.22); this.hiss('lowpass', 400, 1, 0.15, 0.1, i * 0.22); }
+    } else if (sound === 'honk') {
+      this.tone('triangle', 260 * p, 250 * p, 0.6, 0.16); this.tone('sine', 390 * p, 370 * p, 0.6, 0.08);
+    } else if (sound === 'screech') {
+      this.tone('triangle', 1300 * p, 900 * p, 0.25, 0.1); this.tone('triangle', 1500 * p, 1000 * p, 0.2, 0.06, 0.12);
+    } else if (sound === 'chirpDino') {
+      for (let i = 0; i < 3; i++) this.tone('square', 700 * p, 1000 * p, 0.06, 0.06, i * 0.09);
     } else if (sound === 'fennec' || sound === 'fox' || sound === 'lizard' || sound === 'turtle' || sound === 'sloth') {
       const base = sound === 'lizard' ? 1200 : sound === 'sloth' ? 260 : sound === 'turtle' ? 340 : 750;
       this.tone('triangle', base * p, base * 1.25, sound === 'sloth' ? .45 : .13, .12);

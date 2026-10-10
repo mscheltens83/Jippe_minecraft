@@ -2,22 +2,22 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../../js/world.js';
-import { B, BLOCKS, AIR, portalId } from '../../js/blocks.js';
+import { B, BLOCKS, AIR, portalId, portalStoneId } from '../../js/blocks.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from '../../js/portal.js';
 
 const flat = () => { const w = new World(); w.generate('flat', 7); return w; };
 const build = (w, cells) => { for (const [x, y, z, id] of cells) w.set(x, y, z, id); };
 
 test('elke kleur portaalsteen hoort bij een themawereld', () => {
-  assert.deepEqual(PORTAL_THEMES, ['jungle', 'desert', 'tundra', 'savanna']);
-  for (let c = 0; c < 4; c++) {
-    assert.equal(BLOCKS[B.PORTAL_STONE + c].portalColor, c);
+  assert.deepEqual(PORTAL_THEMES, ['jungle', 'desert', 'tundra', 'savanna', 'dino']);
+  for (let c = 0; c < 5; c++) {
+    assert.equal(BLOCKS[portalStoneId(c)].portalColor, c);
     for (const axis of [0, 1]) assert.equal(BLOCKS[portalId(c, axis)].portal, c);
   }
 });
 
 test('een frame van 4 x 5 wordt herkend, in beide richtingen', () => {
-  for (const axis of [0, 1]) for (let color = 0; color < 4; color++) {
+  for (const axis of [0, 1]) for (let color = 0; color < 5; color++) {
     const w = flat(), y = w.surfaceY(48, 48) + 1;
     build(w, portalCells(color, axis, 48, y, 48, false));
     const found = findPortal(w, 48, y - 1, 48); // de onderkant van het frame

@@ -14,6 +14,7 @@ const GROUPS = [
   { title: 'Bergen', icon: 'bigWorld', types: ['goat', 'llama'] },
   { title: 'Zee', icon: 'worlds', types: ['fish', 'dolphin', 'squid'] },
   { title: 'Dorp', icon: 'house', types: ['villager', 'golem'] },
+  { title: "Dino's", icon: 'dino', types: ['trex', 'brachio', 'triceratops', 'stegosaurus', 'parasaur', 'pteranodon', 'raptor'] },
 ];
 
 function button(cls, icon, label) {

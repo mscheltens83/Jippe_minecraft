@@ -7,7 +7,7 @@
 // Alleen wat in de buurt verandert, wordt bekeken (een wachtrij), elke 0,25 seconde een stapje.
 // Wat de natuurkunde doet, gaat niet in de terug-knop: alleen wat Jippe zelf deed.
 
-import { AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, MAX_ID } from '../blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, MAX_ID, TALL_PLANTS } from '../blocks.js';
 import { SY } from './constants.js';
 
 export const TICK = 0.25;
@@ -112,7 +112,7 @@ export class Physics {
     const w = this.world, below = w.get(x, y - 1, z);
     if (b.crop) return below === B.FARMLAND;
     if (id === B.SUGAR_CANE) return [B.SAND, B.RED_SAND, B.GRASS, B.DIRT, B.SUGAR_CANE].includes(below);
-    if (b.family === B.SUNFLOWER) return b.upper ? below === B.SUNFLOWER : !!OPAQUE[below];
+    if (TALL_PLANTS.has(b.family)) return b.upper ? below === b.family : !!OPAQUE[below];
     if (b.waterlogged) return !!OPAQUE[below] || below === B.SEAWEED;
     if (b.render === 'cross' && !b.climb) return !!OPAQUE[below];
     if (id === B.TORCH || id === B.LANTERN || (id >= B.CARPET && id < B.CARPET + 16)) return !!BLOCKS[below]?.solid;

@@ -4,7 +4,8 @@ import { buildCat } from './cats.js';
 import { buildElephant, buildGiraffe, buildZebra, buildHippo, buildMeerkat } from './savanna.js';
 import { buildExtra } from './extras.js';
 import { buildMc, VARIANTS } from './minecraft.js';
-import { ITEM } from '../blocks.js';
+import { buildTrex, buildBrachio, buildTriceratops, buildStegosaurus, buildParasaur, buildPteranodon, buildRaptor } from './dinos.js';
+import { B, ITEM } from '../blocks.js';
 
 const farm = { werelden: ['island', 'flat'], dieet: 'boerderij', slaapkans: 0, kunstjes: [] };
 const cat = { werelden: ['savanna'], dieet: 'roofdier', slaapkans: 0.12, kunstjes: ['slapen'] };
@@ -69,6 +70,19 @@ Object.assign(SPECIES.tiger, { rijdbaar: true, rijsnelheid: 1.3 });
 // Het dorp (fase 4G deel 2)
 SPECIES.villager = { naam: 'Dorpeling', w: .6, h: 1.95, d: .5, speed: .8, bouw: (v) => buildMc('villager', v), varianten: VARIANTS.villager.length, geluid: 'hmm', kunstjes: ['dorp'], slaapkans: .02 };
 SPECIES.golem = { naam: 'IJzergolem', w: 1.3, h: 2.7, d: .8, speed: .55, bouw: () => buildMc('golem'), geluid: 'golem', kunstjes: ['dorp'], slaapkans: 0 };
+
+// De Dinowereld (fase 5A). zadel = hoe hoog je zit als je erop rijdt; bladeren = welke bladeren
+// een lange nek uit de bomen eet
+const dino = { werelden: [], slaapkans: .04, eten: ALL };
+SPECIES.trex = { ...dino, naam: 'T-rex', w: 1.15, h: 3.3, d: 3.6, speed: 1.2, rensnelheid: 6, bouw: buildTrex, geluid: 'dinoRoar', kunstjes: ['rennen'], rijdbaar: true, rijsnelheid: 1.7, zadel: 2.05 };
+SPECIES.brachio = { ...dino, naam: 'Brachiosaurus', w: 1.6, h: 5.9, d: 3.6, speed: .65, bouw: buildBrachio, geluid: 'dinoLow', kunstjes: ['bladeren'], rijdbaar: true, rijsnelheid: .8, zadel: 2.6 };
+SPECIES.triceratops = { ...dino, naam: 'Triceratops', w: 1.3, h: 2.3, d: 3.2, speed: .9, bouw: buildTriceratops, geluid: 'dinoGrunt', kunstjes: ['kudde'], rijdbaar: true, rijsnelheid: 1.2, zadel: 1.3 };
+SPECIES.stegosaurus = { ...dino, naam: 'Stegosaurus', w: 1.1, h: 2.5, d: 3.4, speed: .75, bouw: buildStegosaurus, geluid: 'dinoGrunt', kunstjes: ['kudde'] };
+SPECIES.parasaur = { ...dino, naam: 'Parasaurolophus', w: .9, h: 3.0, d: 2.6, speed: 1.1, bouw: buildParasaur, geluid: 'honk', kunstjes: ['kudde'] };
+SPECIES.pteranodon = { ...dino, naam: 'Pteranodon', w: .8, h: 1.1, d: 1.2, speed: 2.2, bouw: buildPteranodon, geluid: 'screech', kunstjes: ['vliegen'], slaapkans: 0 };
+SPECIES.raptor = { ...dino, naam: 'Velociraptor', w: .5, h: 1.25, d: 1.3, speed: 1.6, rensnelheid: 7, bouw: buildRaptor, geluid: 'chirpDino', kunstjes: ['springen'], volger: true };
+SPECIES.brachio.bladeren = [B.ARAUCARIA_LEAVES, B.TREE_FERN_LEAVES, B.ACACIA_LEAVES, B.LEAVES, B.JUNGLE_LEAVES];
+export const DINOS = ['trex', 'brachio', 'triceratops', 'stegosaurus', 'parasaur', 'pteranodon', 'raptor'];
 
 // Alle soorten hebben deze velden (ook als ze in het recept ontbreken)
 for (const def of Object.values(SPECIES)) { def.kunstjes ||= []; def.werelden ||= []; def.rensnelheid ||= def.speed * 2; }

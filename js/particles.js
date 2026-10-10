@@ -183,6 +183,16 @@ export class Particles {
     sprite.scale.set(0.7, 0.7, 1); this.scene.add(sprite); this.warnings.set(animal, { sprite, count: 1 });
   }
 
+  // Grote, trage rookwolk boven een vulkaan (Dinowereld)
+  volcanoSmokeAt(x, y, z) {
+    this.add({
+      x: x + (Math.random() - 0.5) * 1.5, y, z: z + (Math.random() - 0.5) * 1.5,
+      vx: (Math.random() - 0.5) * 0.4, vy: 1.6 + Math.random() * 0.8, vz: (Math.random() - 0.5) * 0.4,
+      g: -0.1, drag: 1, life: 0, max: 5 + Math.random() * 3, size: 0.9 + Math.random() * 0.6,
+      col: Math.random() < 0.5 ? [0.36, 0.35, 0.36] : [0.5, 0.49, 0.5], collide: false,
+    });
+  }
+
   // Rookpluimpje boven een fakkel of kampvuur; een kampvuur geeft ook vonkjes
   smokeAt(x, y, z, fire = false) {
     this.add({

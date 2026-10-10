@@ -75,7 +75,7 @@ export class Underground {
   }
 
   // Steensoorten en ertsen: kleine klompjes in de steen
-  veins(buf, cx, cz, cols, emeralds) {
+  veins(buf, cx, cz, cols, emeralds, fossils = false) {
     const r = rng(hash(this.seed, cx, cz, 901) * 4294967296);
     const blob = (id, size, y0, y1, replace) => {
       let lx = Math.floor(r() * CHUNK), lz = Math.floor(r() * CHUNK), y = y0 + Math.floor(r() * (y1 - y0 + 1));
@@ -93,5 +93,10 @@ export class Underground {
     for (const [id, n, size, y0, y1] of VEINS) for (let k = times(n); k > 0; k--) blob(id, size, y0, y1, stoneOnly);
     for (const [id, n, size, y0, y1] of ORES) for (let k = times(n); k > 0; k--) blob(id, size, y0, y1, STONES);
     if (emeralds) for (let k = times(3); k > 0; k--) blob(B.EMERALD_ORE, 2, SEA + 2, SY - 8, STONES);
+    // Dinowereld: fossielen en barnsteen in de steen
+    if (fossils) {
+      for (let k = times(2.5); k > 0; k--) blob(B.FOSSIL, 4, 8, SEA - 3, STONES);
+      for (let k = times(0.6); k > 0; k--) blob(B.AMBER, 2, 6, SEA - 10, STONES);
+    }
   }
 }

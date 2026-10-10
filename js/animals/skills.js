@@ -56,9 +56,10 @@ export const SKILLS = {
   bladeren(a, dt, world) {
     if ((a.skillWait -= dt) > 0 || a.happy || a.sleep) return;
     a.skillWait = 4; a.browsing = false;
-    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = 2; dy <= 5; dy++) {
+    const leaves = a.def.bladeren || [B.ACACIA_LEAVES], top = Math.max(5, Math.ceil(a.def.h));
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = 2; dy <= top; dy++) {
       const x = Math.floor(a.x) + dx, z = Math.floor(a.z) + dz;
-      if (world.get(x, Math.floor(a.y) + dy, z) !== B.ACACIA_LEAVES) continue;
+      if (!leaves.includes(world.get(x, Math.floor(a.y) + dy, z))) continue;
       toward(a, x + 0.5, z + 0.5);
       if (Math.hypot(dx, dz) < 2.5) { a.browsing = true; a.walking = false; a.graze = true; a.timer = 4; }
       else { a.walking = true; a.timer = 3; }

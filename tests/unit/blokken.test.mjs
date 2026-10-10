@@ -13,7 +13,8 @@ test('elk blok heeft een naam en texturen die bestaan', () => {
       assert.ok(TEXTURE_NAMES.includes(b.tex[side]), `blok ${b.id} (${b.name}): textuur '${b.tex[side]}' bestaat niet`);
     }
   }
-  assert.ok(TEXTURE_NAMES.length <= ATLAS_COLS * ATLAS_COLS, 'de textuuratlas is vol');
+  // één laag per tegel; WebGL2 belooft 256 lagen, de iPad kan er 2048 (zie scene.js)
+  assert.ok(TEXTURE_NAMES.length <= 2 * ATLAS_COLS * ATLAS_COLS, 'de textuuratlas is vol');
 });
 
 test('alleen dichte blokken houden zicht tegen', () => {

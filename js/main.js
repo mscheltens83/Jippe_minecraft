@@ -4,7 +4,7 @@ import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens 
 import * as THREE from '../lib/three.module.min.js';
 import {
   AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, WOODS, MATERIALS, ITEM,
-  doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId, portalId,
+  doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId, portalId, TALL_PLANTS,
 } from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World, CHUNK } from './world.js';
@@ -824,6 +824,8 @@ class Game {
       w.set(x, y, z, B.CHEST + b.dir * 2 + (b.open ? 0 : 1));
       this.sounds.door();
       if (!b.open) this.particles.sparkle(x + 0.1, y + 0.8, z + 0.1, x + 0.9, y + 1.4, z + 0.9, 12);
+    } else if (b.family === B.DINO_EGG) {
+      this.hatchEgg(hit);
     } else if (hit.id === B.JUKEBOX) {
       this.sounds.jukebox();
       this.particles.sparkle(x - 0.2, y + 1, z - 0.2, x + 1.2, y + 2.2, z + 1.2, 30);
@@ -927,10 +929,10 @@ class Game {
       return this.placed(x, y, z, nb);
     }
     // Zonnebloem: twee blokken hoog
-    if (id === B.SUNFLOWER) {
+    if (TALL_PLANTS.has(id)) {
       const up = w.get(x, y + 1, z);
       if (!OPAQUE[w.get(x, y - 1, z)] || !w.inside(x, y + 1, z) || !BLOCKS[up].replaceable) return nope();
-      this.apply([{ x, y, z, from: existing, to: B.SUNFLOWER }, { x, y: y + 1, z, from: up, to: B.SUNFLOWER + 1 }]);
+      this.apply([{ x, y, z, from: existing, to: id }, { x, y: y + 1, z, from: up, to: id + 1 }]);
       return this.placed(x, y, z, nb);
     }
     if (nb.climb) {
@@ -1316,6 +1318,24 @@ class Game {
     this.sounds.launch();
   }
 
+  // Tik op een dino-ei: het ei breekt en er komt een jonge dino uit (de kleur bepaalt welke soort)
+  hatchEgg(hit) {
+    const kinds = [['triceratops', 'stegosaurus', 'parasaur'], ['brachio', 'pteranodon'], ['trex', 'raptor']][BLOCKS[hit.id].egg] || ['triceratops'];
+    const type = kinds[Math.floor(Math.random() * kinds.length)];
+    const { x, y, z } = hit;
+    if (this.animals.full) { this.sounds.nope(); return; }
+    this.apply([{ x, y, z, from: hit.id, to: AIR }]);
+    const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, Math.atan2(-(this.player.x - x - 0.5), -(this.player.z - z - 0.5)));
+    if (!a) return;
+    a.baby = 600; a.show(0);
+    this.particles.burst(x, y, z, [[0.95, 0.92, 0.8], [0.8, 0.9, 0.6]], 30);
+    this.particles.heartsAt(a.x, a.y + 1, a.z, 1.2);
+    this.sounds.pop(); this.sounds.animal(type);
+    this.discoverAnimal(a);
+    this.onHatch?.(a);
+    this.markDirty();
+  }
+
   openTreasure(hit) {
     this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: B.TREASURE, to: B.TREASURE_OPEN }]);
     this.particles.sparkle(hit.x - .4, hit.y + .2, hit.z - .4,
@@ -1346,7 +1366,7 @@ class Game {
     const to = b.waterlogged ? B.WATER : AIR;
     if (WATERY[hit.id] && b.render === 'water') { this.sounds.nope(); return; } // water sloop je niet, daar is de emmer voor
     const changes = [{ x, y, z, from: hit.id, to }];
-    if (b.shape === 'door' || b.family === B.SUNFLOWER) {
+    if (b.shape === 'door' || TALL_PLANTS.has(b.family)) {
       const oy = b.upper ? y - 1 : y + 1;
       const other = w.get(x, oy, z);
       if (BLOCKS[other].family === b.family && BLOCKS[other].upper !== b.upper) changes.push({ x, y: oy, z, from: other, to: AIR });
@@ -1453,9 +1473,11 @@ class Game {
       // camera schuin boven en achter het poppetje (dan staat het poppetje niet midden in beeld),
       // en niet door muren heen
       const cp = Math.cos(p.pitch), riding = !!p.riding;
-      const origin = new THREE.Vector3(p.x, p.y + 1.45, p.z);
+      // op een grote dino zit je hoger, en hangt de camera verder weg
+      const seat = riding ? (p.riding.def?.zadel ?? 0.66) - 0.66 : 0;
+      const origin = new THREE.Vector3(p.x, p.y + 1.45 + seat, p.z);
       const want = new THREE.Vector3(Math.sin(p.yaw) * cp, -Math.sin(p.pitch), Math.cos(p.yaw) * cp)
-        .multiplyScalar(riding ? RIDE_BACK : CAM_BACK).add(new THREE.Vector3(0, riding ? RIDE_UP : CAM_UP, 0));
+        .multiplyScalar(riding ? RIDE_BACK + seat * 1.5 : CAM_BACK).add(new THREE.Vector3(0, riding ? RIDE_UP : CAM_UP, 0));
       const len = want.length();
       const dir = want.divideScalar(len);
       const wall = raycast(this.world, origin, dir, len, (id) => OPAQUE[id] === 1);
@@ -1631,6 +1653,15 @@ class Game {
         }
       }
       if (fires && Math.random() < 0.7) this.sounds.crackle();
+      // Bij de vulkanen: rook uit gloeiende magmasteen bovenop de bergen
+      if (this.world.type === 'dino') {
+        for (let i = 0; i < 6; i++) {
+          const x = px + Math.floor((Math.random() - 0.5) * 70), z = pz + Math.floor((Math.random() - 0.5) * 70);
+          if (!w.isLoaded(x, z)) continue;
+          const top = w.surfaceY(x, z);
+          if (w.get(x, top, z) === B.MAGMA && top > 70) { for (let k = 0; k < 3; k++) this.particles.volcanoSmokeAt(x + 0.5, top + 1.5, z + 0.5); break; }
+        }
+      }
     }
   }
 

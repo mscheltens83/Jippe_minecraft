@@ -43,6 +43,9 @@ export class GameScene {
 
     // Alle tegels in één texture-array (één laag per tegel). Zo kunnen er mipmaps bij zonder dat
     // tegels in elkaar overlopen: dichtbij scherpe pixels, in de verte rustig in plaats van flikkerend.
+    // WebGL2 belooft minstens 256 lagen; de iPad (en de test-browser) kan er 2048.
+    const gl = this.renderer.getContext(), maxLayers = gl.getParameter(gl.MAX_ARRAY_TEXTURE_LAYERS);
+    if (atlas.count > maxLayers) console.warn(`Te veel tegels (${atlas.count}) voor deze videokaart (${maxLayers})`);
     const tiles = this.tiles = new THREE.DataArrayTexture(atlas.layers, 16, 16, atlas.count);
     tiles.format = THREE.RGBAFormat;
     tiles.type = THREE.UnsignedByteType;

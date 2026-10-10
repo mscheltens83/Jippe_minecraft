@@ -55,7 +55,7 @@ export class Avatar {
     this.arms[0].rotation.z = -0.9 * fly - 0.05;
     this.arms[1].rotation.z = 0.9 * fly + 0.05;
     this.head.rotation.x = Math.max(-0.7, Math.min(0.7, p.pitch * 0.7));
-    this.group.position.set(p.x, p.y + (p.riding ? 0.66 : 0), p.z);
+    this.group.position.set(p.x, p.y + (p.riding ? p.riding.def?.zadel ?? 0.66 : 0), p.z);
     this.group.rotation.y = p.yaw;
   }
 }

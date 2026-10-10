@@ -47,6 +47,15 @@ export const BIOMES = {
     dieren: [['lion', 2], ['lioness', 1], ['cheetah', 2], ['elephant', 2], ['giraffe', 2], ['zebra', 4], ['hippo', 1], ['meerkat', 3]],
     weer: null, achtergrond: 'krekels', muziek: 'savanne',
   },
+  dino: {
+    naam: 'Dinowereld', icon: 'dino', zee: true, kies: true,
+    lucht: sky('#5aa6d6', '#e8e0b8', '#d8d4b0', 40, 120, 34, '#fff0b8'),
+    grond: { top: B.GRASS, onder: B.DIRT, onderWater: B.SAND }, hoogte: { basis: 13, heuvels: 5, schaal: 24 },
+    bomen: [{ soort: 'cycad', dichtheid: 0.004 }, { soort: 'treeFern', dichtheid: 0.003 }],
+    planten: [{ blok: B.FERN, dichtheid: 0.1 }, { blok: B.HORSETAIL, dichtheid: 0.05 }],
+    bouwwerken: ['nest', 'dig'], dieren: [['triceratops', 3], ['stegosaurus', 2], ['parasaur', 3], ['raptor', 2], ['pteranodon', 2], ['brachio', 1], ['trex', 1]],
+    achtergrond: 'vogels', muziek: 'dino',
+  },
   adventure: { naam: 'Avontuur', icon: 'adventure', zee: true, lucht: oldSky },
 
   // ---------- landschappen in de Grote wereld (naast jungle, woestijn, toendra en savanne) ----------
@@ -99,6 +108,24 @@ export const BIOMES = {
     planten: [{ blok: B.BAMBOO, dichtheid: 0.09, hoog: [4, 9] }, { blok: B.FERN, dichtheid: 0.05 }, { blok: B.JUNGLE_FLOWER, dichtheid: 0.01 }],
     dieren: [['panda', 3], ['parrot', 2], ['monkey', 1]], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'jungle',
   },
+  // ---------- landschappen in de Dinowereld (fase 5A) ----------
+  dinoPlains: {
+    naam: 'Varenvlakte', lucht: sky('#5aa6d6', '#e8e0b8', '#d8d4b0', 40, 120, 34, '#fff0b8'), grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'cycad', dichtheid: 0.004 }, { soort: 'treeFern', dichtheid: 0.002 }],
+    planten: [{ blok: B.FERN, dichtheid: 0.1 }, { blok: B.HORSETAIL, dichtheid: 0.05 }, { blok: B.GIANT_FERN, dichtheid: 0.015, boven: B.GIANT_FERN + 1 }, { blok: B.TALLGRASS, dichtheid: 0.04 }],
+    bouwwerken: ['nest', 'dig'], dieren: [['triceratops', 3], ['stegosaurus', 2], ['parasaur', 3], ['trex', 1], ['raptor', 2]], achtergrond: 'vogels', muziek: 'dino',
+  },
+  dinoForest: {
+    naam: 'Oerbos', lucht: sky('#4f9ccf', '#cfe2bf', '#bcd4ac', 32, 100, 36), grond: { top: B.MOSS, onder: B.DIRT },
+    bomen: [{ soort: 'araucaria', dichtheid: 0.006 }, { soort: 'treeFern', dichtheid: 0.03 }, { soort: 'cycad', dichtheid: 0.01 }],
+    planten: [{ blok: B.GIANT_FERN, dichtheid: 0.06, boven: B.GIANT_FERN + 1 }, { blok: B.FERN, dichtheid: 0.12 }, { blok: B.HORSETAIL, dichtheid: 0.03 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.004 }],
+    bouwwerken: ['nest'], dieren: [['brachio', 2], ['raptor', 2], ['pteranodon', 1], ['stegosaurus', 1]], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'dino',
+  },
+  volcano: {
+    naam: 'Vulkanen', lucht: sky('#7f93a8', '#d9b9a0', '#b8a090', 30, 100, 24, '#ffd8a0'), grond: { top: B.BASALT, onder: B.BASALT },
+    bomen: [], planten: [{ blok: B.DEAD_BUSH, dichtheid: 0.004 }],
+    dieren: [['pteranodon', 2]], weer: 'as', achtergrond: 'wind', muziek: 'dino',
+  },
   swamp: {
     naam: 'Moeras', lucht: sky('#5f8fae', '#b9c9a8', '#a8b898', 30, 95, 40), grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'swampOak', dichtheid: 0.012 }],
@@ -115,7 +142,7 @@ export const BIOMES = {
 };
 
 // De soorten wereld die je kunt hebben (de rest zijn landschappen binnen een wereld)
-export const WORLD_TYPES = ['world', 'island', 'flat', 'jungle', 'desert', 'tundra', 'savanna', 'adventure'];
+export const WORLD_TYPES = ['world', 'island', 'flat', 'jungle', 'desert', 'tundra', 'savanna', 'dino', 'adventure'];
 export const worldType = (t) => (WORLD_TYPES.includes(t) ? t : 'island');
 
 const smooth = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };

@@ -10,7 +10,7 @@ import { VILLAGE_RADIUS } from './engine/village.js';
 import { updateHunt } from './animals/hunt.js';
 export { SPECIES, MAX_ANIMALS } from './animals/species.js';
 
-const GROUND = [B.GRASS, B.DRY_GRASS, B.SAND, B.RED_SAND, B.RED_DIRT, B.MUD, B.SNOW, B.ICE, B.PACKED_ICE];
+const GROUND = [B.GRASS, B.MOSS, B.BASALT, B.DRY_GRASS, B.SAND, B.RED_SAND, B.RED_DIRT, B.MUD, B.SNOW, B.ICE, B.PACKED_ICE];
 export class Animals {
   constructor(scene, effects = null) {
     this.scene = scene; this.effects = effects; this.list = []; this.frame = 0;

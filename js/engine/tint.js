@@ -25,6 +25,10 @@ export const TINTS = {
 };
 TINTS.island = TINTS.flat = TINTS.world = TINTS.adventure = TINTS.plains;
 TINTS.bamboo = TINTS.jungle;
+// Dinowereld (fase 5A): fris oergroen, in het oerbos donkerder
+TINTS.dino = TINTS.dinoPlains = [0x7cc44e, 0x5aae2e, 0x3a8fd0];
+TINTS.dinoForest = [0x5fae3c, 0x3f9a24, 0x2f7fb8];
+TINTS.volcano = [0x8a9a5a, 0x6f8a40, 0x4a6f80];
 export const DEFAULT_TINT = TINTS.plains;
 
 // Welke blokken meekleuren: 1 = graskleur, 2 = bladkleur, 3 = waterkleur

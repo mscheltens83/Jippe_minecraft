@@ -61,16 +61,25 @@ export const B = {
   WATER_FLOW: 560,   // 560..566: stromend water (1 = vlak bij de bron, 7 = het verst); 567: vallend water
   PORTAL_STONE: 570, // 570..573: portaalsteen in 4 kleuren (fase 4H)
   PORTAL: 574,       // 574..581: portaallicht (kleur x 2 + richting: 0 = langs x, 1 = langs z)
+  // Dinowereld (fase 5A)
+  BASALT: 590, MAGMA: 591, MOSS: 592, TREE_FERN_LOG: 593, TREE_FERN_LEAVES: 594, ARAUCARIA_LOG: 595, ARAUCARIA_LEAVES: 596,
+  GIANT_FERN: 597,   // 597 onder, 598 boven
+  HORSETAIL: 599, FOSSIL: 600, AMBER: 601,
+  DINO_EGG: 602,     // 602..604: dino-ei in 3 kleuren
+  PORTAL_STONE_RED: 605, PORTAL_RED: 606, // rode portaalsteen en het licht (606 langs x, 607 langs z)
 };
 
 // Portalen (fase 4H): elke kleur portaalsteen gaat naar een andere themawereld
+// stone: id van de portaalsteen, portal: id van het licht langs x (langs z is één verder)
 export const PORTAL_COLORS = [
-  { key: 'green', name: 'Groene', short: 'Groen', theme: 'jungle' },
-  { key: 'yellow', name: 'Gele', short: 'Geel', theme: 'desert' },
-  { key: 'white', name: 'Witte', short: 'Wit', theme: 'tundra' },
-  { key: 'orange', name: 'Oranje', short: 'Oranje', theme: 'savanna' },
+  { key: 'green', name: 'Groene', short: 'Groen', theme: 'jungle', stone: B.PORTAL_STONE, portal: B.PORTAL },
+  { key: 'yellow', name: 'Gele', short: 'Geel', theme: 'desert', stone: B.PORTAL_STONE + 1, portal: B.PORTAL + 2 },
+  { key: 'white', name: 'Witte', short: 'Wit', theme: 'tundra', stone: B.PORTAL_STONE + 2, portal: B.PORTAL + 4 },
+  { key: 'orange', name: 'Oranje', short: 'Oranje', theme: 'savanna', stone: B.PORTAL_STONE + 3, portal: B.PORTAL + 6 },
+  { key: 'red', name: 'Rode', short: 'Rood', theme: 'dino', stone: B.PORTAL_STONE_RED, portal: B.PORTAL_RED },
 ];
-export const portalId = (color, axis) => B.PORTAL + color * 2 + axis;
+export const portalId = (color, axis) => PORTAL_COLORS[color].portal + axis;
+export const portalStoneId = (color) => PORTAL_COLORS[color].stone;
 
 // De 16 kleuren (zelfde volgorde als in Minecraft) met het id van de wol in die kleur
 export const COLORS = [
@@ -123,7 +132,7 @@ export const EMIT = new Uint8Array(MAX_ID);   // hoeveel licht een blok zelf gee
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
-const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal'];
+const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal', 'egg'];
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const render = opts.render || 'solid';
@@ -387,14 +396,37 @@ def(B.EMERALD_BLOCK, 'Smaragdblok', 'emerald_block', { sound: 'metal' });
 def(B.LAPIS_BLOCK, 'Lapisblok', 'lapis_block', { sound: 'metal' });
 def(B.SEA_LANTERN, 'Zeelantaarn', 'sea_lantern', { glow: true, light: 15, sound: 'glass' });
 PORTAL_COLORS.forEach((c, i) => {
-  def(B.PORTAL_STONE + i, c.name + ' portaalsteen', 'portal_stone_' + c.key, { light: 5, sound: 'stone', portalColor: i });
+  def(c.stone, c.name + ' portaalsteen', 'portal_stone_' + c.key, { light: 5, sound: 'stone', portalColor: i });
   // Het portaal zelf: een dun, gloeiend vlak waar je doorheen loopt
   for (const axis of [0, 1]) {
     def(portalId(i, axis), 'Portaal', 'portal_' + c.key, {
       render: 'shape', boxBuf: 'glass', glow: true, light: 11, solid: false, replaceable: false, sound: 'glass',
-      boxes: [axis ? [7 / 16, 0, 0, 9 / 16, 1, 1] : [0, 0, 7 / 16, 1, 1, 9 / 16]], portal: i, family: B.PORTAL_STONE + i,
+      boxes: [axis ? [7 / 16, 0, 0, 9 / 16, 1, 1] : [0, 0, 7 / 16, 1, 1, 9 / 16]], portal: i, family: c.stone,
     });
   }
+});
+
+// Dinowereld (fase 5A): vulkaansteen, oerplanten, fossielen en dino-eieren
+def(B.BASALT, 'Basalt', { top: 'basalt_top', side: 'basalt_side', bottom: 'basalt_top' });
+def(B.MAGMA, 'Magmasteen', 'magma', { glow: true, light: 10 }); // gloeit, maar is niet heet
+def(B.MOSS, 'Mos', 'moss', { sound: 'grass' });
+def(B.TREE_FERN_LOG, 'Varenstam', logTex('tree_fern_log'), { sound: 'wood' });
+def(B.TREE_FERN_LEAVES, 'Varenkruin', 'tree_fern_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.ARAUCARIA_LOG, 'Apenboomstam', logTex('araucaria_log'), { sound: 'wood' });
+def(B.ARAUCARIA_LEAVES, 'Apenboombladeren', 'araucaria_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.GIANT_FERN, 'Reuzenvaren', 'giant_fern_bottom', { render: 'cross', sound: 'grass', family: B.GIANT_FERN, icon: 'giant_fern_top' });
+def(B.GIANT_FERN + 1, 'Reuzenvaren', 'giant_fern_top', { render: 'cross', sound: 'grass', family: B.GIANT_FERN, upper: true });
+def(B.HORSETAIL, 'Paardenstaart', 'horsetail', { render: 'cross', sound: 'grass' });
+def(B.FOSSIL, 'Fossiel', 'fossil');
+def(B.AMBER, 'Barnsteen', 'amber', { render: 'glass', sound: 'glass', light: 3 });
+// Planten van twee blokken hoog (het bovenste blok is één verder)
+export const TALL_PLANTS = new Set([B.SUNFLOWER, B.GIANT_FERN]);
+export const EGG_COLORS = [{ key: 'green', name: 'Groen' }, { key: 'blue', name: 'Blauw' }, { key: 'red', name: 'Rood' }];
+EGG_COLORS.forEach((c, i) => {
+  def(B.DINO_EGG + i, c.name + ' dino-ei', 'dino_egg_' + c.key, {
+    render: 'shape', sound: 'wool', family: B.DINO_EGG, egg: i,
+    boxes: [[4 / 16, 0, 4 / 16, 12 / 16, 9 / 16, 12 / 16], [5 / 16, 9 / 16, 5 / 16, 11 / 16, 12 / 16, 11 / 16]],
+  });
 });
 
 // Hout: planken van de andere soorten en liggende stammen
@@ -552,7 +584,9 @@ export const ITEM = {
   // Minecraft-dieren (fase 4G)
   COW: 60037, HORSE: 60038, DOG: 60039, CAT: 60040, RABBIT: 60041, FOX: 60042, BEE: 60043, GOAT: 60044, LLAMA: 60045, FISH: 60046, DOLPHIN: 60047, SQUID: 60048,
   VILLAGER: 60049, GOLEM: 60050, VILLAGE_HOUSE: 60051, WELL: 60052,
-  PORTAL_STAMP: 60053, // 60053..60056: portaal-stempel in 4 kleuren (fase 4H)
+  PORTAL_STAMP: 60053, // 60053..60057: portaal-stempel in 5 kleuren (fase 4H, rood in 5A)
+  // Dino's (fase 5A)
+  TREX: 60058, BRACHIO: 60059, TRICERATOPS: 60060, STEGOSAURUS: 60061, PARASAUR: 60062, PTERANODON: 60063, RAPTOR: 60064,
   WAND: 60104,         // toverstaf: steekt een portaal aan
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
@@ -615,6 +649,13 @@ export const SPECIALS = {
   [ITEM.FISH]: { name: 'Vis', kind: 'animal', animal: 'fish' },
   [ITEM.DOLPHIN]: { name: 'Dolfijn', kind: 'animal', animal: 'dolphin' },
   [ITEM.SQUID]: { name: 'Inktvis', kind: 'animal', animal: 'squid' },
+  [ITEM.TREX]: { name: 'T-rex', kind: 'animal', animal: 'trex' },
+  [ITEM.BRACHIO]: { name: 'Brachiosaurus', kind: 'animal', animal: 'brachio' },
+  [ITEM.TRICERATOPS]: { name: 'Triceratops', kind: 'animal', animal: 'triceratops' },
+  [ITEM.STEGOSAURUS]: { name: 'Stegosaurus', kind: 'animal', animal: 'stegosaurus' },
+  [ITEM.PARASAUR]: { name: 'Parasaurolophus', kind: 'animal', animal: 'parasaur' },
+  [ITEM.PTERANODON]: { name: 'Pteranodon', kind: 'animal', animal: 'pteranodon' },
+  [ITEM.RAPTOR]: { name: 'Velociraptor', kind: 'animal', animal: 'raptor' },
 };
 
 export function itemName(id) { return SPECIALS[id]?.name ?? BLOCKS[id]?.name ?? ''; }
@@ -638,6 +679,7 @@ export const FAMILIES = new Map([
   [B.DOOR, WOODS.map((_, w) => doorId(0, false, false, w))],
   [bedId(0, false), BED_COLORS.map((_, c) => bedId(c, false))],
   [ITEM.PORTAL_STAMP, PORTAL_COLORS.map((_, i) => ITEM.PORTAL_STAMP + i)],
+  [B.DINO_EGG, EGG_COLORS.map((_, i) => B.DINO_EGG + i)],
 ]);
 export const PALETTE_GROUPS = [
   group('Bouwen', [
@@ -667,6 +709,8 @@ export const PALETTE_GROUPS = [
     { title: 'Toendra', icon: 'tundra', items: [B.SPRUCE_LEAVES, B.SNOWY_LEAVES] },
     { title: 'Savanne', icon: 'savanna', items: [B.DRY_GRASS, B.ACACIA_LEAVES, B.TALL_DRY_GRASS, B.TERMITE, B.MUD] },
     { title: 'Bos en moeras', icon: 'bigWorld', items: [B.BIRCH_LEAVES] },
+    { title: 'Dinowereld', icon: 'dino', items: [B.MOSS, B.BASALT, B.MAGMA, B.TREE_FERN_LOG, B.TREE_FERN_LEAVES, B.ARAUCARIA_LOG, B.ARAUCARIA_LEAVES,
+      B.GIANT_FERN, B.HORSETAIL, B.FOSSIL, B.AMBER, B.DINO_EGG] },
     { title: 'Onder de grond', icon: 'pick', items: [B.COAL_ORE, B.IRON_ORE, B.COPPER_ORE, B.GOLD_ORE, B.LAPIS_ORE, B.REDSTONE_ORE, B.DIAMOND_ORE, B.EMERALD_ORE] },
   ]),
   group('Licht en huis', [
@@ -681,7 +725,7 @@ export const PALETTE_GROUPS = [
   ]),
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK, ITEM.VILLAGE_HOUSE, ITEM.WELL] },
   group('Portalen', [
-    { title: 'Portaalsteen', icon: 'portal', items: PORTAL_COLORS.map((_, i) => B.PORTAL_STONE + i) },
+    { title: 'Portaalsteen', icon: 'portal', items: PORTAL_COLORS.map((c) => c.stone) },
     { title: 'Toverstaf en stempel', icon: 'wand', items: [ITEM.WAND, ITEM.PORTAL_STAMP] },
   ]),
   group('Dieren', [
@@ -694,6 +738,7 @@ export const PALETTE_GROUPS = [
     { title: 'Bergen', icon: 'bigWorld', items: [ITEM.GOAT, ITEM.LLAMA] },
     { title: 'Zee', icon: 'worlds', items: [ITEM.FISH, ITEM.DOLPHIN, ITEM.SQUID] },
     { title: 'Dorp', icon: 'house', items: [ITEM.VILLAGER, ITEM.GOLEM] },
+    { title: "Dino's", icon: 'dino', items: [ITEM.TREX, ITEM.BRACHIO, ITEM.TRICERATOPS, ITEM.STEGOSAURUS, ITEM.PARASAUR, ITEM.PTERANODON, ITEM.RAPTOR] },
   ]),
 ];
 // Alles wat je kunt kiezen (ook de soorten binnen een familie), zonder dubbele
