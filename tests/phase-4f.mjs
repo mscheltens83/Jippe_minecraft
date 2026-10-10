@@ -1,4 +1,5 @@
-// Fase 4F (deel 1): nieuwe blokken, standen bij het plaatsen en natuurkunde.
+// Fase 4F: nieuwe blokken, standen bij het plaatsen en natuurkunde (deel 1); kist met families,
+// blok kopiëren, de hand, sprinten, sluipen, dubbeltik vliegen en duiken (deel 2).
 import { waitTrue } from './helpers.mjs';
 
 export async function testPhase4F({ newPage, check, out }) {
@@ -13,7 +14,18 @@ export async function testPhase4F({ newPage, check, out }) {
     'de kist heeft een tabblad Kleuren met 16 kleuren wol, tapijt, beton, terracotta, glas en panelen');
   await page.screenshot({ path: out + '/4f-kist-kleuren.png' });
   await page.locator('.pal-tab[aria-label="Bouwen"]').tap();
-  await page.locator('.pal-item[aria-label="Berken trap"]').tap();
+  // families staan als één vakje; ingedrukt houden toont de soorten
+  check(await page.locator('.pal-item[aria-label="Berken trap"]').count() === 0, 'de berken trap staat niet als los vakje in de kist');
+  await page.locator('.pal-item[aria-label="Trap"]').dispatchEvent('pointerdown');
+  await page.waitForTimeout(700);
+  await page.locator('.pal-item[aria-label="Trap"]').dispatchEvent('pointerup');
+  check(await page.locator('.pal-variant').count() === 11, 'ingedrukt houden op de trap toont 11 soorten');
+  check(await run(() => {
+    const r = document.querySelector('.pal-variants').getBoundingClientRect();
+    return r.left >= 0 && r.top >= 0 && r.right <= innerWidth && r.bottom <= innerHeight;
+  }), 'de rij met soorten past in beeld');
+  await page.screenshot({ path: out + '/4f-soorten.png' });
+  await page.locator('.pal-variant[aria-label="Berken trap"]').tap();
   check(await run(async () => {
     const { stairsId } = await import('./js/blocks.js');
     const j = window.__jippecraft;
@@ -21,7 +33,7 @@ export async function testPhase4F({ newPage, check, out }) {
   }), 'een berken trap kiezen uit de kist werkt');
   check(await run(async () => {
     const { PALETTE, BLOCKS, isSpecial } = await import('./js/blocks.js');
-    return PALETTE.length > 280 && PALETTE.every((id) => isSpecial(id) || BLOCKS[id]) && document.querySelectorAll('.pal-item img').length === PALETTE.length;
+    return PALETTE.length > 280 && document.querySelectorAll('.pal-item').length < PALETTE.length && document.querySelectorAll('.pal-item.family').length >= 8 && PALETTE.every((id) => isSpecial(id) || BLOCKS[id]) && PALETTE.every((id) => window.__jippecraft.ui.icons[id]);
   }), 'alle blokken in de kist hebben een plaatje');
 
   // ---------- standen ----------
@@ -145,5 +157,137 @@ export async function testPhase4F({ newPage, check, out }) {
     j.applySave(s);
     return j.hotbar[7] === 60013 && j.hotbar[8] === 60000;
   }), 'een oude onderbalk (stempels en dieren met nummer 200+) werkt nog');
+  await context.close();
+}
+
+export async function testPhase4F2({ newPage, check, out }) {
+  const { context, page } = await newPage();
+  const run = (fn, arg) => page.evaluate(fn, arg);
+  await page.locator('.play-btn').tap();
+
+  // Een vlak plateau om op te testen
+  const spot = await run(async () => {
+    const { B } = await import('./js/blocks.js');
+    const j = window.__jippecraft, w = j.world, p = j.player, x0 = Math.floor(p.x), z0 = Math.floor(p.z);
+    let y = 0;
+    for (let x = x0 - 3; x <= x0 + 3; x++) for (let z = z0 - 6; z <= z0 + 3; z++) y = Math.max(y, w.surfaceY(x, z) + 1);
+    for (let x = x0 - 3; x <= x0 + 3; x++) for (let z = z0 - 6; z <= z0 + 3; z++) {
+      w.set(x, y, z, B.STONE);
+      for (let dy = 1; dy <= 4; dy++) w.set(x, y + dy, z, 0);
+    }
+    return { x: x0, y: y + 1, z: z0 };
+  });
+
+  // ---------- blok kopiëren: kistknop vasthouden en op een blok tikken ----------
+  await run(async ({ x, y, z }) => {
+    const { B } = await import('./js/blocks.js');
+    const j = window.__jippecraft, p = j.player;
+    j.world.set(x, y + 1, z - 3, B.SPRUCE_PLANKS);
+    p.flying = true; p.vx = p.vy = p.vz = 0;
+    p.setPos({ x: x + 0.5, y, z: z + 0.5 }); p.yaw = 0; p.pitch = 0;
+    j.sel = 0; j.hotbar[0] = B.GRASS; j.refreshUI();
+  }, spot);
+  await page.waitForTimeout(300);
+  await page.locator('.slot.chest').dispatchEvent('pointerdown');
+  await page.waitForTimeout(500);
+  const picked = await run(async () => {
+    const { B } = await import('./js/blocks.js');
+    const j = window.__jippecraft;
+    const holding = document.querySelector('.slot.chest').classList.contains('picking');
+    j.act({ x: innerWidth / 2, y: innerHeight / 2 });
+    return holding && j.hotbar[j.sel] === B.SPRUCE_PLANKS;
+  });
+  await page.locator('.slot.chest').dispatchEvent('pointerup');
+  check(picked, 'kistknop vasthouden en op een blok tikken: dat blok komt in je hand');
+  check(await run(() => !window.__jippecraft.ui.paletteOpen && !window.__jippecraft.ui.picking), 'na het kopiëren gaat de kist niet open');
+  check(await run(async ({ x, y, z }) => {
+    const m = await import('./js/blocks.js');
+    const j = window.__jippecraft;
+    j.world.set(x, y + 1, z - 3, m.stairsId(4, 2, true)); // een omgekeerde acacia trap
+    j.pickBlock({ x, y: y + 1, z: z - 3, id: j.world.get(x, y + 1, z - 3) });
+    const stairs = j.hotbar[j.sel] === m.stairsId(4, 0);
+    j.world.set(x, y + 1, z - 3, m.B.WHEAT + 2);
+    j.pickBlock({ x, y: y + 1, z: z - 3, id: m.B.WHEAT + 2 });
+    return stairs && j.hotbar[j.sel] === m.ITEM.WHEAT_SEEDS;
+  }, spot), 'kopiëren geeft de gewone soort (trap rechtop, zaadjes van tarwe)');
+
+  // ---------- de hand ----------
+  await page.waitForTimeout(300);
+  check(await run(() => { const h = window.__jippecraft.hand; return h.group.visible && h.holder.children.length === 1; }), 'rechtsonder is je hand met het blok te zien');
+  await page.screenshot({ path: out + '/4f-hand.png' });
+  await run(async () => { const { ITEM } = await import('./js/blocks.js'); window.__jippecraft.pick(ITEM.BUCKET); });
+  const plane = await waitTrue(page, () => window.__jippecraft.hand.holder.children[0]?.geometry.type === 'PlaneGeometry', null, 5000);
+  await run(() => window.__jippecraft.toggleCamera());
+  const hidden = await waitTrue(page, () => !window.__jippecraft.hand.group.visible, null, 5000);
+  await run(() => window.__jippecraft.toggleCamera());
+  check(plane && hidden, 'een emmer houd je als plaatje vast, en van achteren zie je de hand niet');
+
+  // ---------- dubbeltik vliegen ----------
+  check(await run(() => {
+    const j = window.__jippecraft, p = j.player;
+    p.flying = false;
+    j.jumpTap(); j.jumpTap();
+    const on = p.flying;
+    j.lastJumpTap = 0; j.jumpTap();
+    const once = p.flying;
+    j.lastJumpTap = 0; j.jumpTap(); j.jumpTap();
+    return on && once && !p.flying;
+  }), 'twee keer snel op springen tikken zet vliegen aan en uit');
+
+  // ---------- sprinten ----------
+  await run(({ x, y, z }) => {
+    const j = window.__jippecraft, p = j.player;
+    p.flying = false; p.setPos({ x: x + 0.5, y, z: z + 2.5 }); p.yaw = 0;
+    j.input.stick.x = 0; j.input.stick.y = 1;
+  }, spot);
+  check(await waitTrue(page, () => window.__jippecraft.player.sprinting && window.__jippecraft.scene.camera.fov > 76, null, 15000),
+    'de stuurknop een seconde helemaal naar voren: sprinten met een bredere kijkhoek');
+  await run(() => { const j = window.__jippecraft; j.input.stick.x = 0; j.input.stick.y = 0; });
+  check(await waitTrue(page, () => !window.__jippecraft.player.sprinting && window.__jippecraft.scene.camera.fov < 73, null, 8000), 'loslaten: weer gewoon lopen');
+
+  // ---------- sluipen op een rand van 10 hoog ----------
+  check(await run(() => !document.querySelector('.down-btn').hidden && document.querySelector('.down-btn').getAttribute('aria-label') === 'Sluipen'),
+    'de omlaag-knop is er ook als je loopt (om te sluipen)');
+  const tower = await run(async ({ x, y, z }) => {
+    const { B } = await import('./js/blocks.js');
+    const j = window.__jippecraft, w = j.world, p = j.player, tx = x + 1, tz = z - 5;
+    for (let dy = 0; dy < 10; dy++) w.set(tx, y + dy, tz, B.STONE);
+    for (let dy = 10; dy < 14; dy++) for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) w.set(tx + dx, y + dy, tz + dz, 0);
+    for (let dy = 0; dy < 10; dy++) for (let dx = -3; dx <= -1; dx++) for (let dz = -1; dz <= 1; dz++) w.set(tx + dx, y + dy, tz + dz, 0); // vrij om te vallen
+    p.flying = false; p.vx = p.vy = p.vz = 0;
+    p.setPos({ x: tx + 0.5, y: y + 10, z: tz + 0.5 }); p.yaw = Math.PI / 2; // kijk naar -x
+    j.input.downButton = true;
+    j.input.stick.x = 0; j.input.stick.y = 1;
+    return { y: y + 10, x: tx };
+  }, spot);
+  // lopen tot aan de rand (het testscherm is traag), en dan nog even doorduwen
+  const atEdge = await waitTrue(page, (tx) => window.__jippecraft.player.x < tx + 0.1, tower.x, 20000);
+  await page.waitForTimeout(2000);
+  const edge = await run(() => {
+    const j = window.__jippecraft, p = j.player;
+    const r = { y: p.y, sneaking: p.sneaking };
+    j.input.downButton = false; j.input.stick.y = 0;
+    return r;
+  });
+  check(atEdge && edge.sneaking && Math.abs(edge.y - tower.y) < 0.01, 'sluipen houdt je op een rand van 10 hoog');
+  await run(() => { window.__jippecraft.input.stick.y = 1; });
+  const fell = await waitTrue(page, (y) => window.__jippecraft.player.y < y - 1, tower.y, 15000);
+  await run(() => { window.__jippecraft.input.stick.y = 0; });
+  check(fell, 'zonder sluipen loop je er wel af');
+
+  // ---------- duiken ----------
+  check(await run(async ({ x, y, z }) => {
+    const { B } = await import('./js/blocks.js');
+    const j = window.__jippecraft, w = j.world, p = j.player;
+    j.physics.enabled = false;
+    for (let dy = 0; dy < 6; dy++) w.set(x, y + dy, z, B.WATER);
+    p.flying = false; p.vx = p.vy = p.vz = 0; p.setPos({ x: x + 0.5, y: y + 4, z: z + 0.5 });
+    j.input.downButton = true;
+    let dive = false;
+    for (let i = 0; i < 40 && !dive; i++) { await new Promise((r) => setTimeout(r, 100)); dive = p.inWater && p.vy < -2.6; }
+    j.input.downButton = false;
+    j.physics.enabled = true;
+    return dive;
+  }, spot), 'omlaag houden in water: duiken');
   await context.close();
 }

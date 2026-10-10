@@ -3,7 +3,7 @@
 import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens het opstarten bewaard worden
 import * as THREE from '../lib/three.module.min.js';
 import {
-  AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, WOODS, MATERIALS,
+  AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, WOODS, MATERIALS, ITEM,
   doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId,
 } from './blocks.js';
 import { createAtlas } from './textures.js';
@@ -36,6 +36,7 @@ import { TINT_KIND } from './engine/tint.js';
 import { Physics } from './engine/physics.js';
 import { Animal } from './animals/core.js';
 import { showTextures } from './texview.js';
+import { Hand } from './hand.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
@@ -101,7 +102,7 @@ class Game {
       onMenu: () => this.openMenu(),
       onMode: (m) => this.setMode(m, true),
       onUndo: () => this.undo(),
-      onJump: (v) => { this.input.jumpButton = v; },
+      onJump: (v) => { this.input.jumpButton = v; if (v) this.jumpTap(); },
       onDown: (v) => { this.input.downButton = v; },
       onFly: () => this.player.riding ? this.dismount() : this.toggleFly(),
       onCamera: () => this.toggleCamera(),
@@ -132,6 +133,7 @@ class Game {
       },
     });
     this.input = new Input(this.canvas, this.ui.stickBase, this.ui.stickKnob);
+    this.hand = new Hand(this.scene.camera, this.atlas, this.ui.icons);
     this.input.onKey = (e) => this.key(e);
     this.player.onJump = () => this.sounds.jump();
     this.player.onBounce = () => this.sounds.boing();
@@ -559,6 +561,24 @@ class Game {
     this.ui.setCompass(Math.atan2(dx * cos - dz * sin, -dx * sin - dz * cos));
   }
 
+  // Twee keer snel op springen: vliegen aan of uit (zoals in Minecraft)
+  jumpTap() {
+    const now = performance.now();
+    if (now - (this.lastJumpTap || 0) < 300 && !this.player.riding) { this.toggleFly(); this.lastJumpTap = 0; return; }
+    this.lastJumpTap = now;
+  }
+
+  // Blok kopiëren: het blok dat je aantikt (of de juiste soort ervan) komt in je hand
+  pickBlock(hit) {
+    const b = BLOCKS[hit.id];
+    let id = b.family ?? hit.id;
+    if (b.crop) id = { wheat: ITEM.WHEAT_SEEDS, carrots: ITEM.CARROT, potatoes: ITEM.POTATO }[b.crop];
+    if (!PALETTE.includes(id)) { this.sounds.nope(); return; }
+    this.ui.markPicked();
+    this.pick(id);
+    this.particles.sparkle(hit.x, hit.y, hit.z, hit.x + 1, hit.y + 1, hit.z + 1, 12);
+  }
+
   toggleFly() {
     const p = this.player;
     p.flying = !p.flying;
@@ -664,6 +684,7 @@ class Game {
       return;
     }
     if (this.ui.paletteOpen) return;
+    if (e.code === 'Space') this.jumpTap();
     if (e.code === 'KeyF') this.toggleFly();
     else if (e.code === 'KeyE') this.openChest();
     else if (e.code === 'KeyC') this.toggleCamera();
@@ -707,9 +728,11 @@ class Game {
     const ray = this.setRay(tap.x, tap.y);
     const reach = this.reach();
     const hit = raycast(this.world, ray.origin, ray.direction, reach);
+    if (tap.pick || this.ui.picking) { if (hit) this.pickBlock(hit); return; }
     const pet = this.animals.pick(ray, reach);
     if (pet && this.animalInFront(pet, hit)) { this.petAnimal(pet.animal); return; }
     if (!hit) return;
+    this.hand.swing();
     const forceBreak = mode === 'break' && tap.alt;
     if (BLOCKS[hit.id].shape === 'door' && !forceBreak) { this.toggleDoor(hit); return; }
     if (BLOCKS[hit.id].shape === 'gate' && !forceBreak) { this.toggleGate(hit); return; }
@@ -1253,7 +1276,7 @@ class Game {
       cam.position.copy(origin).addScaledVector(dir, this.camDist);
     } else {
       this.camDist = 0;
-      cam.position.set(p.x, p.y + EYE, p.z);
+      cam.position.set(p.x, p.y + EYE - (p.sneaking ? 0.2 : 0), p.z); // sluipen: iets lager
     }
     cam.rotation.set(Math.max(-1.55, p.pitch + (this.thirdPerson && p.riding ? RIDE_TILT : 0)), p.yaw, 0);
   }
@@ -1290,6 +1313,7 @@ class Game {
     this.updateHold(dt);
     this.updateCamera(dt);
     this.avatar.update(dt, p, this.thirdPerson);
+    this.updateMotion(dt, now);
 
     // Randje om het blok onder de muis, of kort om het blok dat je net bouwde
     let hl = null;
@@ -1346,6 +1370,16 @@ class Game {
     if (p.inWater) { this.sounds.step('water'); return; }
     const id = this.world.get(Math.floor(p.x), Math.floor(p.y - 0.2), Math.floor(p.z));
     this.sounds.step(id === B.SNOW ? 'snow' : BLOCKS[id]?.sound);
+  }
+
+  // Hand in beeld, bredere kijkhoek en stofwolkjes bij sprinten
+  updateMotion(dt, now) {
+    const p = this.player, cam = this.scene.camera;
+    this.hand.setItem(this.hotbar[this.sel]);
+    this.hand.update(dt, p, this.playing && !this.thirdPerson && !p.riding && !this.bench && !this.ui.paletteOpen, this.avatar.mat.color);
+    const fov = p.sprinting ? 80 : 72;
+    if (Math.abs(cam.fov - fov) > 0.05) { cam.fov += (fov - cam.fov) * Math.min(1, dt * 8); cam.updateProjectionMatrix(); }
+    if (p.sprinting && p.onGround && now >= (this.nextDust || 0)) { this.particles.dustAt(p.x, p.y, p.z); this.nextDust = now + 0.15; }
   }
 
   // Zit de camera onder water? Dan blauwe mist, een blauwe tint en gedempt geluid

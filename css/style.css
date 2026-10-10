@@ -618,3 +618,22 @@ body, #app {
   position: absolute; inset: 0; pointer-events: none;
   background: radial-gradient(ellipse at center, rgba(40, 110, 220, 0.18), rgba(20, 60, 160, 0.38));
 }
+
+/* Familie in de kist: een hoekje laat zien dat er meer soorten zijn (ingedrukt houden) */
+.pal-item.family { position: relative; }
+.pal-item.family::after {
+  content: ''; position: absolute; right: 6px; top: 6px; width: 0; height: 0;
+  border-left: 14px solid transparent; border-top: 14px solid #ffd84a;
+}
+.pal-variants {
+  position: fixed; z-index: 40; display: flex; gap: 6px; padding: 8px; max-width: calc(100vw - 16px); overflow-x: auto;
+  background: #5b3a1f; border: 3px solid #fff; border-radius: 16px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+.pal-variant {
+  display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 76px; padding: 6px 4px;
+  border: 0; border-radius: 12px; background: #8a5a30; color: #fff; font: inherit; font-size: 12px;
+}
+.pal-variant img { width: 52px; height: 52px; image-rendering: pixelated; pointer-events: none; }
+.pal-variant:active { transform: scale(0.94); }
+/* Kistknop vastgehouden: tik op een blok om het te kopiëren */
+.slot.chest.picking { background: #ffd84a; transform: scale(1.08); }

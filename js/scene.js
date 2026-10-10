@@ -39,6 +39,7 @@ export class GameScene {
 
     this.camera = new THREE.PerspectiveCamera(72, 1, 0.08, 400);
     this.camera.rotation.order = 'YXZ';
+    this.scene.add(this.camera); // de hand hangt aan de camera
 
     // Alle tegels in één texture-array (één laag per tegel). Zo kunnen er mipmaps bij zonder dat
     // tegels in elkaar overlopen: dichtbij scherpe pixels, in de verte rustig in plaats van flikkerend.

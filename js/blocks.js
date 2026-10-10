@@ -583,6 +583,17 @@ export function upgradeItemId(id) { return id >= 200 && id < 300 ? id - 200 + IT
 // Volgorde in de kist: tabbladen met secties (een sectie heeft een kopje met een plaatje)
 const group = (title, sections) => ({ title, sections, items: sections.flatMap((x) => x.items) });
 const range = (from, n) => Array.from({ length: n }, (_, i) => from + i);
+// Families: in de kist één vakje (de eerste soort); ingedrukt houden toont alle soorten
+export const FAMILIES = new Map([
+  [B.LOG, WOODS.map((w) => w.log)],
+  [B.PLANKS, WOODS.map((w) => w.planks)],
+  [B.STAIRS, MATERIALS.map((_, m) => stairsId(m, 0))],
+  [slabId(0), MATERIALS.map((_, m) => slabId(m))],
+  [B.FENCE, [B.FENCE, ...range(B.FENCE2, 4)]],
+  [B.GATE, WOODS.map((_, w) => gateId(0, false, w))],
+  [B.DOOR, WOODS.map((_, w) => doorId(0, false, false, w))],
+  [bedId(0, false), BED_COLORS.map((_, c) => bedId(c, false))],
+]);
 export const PALETTE_GROUPS = [
   group('Bouwen', [
     { title: 'Aarde en steen', icon: 'build', items: [
@@ -590,10 +601,8 @@ export const PALETTE_GROUPS = [
       B.STONE_BRICKS, B.MOSSY_STONE_BRICKS, B.CRACKED_STONE_BRICKS, B.BRICK, B.SANDSTONE, B.CARVED_SANDSTONE,
       B.GRANITE, B.POLISHED_GRANITE, B.DIORITE, B.POLISHED_DIORITE, B.ANDESITE, B.POLISHED_ANDESITE, B.QUARTZ, B.OBSIDIAN,
       B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN] },
-    { title: 'Hout', icon: 'tree', items: [...WOODS.map((w) => w.log), ...WOODS.map((w) => w.planks), B.LEAVES, B.BOOKSHELF] },
-    { title: 'Trappen en platen', icon: 'jump', items: [...MATERIALS.map((_, m) => stairsId(m, 0)), ...MATERIALS.map((_, m) => slabId(m))] },
-    { title: 'Hekken en deuren', icon: 'home', items: [
-      B.FENCE, ...range(B.FENCE2, 4), ...WOODS.map((_, w) => gateId(0, false, w)), ...WOODS.map((_, w) => doorId(0, false, false, w))] },
+    { title: 'Hout', icon: 'tree', items: [B.LOG, B.PLANKS, B.STAIRS, slabId(0), B.FENCE, B.GATE, B.DOOR, B.LEAVES, B.BOOKSHELF] },
+    { title: 'Steen: trappen en platen', icon: 'jump', items: [...MATERIALS.map((_, m) => stairsId(m, 0)).slice(5), ...MATERIALS.map((_, m) => slabId(m)).slice(5)] },
     { title: 'Glas en water', icon: 'worlds', items: [B.GLASS, B.PANE, B.WATER, B.ICE, B.PACKED_ICE] },
     { title: 'Bijzonder', icon: 'chest', items: [
       B.GOLD, B.DIAMOND, B.IRON_BLOCK, B.COPPER_BLOCK, B.EMERALD_BLOCK, B.LAPIS_BLOCK, B.RAINBOW, B.BOUNCE, B.FIREWORK,
@@ -618,7 +627,7 @@ export const PALETTE_GROUPS = [
   group('Licht en huis', [
     { title: 'Licht', icon: 'torch', items: [B.TORCH, B.LANTERN, B.GLOWSTONE, B.JACK_O_LANTERN, B.CAMPFIRE, B.LAMP, B.SEA_LANTERN] },
     { title: 'In huis', icon: 'house', items: [B.CRAFTING_TABLE, B.FURNACE, B.CHEST, B.LADDER, B.FLOWER_POT, B.JUKEBOX, B.CAKE] },
-    { title: 'Bedden', icon: 'home', items: BED_COLORS.map((_, c) => bedId(c, false)) },
+    { title: 'Bedden', icon: 'home', items: [bedId(0, false)] },
   ]),
   group('Planten', [
     { title: 'Bloemen', icon: 'flower', items: [B.FLOWER_RED, B.FLOWER_YELLOW, B.CORNFLOWER, B.TULIP, B.SUNFLOWER, B.TALLGRASS, B.FERN, B.MUSHROOM_RED, B.MUSHROOM_BROWN] },
@@ -634,7 +643,11 @@ export const PALETTE_GROUPS = [
     { title: 'Toendra', icon: 'tundra', items: [ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
   ]),
 ];
-export const PALETTE = PALETTE_GROUPS.flatMap((g) => g.items);
+// Alles wat je kunt kiezen (ook de soorten binnen een familie), zonder dubbele
+export const PALETTE = [...new Set(PALETTE_GROUPS.flatMap((g) => g.items.flatMap((id) => FAMILIES.get(id) || [id])))];
+// Bij welke familie hoort dit vakje? (voor "blok kopiëren")
+export const FAMILY_OF = new Map();
+for (const [head, list] of FAMILIES) for (const id of list) FAMILY_OF.set(id, head);
 
 export const DEFAULT_HOTBAR = [
   B.GRASS, B.PLANKS, B.COBBLE, B.BRICK, B.GLASS, B.DOOR, B.WOOL_RED, B.RAINBOW, ITEM.HOUSE,

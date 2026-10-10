@@ -98,7 +98,7 @@ export class Input {
     this.pointers.delete(e.pointerId);
     if (p.stick) this.resetStick();
     if (!cancelled && this.enabled && !p.moved && !p.didBreak && e.timeStamp - p.t < TAP_TIME) {
-      this.taps.push({ x: p.sx, y: p.sy, alt: p.button === 2 });
+      this.taps.push({ x: p.sx, y: p.sy, alt: p.button === 2, pick: p.button === 1 }); // middelste muisknop: blok kopiëren
     }
   }
 
@@ -140,6 +140,7 @@ export class Input {
     this.move.y = this.enabled ? Math.max(-1, Math.min(1, ky + this.stick.y)) : 0;
     this.jump = this.enabled && (this.jumpButton || k.has('Space'));
     this.down = this.enabled && (this.downButton || k.has('ShiftLeft') || k.has('ShiftRight'));
+    this.sprint = this.enabled && (k.has('ControlLeft') || k.has('ControlRight'));
   }
 
   takeLook() {

@@ -17,7 +17,9 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Bouwen** | Groene knop bovenin aan, dan op een blok tikken. Het nieuwe blok komt tegen dat vlak aan |
 | **Toren bouwen** | Recht naar beneden kijken en op de grond onder je tikken: je wipt vanzelf op het nieuwe blok |
 | **Slopen** | Rode knop (houweel) bovenin aan, dan je vinger op een blok **vasthouden** tot het rondje vol is. Blijf je vasthouden, dan graaf je verder |
-| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft zeven tabbladen: Bouwen, Kleuren, Natuur, Licht en huis, Planten, Stempels en Dieren |
+| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft zeven tabbladen: Bouwen, Kleuren, Natuur, Licht en huis, Planten, Stempels en Dieren. Een vakje met een hoekje (trap, plaat, hek, deur, bed, …) is een familie: houd het ingedrukt en kies de houtsoort of kleur |
+| **Blok kopiëren** | Houd de kistknop ingedrukt en tik met een andere vinger op een blok in de wereld: dat blok komt in je hand (met de muis: middelste muisknop) |
+| **Hand** | Rechtsonder zie je je hand met het blok dat je vasthoudt. Hij zwaait als je bouwt of sloopt |
 | **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs, savannegras, berkenhout, paddenstoelen, waterlelies, bloemen, klei, graniet, grind en alle ertsen uit de kist. De plaatjes staan per landschap bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
 | **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
@@ -35,7 +37,10 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
 | **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
 | **Springen** | Grote pijl rechtsonder. Tegen een opstapje of trap lopen gaat vanzelf |
-| **Vliegen** | Veertje-knop. Pijl omhoog en omlaag om te stijgen en te dalen |
+| **Vliegen** | Veertje-knop, of twee keer snel op springen tikken. Pijl omhoog en omlaag om te stijgen en te dalen |
+| **Sprinten** | Houd de joystick een seconde helemaal naar voren: je rent, de kijkhoek wordt breder en er komen stofwolkjes (op een computer: Ctrl) |
+| **Sluipen** | Houd de omlaag-knop ingedrukt terwijl je loopt: je loopt langzaam en valt niet van een rand. Handig bij hoog bouwen |
+| **Zwemmen** | Houd springen ingedrukt in water om omhoog te zwemmen, omlaag om te duiken |
 | **Poppetje** | Knop rechtsboven: de camera gaat achter je hangen, zodat je jezelf ziet |
 | **Oeps!** | De terug-pijl rechtsboven zet de laatste acties terug (ook een hele stempel) |
 | **IJs** | Op ijs en pakijs glijd je nog even door als je de joystick loslaat |
@@ -79,7 +84,7 @@ Het dierenalbum telt ontdekkingen uit alle werelden samen. De stickers blijven b
 
 Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de muis kijkt rond,
 **klikken** bouwt (in de sloop-stand: muisknop vasthouden), **rechtermuisknop** doet het omgekeerde,
-**spatie** springt, **Shift** daalt, **F** vliegen, **C** poppetje, **M** muziek, **E** kist,
+**spatie** springt (twee keer snel: vliegen), **Shift** daalt of sluipt, **Ctrl** sprint, **middelste muisknop** kopieert een blok, **F** vliegen, **C** poppetje, **M** muziek, **E** kist,
 **Q** wisselen tussen bouwen en slopen, **1–9** blok kiezen, **Ctrl+Z** terug, **Esc** menu.
 
 ### Veilig voor kinderen
@@ -163,7 +168,8 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/scene.js` | Lucht, zon, maan, sterren, wolken, de zee rondom en de licht-shader |
 | `js/daynight.js` | De tijd van de dag (20 minuten per dag) |
 | `js/texview.js` | De testpagina `?texturen` |
-| `js/player.js` | Lopen, springen, vliegen, zwemmen en botsen |
+| `js/player.js` | Lopen, sprinten, sluipen, springen, vliegen, zwemmen en botsen |
+| `js/hand.js` | De hand met het blok rechtsonder in beeld |
 | `js/raycast.js` | Welk blok tik je aan? |
 | `js/input.js` | Touch, muis en toetsenbord |
 | `js/ui.js`, `js/icons.js` | Knoppen, onderbalk, kist en menu |

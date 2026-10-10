@@ -1,7 +1,7 @@
 // Alles wat je op het scherm ziet bovenop de 3D-wereld: knoppen, onderbalk, kist en menu.
 
 import { ICONS, iconURL } from './icons.js';
-import { ITEM, PALETTE_GROUPS, itemName, isSpecial } from './blocks.js';
+import { ITEM, PALETTE, PALETTE_GROUPS, FAMILIES, FAMILY_OF, itemName, isSpecial } from './blocks.js';
 import { drawBlockIcon } from './textures.js';
 import { BIOMES } from './biomes.js';
 import { VERSION } from './version.js';
@@ -87,10 +87,8 @@ export class UI {
   constructor(root, atlas, h) {
     this.h = h;
     this.icons = {};
-    for (const g of PALETTE_GROUPS) {
-      for (const id of g.items) {
-        this.icons[id] = isSpecial(id) ? iconURL(SPECIAL_ICONS[id]) : drawBlockIcon(atlas, id, 96).toDataURL();
-      }
+    for (const id of PALETTE) {
+      this.icons[id] = isSpecial(id) ? iconURL(SPECIAL_ICONS[id]) : drawBlockIcon(atlas, id, 96).toDataURL();
     }
 
     // --- spelknoppen ---
@@ -205,12 +203,24 @@ export class UI {
       for (const id of g.items) {
         const section = g.sections?.find((s) => s.items[0] === id);
         if (section) grid.appendChild(el('div', 'pal-section', `${ICONS[section.icon]}<span>${section.title}</span>`));
-        const b = el('button', 'pal-item' + (isSpecial(id) ? ' special' : ''));
+        const family = FAMILIES.get(id);
+        const b = el('button', 'pal-item' + (isSpecial(id) ? ' special' : '') + (family ? ' family' : ''));
         b.type = 'button';
         b.setAttribute('aria-label', itemName(id));
         b.innerHTML = `<img src="${this.icons[id]}" alt=""><span>${itemName(id)}</span>`;
         // 'click' in plaats van meteen bij aanraken, zodat je de kist ook kunt scrollen
-        b.addEventListener('click', () => { h.onPick(id); this.closePalette(); });
+        b.addEventListener('click', () => {
+          if (b.dataset.held) { delete b.dataset.held; return; }
+          h.onPick(id); this.closePalette();
+        });
+        // Familie: ingedrukt houden toont alle soorten (houtsoorten, kleuren, ...)
+        if (family) {
+          let timer = null;
+          const stop = () => clearTimeout(timer);
+          b.addEventListener('pointerdown', () => { stop(); timer = setTimeout(() => { b.dataset.held = '1'; this.showVariants(b, family); }, 450); });
+          for (const t of ['pointerup', 'pointercancel', 'pointerleave']) b.addEventListener(t, stop);
+          b.addEventListener('contextmenu', (e) => e.preventDefault());
+        }
         grid.appendChild(b);
       }
       this.palScroll.appendChild(grid);
@@ -225,6 +235,26 @@ export class UI {
     root.appendChild(this.palette);
     this.showGroup(0);
   }
+
+  // Een rij met alle soorten van een familie, net boven het vakje
+  showVariants(anchor, ids) {
+    this.hideVariants();
+    const row = this.variants = el('div', 'pal-variants');
+    for (const id of ids) {
+      const v = el('button', 'pal-variant');
+      v.type = 'button';
+      v.setAttribute('aria-label', itemName(id));
+      v.innerHTML = `<img src="${this.icons[id]}" alt=""><span>${itemName(id)}</span>`;
+      v.addEventListener('click', () => { this.h.onPick(id); this.closePalette(); });
+      row.appendChild(v);
+    }
+    this.palette.appendChild(row);
+    const a = anchor.getBoundingClientRect(), r = row.getBoundingClientRect();
+    row.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, a.left + a.width / 2 - r.width / 2)) + 'px';
+    row.style.top = Math.max(8, Math.min(innerHeight - r.height - 8, a.top - r.height - 6)) + 'px'; // altijd binnen beeld
+  }
+
+  hideVariants() { this.variants?.remove(); this.variants = null; }
 
   showGroup(i) {
     this.palGroups.forEach((g, j) => { g.tab.classList.toggle('on', i === j); g.grid.hidden = i !== j; });
@@ -360,12 +390,16 @@ export class UI {
   get paletteOpen() { return !this.palette.hidden; }
 
   // Open de kist op het tabblad van het blok dat je nu vasthoudt
+  // Er is net een blok gekopieerd terwijl de kistknop werd vastgehouden
+  markPicked() { this.picked = true; }
+
   openPalette(current) {
-    const gi = this.palGroups.findIndex((g) => g.items.includes(current));
+    const head = FAMILY_OF.get(current) ?? current;
+    const gi = this.palGroups.findIndex((g) => g.items.includes(head));
     this.showGroup(Math.max(0, gi));
     this.palette.hidden = false;
   }
-  closePalette() { this.palette.hidden = true; }
+  closePalette() { this.palette.hidden = true; this.hideVariants(); }
 
   setHotbar(ids, sel) {
     this.hotbar.textContent = '';
@@ -377,9 +411,31 @@ export class UI {
       onPress(b, () => this.h.onSelect(i));
       this.hotbar.appendChild(b);
     });
+    this.hotbar.appendChild(this.chest || (this.chest = this.chestButton()));
+  }
+
+  // Kort tikken: de kist open. Vasthouden en met een andere vinger op een blok tikken:
+  // dat blok komt in je hand ("blok kopiëren"). De knop wordt één keer gemaakt, zodat hij
+  // blijft bestaan als de onderbalk verandert terwijl je hem vasthoudt.
+  chestButton() {
     const chest = button('slot chest', 'chest', 'Alle blokken');
-    onPress(chest, () => this.h.onChest());
-    this.hotbar.appendChild(chest);
+    let timer = null;
+    chest.addEventListener('pointerdown', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      try { chest.setPointerCapture(e.pointerId); } catch { /* niet erg */ }
+      chest.classList.add('pressed');
+      this.picked = false;
+      timer = setTimeout(() => { this.picking = true; chest.classList.add('picking'); }, 350);
+    });
+    const end = (open) => {
+      clearTimeout(timer);
+      chest.classList.remove('pressed', 'picking');
+      this.picking = false;
+      if (open && !this.picked) this.h.onChest(); // lang vastgehouden zonder te kopiëren: dan toch de kist
+    };
+    chest.addEventListener('pointerup', () => end(true));
+    chest.addEventListener('pointercancel', () => end(false));
+    return chest;
   }
 
   // angle: richting van huis op het scherm (0 = recht vooruit, met de klok mee), of null
@@ -397,13 +453,16 @@ export class UI {
 
   setFlying(f, climbing = false) {
     this.flyBtn.classList.toggle('on', f);
-    this.downBtn.hidden = !f && !climbing;
+    // De omlaag-knop is er altijd: vliegend en klimmend omlaag, lopend sluipen, in water duiken
+    this.downBtn.hidden = !!this.riding;
+    this.downBtn.setAttribute('aria-label', f || climbing ? 'Omlaag' : 'Sluipen');
     this.jumpBtn.innerHTML = f || climbing ? ICONS.up : ICONS.jump;
   }
 
   setRiding(on) {
     this.flyBtn.innerHTML = on ? ICONS.dismount : ICONS.fly;
     this.flyBtn.setAttribute('aria-label', on ? 'Afstappen' : 'Vliegen');
+    this.riding = on;
     this.downBtn.hidden = on;
   }
 

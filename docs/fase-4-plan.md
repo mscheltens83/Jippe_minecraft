@@ -55,7 +55,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | ✅ Klaar (versie 4.2.0) |
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | ✅ Klaar (versie 4.3.0) |
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
-| **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | F1 ✅ klaar (versie 4.5.0), F2 gepland |
+| **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
 
@@ -382,6 +382,12 @@ Deze varianten krijgen elk een eigen id (zoals nu bij trap, deur en hekdeur), me
 - Standen: stam liggend op een zijvlak, plaat onder/boven/dubbel (twee platen = het volle blok), trap ondersteboven, glazen panelen die aan elkaar groeien, oven en kist met de voorkant naar je toe, ladder tegen de muur.
 - `js/engine/physics.js`: een wachtrij van vakjes rond elke verandering, elke 0,25 s een stapje (in echte tijd, ook op een trage iPad). Water stroomt 7 ver, valt naar beneden en twee bronnen maken een nieuwe bron; zand en grind vallen als bewegend blok; plantjes, fakkels, ladders en tapijt zonder steun vallen om; gewassen groeien in 4 stappen (±5 minuten); gras groeit over aarde. Water sloop je niet meer met de houweel: daar is de emmer voor.
 - Niet gedaan in deel 1: TNT (zie §14), een bloempot mét bloem, en koraalblokken (alleen koraalplantjes).
+
+### 9.8 Zo is deel 2 gebouwd (versie 4.6.0)
+- **Families** (`FAMILIES` in `blocks.js`): stam, planken, trap (11 soorten), plaat (11), hek, hekdeur en deur (5 houtsoorten) en bed (10 kleuren) staan als één vakje met een hoekje in de kist. Ingedrukt houden (0,45 s) toont een rij met alle soorten, altijd binnen beeld. De kist heeft daardoor 256 vakjes in plaats van 293.
+- **Blok kopiëren:** de kistknop 0,35 s vasthouden (hij licht op) en met een andere vinger op een blok tikken. Je krijgt de gewone soort (een omgekeerde trap wordt een trap, tarwe wordt tarwezaadjes). Lang vasthouden zonder te kopiëren opent gewoon de kist. Met de muis: middelste muisknop. De kistknop wordt nu één keer gemaakt, zodat hij blijft werken als de onderbalk verandert terwijl je hem vasthoudt.
+- **Hand** (`js/hand.js`): een armpje met het blok (echte tegels) of een plaatje (plantje, stempel, dier, emmer), aan de camera vast en altijd bovenop getekend. Wiebelt bij lopen, zwaait bij bouwen en slopen, en krijgt het licht van de plek. Niet te zien van achteren, bij rijden, in de kist en in de meetrit (die blijft daardoor vergelijkbaar).
+- **Sprinten:** joystick een seconde helemaal naar voren (of Ctrl): 1,6 × zo snel, kijkhoek 72° → 80°, stofwolkjes. **Sluipen:** omlaag-knop tijdens het lopen (die knop is er nu altijd, met de naam "Sluipen"): 0,35 × zo snel, de camera iets lager, en je loopt niet van een rand. **Vliegen:** twee keer springen binnen 0,3 s. **Zwemmen:** springen houden; nieuw is **duiken** met omlaag.
 
 ---
 

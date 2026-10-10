@@ -112,7 +112,14 @@ export class Player {
     const mx = input.move.x, mz = input.move.y;
     const push = Math.min(1, Math.hypot(mx, mz));
     const rideSpeed = 3.5 + 3 * Math.max(0, (push - 0.45) / 0.55);
-    const speed = this.riding ? rideSpeed : this.flying ? FLY : this.climbing ? 2.5 : this.inWater ? SWIM : below === B.MUD ? WALK * 0.5 : WALK;
+    // Sprinten: de stuurknop een seconde helemaal naar voren (of Ctrl). Sluipen: omlaag houden tijdens het lopen.
+    const onFoot = !this.flying && !this.inWater && !this.climbing && !this.riding;
+    this.sprintHold = onFoot && mz > 0.9 && Math.abs(mx) < 0.45 ? (this.sprintHold || 0) + dt : 0;
+    this.sprinting = onFoot && !input.down && (this.sprintHold > 1 || (input.sprint && mz > 0.2));
+    this.sneaking = onFoot && !!input.down && this.onGround;
+    let speed = this.riding ? rideSpeed : this.flying ? FLY : this.climbing ? 2.5 : this.inWater ? SWIM : below === B.MUD ? WALK * 0.5 : WALK;
+    if (this.sprinting) speed *= 1.6;
+    else if (this.sneaking) speed *= 0.35;
     const tx = (-sin * mz + cos * mx) * speed;
     const tz = (-cos * mz - sin * mx) * speed;
     const slippery = !this.riding && this.onGround && !this.flying && !this.climbing && (below === B.ICE || below === B.PACKED_ICE);
@@ -129,8 +136,9 @@ export class Player {
       this.vy = (input.down ? -1 : input.jump || mz > 0.2 ? 1 : 0) * 2.5;
     } else if (this.inWater && !this.riding) {
       this.vy -= 7 * dt;
-      if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.8);
-      this.vy = Math.max(this.vy, -2.5);
+      if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.8);     // zwemmen: springen houden
+      else if (input.down) this.vy = Math.max(this.vy - 10 * dt, -3.5); // duiken: omlaag houden
+      this.vy = Math.max(this.vy, input.down ? -3.5 : -2.5);
     } else {
       this.vy -= GRAVITY * dt;
       this.vy = Math.max(this.vy, -32);
@@ -159,6 +167,12 @@ export class Player {
     }
     if (hitX) this.vx = 0;
     if (hitZ) this.vz = 0;
+    // Sluipen: niet van een rand af lopen (zoals in Minecraft)
+    if (this.sneaking && !this.collides(world, this.x, this.y - 0.55, this.z)) {
+      if (this.collides(world, ox, this.y - 0.55, this.z)) { this.x = ox; this.vx = 0; }
+      else if (this.collides(world, this.x, this.y - 0.55, oz)) { this.z = oz; this.vz = 0; }
+      else { this.x = ox; this.z = oz; this.vx = this.vz = 0; }
+    }
 
     const landing = this.vy;
     const hitY = this.moveAxis(world, 1, this.vy * dt);
