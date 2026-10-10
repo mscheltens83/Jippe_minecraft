@@ -1353,7 +1353,7 @@ class Game {
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
     this.loader.update(p.x, p.z, -Math.sin(p.yaw), -Math.cos(p.yaw));
     this.updateCompass();
-    this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
+    if (!this.bench?.noAnimals) this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
     this.snowmen.update(this.playing ? dt : 0, this.world);
     if (!this.readOnly) this.physics.update(realDt, p); // echte tijd: water stroomt even snel op een trage iPad
     for (const f of this.physics.falling) f.mesh?.position.set(f.x + 0.5, f.y + 0.5, f.z + 0.5);
@@ -1366,8 +1366,9 @@ class Game {
     }
     this.scene.updateBiome(dt);
     this.updateUnderwater();
+    const tDraw = performance.now();
     this.scene.render();
-    this.bench?.after(rawDt, this.scene.renderer.info);
+    if (this.bench) this.bench.after(rawDt, this.scene.renderer.info, { logic: tDraw - t0, draw: performance.now() - tDraw });
     if (this.playing && !this.readOnly && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
     // Automatisch bewaren
@@ -1513,7 +1514,7 @@ async function start() {
       // Meten gebeurt altijd op het middaguur, dan zijn de metingen te vergelijken
       game.daynight.set(NOON);
       game.daynight.frozen = true;
-      game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30);
+      game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30, { extra: !meet[1] }); // ?meet: met extra rondjes
       game.daynight.set(NOON);
     }
   } catch (e) {

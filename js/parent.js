@@ -5,7 +5,7 @@
 import { VERSION } from './version.js';
 import { getErrors, clearErrors } from './errors.js';
 import { deviceInfo } from './perf.js';
-import { loadMeasurements, benchLine, copyText } from './bench.js';
+import { loadMeasurements, benchText, copyText } from './bench.js';
 
 export class ParentPanel {
   constructor(h) {
@@ -94,7 +94,7 @@ export class ParentPanel {
   // Alles als tekst, om te plakken in een bericht
   text() {
     const lines = [`JippeCraft ${VERSION}`, ...this.info().map(([k, v]) => `${k}: ${v}`), '', 'Metingen:'];
-    for (const r of loadMeasurements()) lines.push(benchLine(r));
+    for (const r of loadMeasurements()) lines.push(benchText(r));
     lines.push('', 'Fouten:');
     for (const e of getErrors()) lines.push(`${new Date(e.t).toISOString()} ${e.where || ''}${e.n > 1 ? ` (${e.n}x)` : ''}\n${e.msg}`);
     return lines.join('\n');

@@ -54,7 +54,7 @@ export async function testPhase4A({ newPage, check, out, version, browser, base,
     const run = (fn, arg) => page.evaluate(fn, arg);
     check(await waitTrue(page, () => !!window.__jippecraft.benchResult, null, 120000), 'meetrit loopt tot het eind');
     const r = await run(() => window.__jippecraft.benchResult);
-    check(r && r.beeldjes > 0 && r.fps > 0 && r.p95 >= r.p50 && r.tekenen > 0 && r.driehoeken > 0, 'meetrit meet beeldjes, tekenopdrachten en driehoeken');
+    check(r && r.beeldjes > 0 && r.fps > 0 && r.p95 >= r.p50 && r.tekenen > 0 && r.driehoeken > 0 && r.klaarzetten > 0 && !r.extra, 'meetrit meet beeldjes, tekenopdrachten, driehoeken en rekenwerk (en ?meet=3 doet geen extra rondjes)');
     check(r && r.dieren === 60 && r.versie === version, 'meetrit rijdt met 60 dieren en noemt de versie');
     check(await page.locator('.bench-card').isVisible(), 'uitslag van de meetrit staat in beeld');
     check(await run(() => window.__jippecraftBoot === true && !document.querySelector('.error')), 'geen melding "te oud" bij een iPad die er even over doet');
