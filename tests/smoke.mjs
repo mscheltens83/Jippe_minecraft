@@ -15,6 +15,7 @@ import { testPhaseE } from './phase-e.mjs';
 import { testPhaseF } from './phase-f.mjs';
 import { testPhaseG } from './phase-g.mjs';
 import { testPhase4A } from './phase-4a.mjs';
+import { testPhase4B } from './phase-4b.mjs';
 import { VERSION } from '../js/version.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -31,7 +32,8 @@ const server = http.createServer((req, res) => {
 });
 await new Promise((r) => server.listen(0, r));
 // ?vast = vaste beeldkwaliteit, zodat de (trage) test-browser niet steeds wisselt
-const base = `http://127.0.0.1:${server.address().port}/?vast`;
+// ?zicht=3: kleine zichtafstand, anders is de test-browser zonder videokaart erg traag
+const base = `http://127.0.0.1:${server.address().port}/?vast&zicht=3`;
 
 let failures = 0;
 const check = (ok, msg) => { console.log(`${ok ? 'OK  ' : 'FOUT'} ${msg}`); if (!ok) failures++; };
@@ -77,7 +79,7 @@ const pickFromChest = async (label) => {
 };
 const edits = () => g(() => window.__jippecraft.edits);
 const lookAt = (pitch, yaw = 0) => g(([p, y]) => { const j = window.__jippecraft; j.player.pitch = p; j.player.yaw = y; }, [pitch, yaw]);
-const countIds = (lo, hi) => g(([a, b]) => window.__jippecraft.world.data.reduce((n, id) => n + (id >= a && id <= b ? 1 : 0), 0), [lo, hi]);
+const countIds = (lo, hi) => g(([a, b]) => window.__jippecraft.world.countBlocks((id) => id >= a && id <= b), [lo, hi]);
 
 await page.waitForTimeout(800);
 await shot('01-menu');
@@ -193,12 +195,12 @@ await pickFromChest('Deur');
 await lookAt(-0.55);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy + 40);
-check(await until(() => window.__jippecraft.world.data.some((id) => id >= 45 && id <= 60)), 'deur geplaatst');
-const doorOpen = () => g(() => { const j = window.__jippecraft; const i = j.world.data.findIndex((id) => id >= 45 && id <= 60); return i >= 0 && (j.world.data[i] - 45) % 2 === 1; });
+check(await until(() => !!window.__jippecraft.world.findBlock((id) => id >= 45 && id <= 60)), 'deur geplaatst');
+const doorOpen = () => g(() => { const d = window.__jippecraft.world.findBlock((id) => id >= 45 && id <= 60); return !!d && (d.id - 45) % 2 === 1; });
 await lookAt(-0.35);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy);
-check(await until(() => { const j = window.__jippecraft; const i = j.world.data.findIndex((id) => id >= 45 && id <= 60); return i >= 0 && (j.world.data[i] - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
+check(await until(() => { const d = window.__jippecraft.world.findBlock((id) => id >= 45 && id <= 60); return !!d && (d.id - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
 check(await doorOpen(), 'deur staat open');
 
 await reset();
@@ -207,10 +209,10 @@ await pickFromChest('Trap');
 await lookAt(-0.6, Math.PI / 2);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy + 40);
-check(await until(() => window.__jippecraft.world.data.some((id) => id >= 41 && id <= 44)), 'trap geplaatst');
+check(await until(() => !!window.__jippecraft.world.findBlock((id) => id >= 41 && id <= 44)), 'trap geplaatst');
 await pickFromChest('Rood glas');
 await page.touchscreen.tap(cx + 90, cy + 40);
-check(await until(() => window.__jippecraft.world.data.includes(36)), 'rood glas geplaatst');
+check(await until(() => !!window.__jippecraft.world.findBlock((id) => id === 36)), 'rood glas geplaatst');
 await shot('05-blokken');
 // De eerdere bouwtests laten veel blokken rond het mikpunt achter; begin voor
 // het vuurwerk op een leeg grasveld zodat de echte tik het vuurwerk raakt.
@@ -218,10 +220,10 @@ await g(() => { const j = window.__jippecraft; j.freshWorld('flat', 7); j.animal
 await pickFromChest('Vuurwerk');
 await lookAt(-0.7, 0);
 await page.touchscreen.tap(cx, cy + 50);
-check(await until(() => window.__jippecraft.world.data.includes(35)), 'vuurwerk geplaatst');
+check(await until(() => !!window.__jippecraft.world.findBlock((id) => id === 35)), 'vuurwerk geplaatst');
 await page.waitForTimeout(800);
 await page.touchscreen.tap(cx, cy + 50);
-check(await until(() => !window.__jippecraft.world.data.includes(35)), 'tikken op vuurwerk laat het opstijgen');
+check(await until(() => !window.__jippecraft.world.findBlock((id) => id === 35)), 'tikken op vuurwerk laat het opstijgen');
 await lookAt(0.35, 0);
 check(await until(() => window.__jippecraft.particles.list.length > 100, null, 20000), 'vuurwerk knalt uit elkaar');
 await shot('06-vuurwerk');
@@ -249,7 +251,7 @@ const petted = await g(async () => {
   const j = window.__jippecraft, p = j.player;
   p.yaw = Math.PI; p.pitch = -0.2;
   const a = j.animals.spawn('pig', p.x, j.world.surfaceY(Math.floor(p.x), Math.floor(p.z + 3)) + 1, p.z + 3, 0);
-  a.walking = false; a.timer = 30; a.happy = 0;
+  a.walking = false; a.timer = 30; a.happy = 0; a._test = true;
   await new Promise((r) => setTimeout(r, 300));
   const v = a.group.position.clone();
   v.y += a.def.h / 2;
@@ -257,7 +259,7 @@ const petted = await g(async () => {
   return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
 });
 await page.touchscreen.tap(petted.x, petted.y);
-check(await until(() => window.__jippecraft.animals.list[0].happy > 0), 'dier aaien maakt het blij');
+check(await until(() => window.__jippecraft.animals.list.find((a) => a._test)?.happy > 0), 'dier aaien maakt het blij');
 check(await until(() => window.__jippecraft.particles.hearts.some((h) => h.alive)), 'hartjes bij het aaien');
 await page.waitForTimeout(300);
 await shot('07-dier');
@@ -287,7 +289,7 @@ check(await g((m) => window.__jippecraft.music.on !== m, musicOn), 'muziek-knop 
 await page.locator('.labeled:has-text("Muziek") .btn').tap();
 
 // --- 13. meerdere werelden
-const world1 = await g(() => window.__jippecraft.world.serialize());
+const world1 = await g(() => window.__jippecraft.world.fingerprint());
 await page.locator('.worlds-btn').tap();
 check((await page.locator('.slot-card').count()) === 6, 'zes wereld-plekken');
 check(await page.locator('.slot-card.current').isVisible(), 'huidige wereld is gemarkeerd');
@@ -301,7 +303,7 @@ await page.locator('.menu-btn').tap();
 await page.locator('.worlds-btn').tap();
 await page.locator('.slot-card[aria-label="Wereld 1"]').tap();
 check(await until(() => window.__jippecraft.slot === 1), 'terug naar wereld 1');
-check((await g(() => window.__jippecraft.world.serialize())) === world1, 'wereld 1 is precies zoals je hem achterliet');
+check((await g(() => window.__jippecraft.world.fingerprint())) === world1, 'wereld 1 is precies zoals je hem achterliet');
 const thumbs = await g(() => window.__jippecraft.slotInfo().filter((s) => s.thumb?.startsWith('data:image/jpeg')).length);
 check(thumbs >= 2, 'werelden hebben een plaatje');
 // wereld 2 opnieuw beginnen (met bevestiging)
@@ -315,11 +317,11 @@ check(await until(() => window.__jippecraft.slot === 2 && window.__jippecraft.wo
 
 // Bewaren en opnieuw laden: je komt terug in dezelfde wereld
 await page.locator('.menu-btn').tap();
-const snap2 = await g(() => window.__jippecraft.world.serialize());
+const snap2 = await g(async () => { const j = window.__jippecraft; await j.saving; return j.world.fingerprint(); });
 await page.reload();
 await page.waitForFunction(() => window.__jippecraft, null, { timeout: 20000 });
 check(await g(() => window.__jippecraft.slot === 2), 'na herladen in dezelfde wereld-plek');
-check((await g(() => window.__jippecraft.world.serialize())) === snap2, 'wereld na herladen hetzelfde');
+check((await g(() => window.__jippecraft.world.fingerprint())) === snap2, 'wereld na herladen hetzelfde');
 
 // Staand (portret) formaat
 await page.locator('.play-btn').tap();
@@ -334,18 +336,16 @@ check(!overlap, 'onderbalk en springknop overlappen niet (staand)');
 await context.close();
 
 // --- oude bewaarde wereld (eerste versie) wordt netjes omgezet naar wereld 1
-const oldSave = await (async () => {
-  const { context: c, page: p } = await newPage();
-  const s = await p.evaluate(() => {
-    const j = window.__jippecraft;
-    j.world.generate('flat');
-    j.world.set(10, 12, 10, 19);
-    const s = j.makeSave();
-    s.v = 1; delete s.animals; delete s.thumb;
-    return s;
-  });
-  await c.close();
-  return s;
+// (zoals de eerste versie hem bewaarde: 96 x 96 x 48, paren [aantal, blok] in base64)
+const oldSave = (() => {
+  const d = new Uint8Array(96 * 96 * 48);
+  for (let x = 0; x < 96; x++) for (let z = 0; z < 96; z++) for (let y = 0; y < 48; y++) {
+    d[x + 96 * (z + 96 * y)] = y === 0 ? 32 : y < 11 ? 3 : y === 11 ? 1 : x === 10 && z === 10 && y === 12 ? 19 : 0;
+  }
+  let str = '';
+  for (let i = 0; i < d.length;) { let n = 1; while (n < 255 && i + n < d.length && d[i + n] === d[i]) n++; str += String.fromCharCode(n, d[i]); i += n; }
+  return { v: 1, t: 1, type: 'flat', seed: 7, blocks: Buffer.from(str, 'latin1').toString('base64'),
+    player: { x: 48.5, y: 12.01, z: 48.5, yaw: 0, pitch: -0.25, flying: false }, hotbar: [1, 6, 4, 9, 8, 45, 20, 19, 200], sel: 0, mode: 'build' };
 })();
 {
   const { context: c, page: p } = await newPage({
@@ -355,15 +355,14 @@ const oldSave = await (async () => {
   const r = await p.evaluate(() => {
     const j = window.__jippecraft;
     return {
-      slot: j.slot, type: j.world.type, rainbow: j.world.get(10, 12, 10),
+      slot: j.slot, type: j.world.type, rainbow: j.world.get(10, 12 + 38, 10), y: j.player.y,
       animals: j.animals.list.length, legacy: localStorage.getItem('jippecraft.world.v1'),
     };
   });
-  check(r.slot === 1 && r.type === 'flat' && r.rainbow === 19, 'oude wereld wordt wereld 1');
+  check(r.slot === 1 && r.type === 'flat' && r.rainbow === 19 && Math.abs(r.y - 50.01) < 0.01, 'oude wereld wordt wereld 1 (alles 38 blokken hoger)');
   check(r.animals > 0 && r.legacy === null, 'oude wereld krijgt dieren en de oude opslag is opgeruimd');
   await c.close();
 }
-
 }
 
 // FASE=basis,a,c,4a npm run test:browser  draait alleen die onderdelen
@@ -378,6 +377,7 @@ if (want('e')) await testPhaseE({ newPage, check, out });
 if (want('f')) await testPhaseF({ newPage, check, out });
 if (want('g')) await testPhaseG({ newPage, check, out });
 if (want('4a')) await testPhase4A({ newPage, check, out, version: VERSION });
+if (want('4b')) await testPhase4B({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

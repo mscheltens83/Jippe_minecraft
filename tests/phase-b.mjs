@@ -50,9 +50,9 @@ export async function testPhaseB({ newPage, check, out }) {
   check(await run(() => window.__jippecraft.animals.list[0].type === 'lion'), 'een leeuw uit de kist wordt met een tik op de grond geplaatst');
   const tap = await run(() => {
     const j = window.__jippecraft; j.animals.clear();
-    const a = j.animals.spawn('lion', 48.5, 12, 45.5, Math.PI);
+    const a = j.animals.spawn('lion', 48.5, 50, 45.5, Math.PI);
     a.timer = 100; a.onGround = true;
-    j.player.setPos({ x: 48.5, y: 12, z: 48.5 }); j.player.pitch = -0.2; j.player.yaw = 0; j.updateCamera(0); j.scene.camera.updateMatrixWorld();
+    j.player.setPos({ x: 48.5, y: 50, z: 48.5 }); j.player.pitch = -0.2; j.player.yaw = 0; j.updateCamera(0); j.scene.camera.updateMatrixWorld();
     const v = a.group.position.clone(); v.y += 0.7; v.project(j.scene.camera);
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
   });
@@ -67,7 +67,7 @@ export async function testPhaseB({ newPage, check, out }) {
     const w = new World(); w.generate('flat', 7);
     const manager = new Animals(new THREE.Scene());
     const same = Object.keys(SPECIES).every((t) => {
-      const a = manager.spawn(t, 30, 12, 30, 0), b = manager.spawn(t, 34, 12, 30, 0);
+      const a = manager.spawn(t, 30, 50, 30, 0), b = manager.spawn(t, 34, 50, 30, 0);
       const shared = a.head !== b.head && a.head.geometry === b.head.geometry && a.legs[0].geometry === b.legs[0].geometry;
       a.legs[0].rotation.x = 1;
       return shared && b.legs[0].rotation.x === 0;
@@ -75,13 +75,13 @@ export async function testPhaseB({ newPage, check, out }) {
     const geometry = manager.list[0].head.geometry; let disposed = false;
     geometry.addEventListener('dispose', () => { disposed = true; });
     manager.clear();
-    const reuse = manager.spawn('pig', 30, 12, 30, 0).head.geometry === geometry && !disposed;
-    manager.clear(); for (let i = 0; i < MAX_ANIMALS; i++) manager.spawn(wild[i % wild.length], 30, 12, 30, 0);
-    const capped = MAX_ANIMALS === 60 && manager.full && !manager.spawn('pig', 30, 12, 30);
+    const reuse = manager.spawn('pig', 30, 50, 30, 0).head.geometry === geometry && !disposed;
+    manager.clear(); for (let i = 0; i < MAX_ANIMALS; i++) manager.spawn(wild[i % wild.length], 30, 50, 30, 0);
+    const capped = MAX_ANIMALS === 60 && manager.full && !manager.spawn('pig', 30, 50, 30);
     const saved = manager.serialize(); manager.load([...saved, ...saved]);
     const cappedLoad = manager.list.length === 60 && manager.scene.children.length === 60;
     manager.clear();
-    const near = manager.spawn('lion', 10, 12, 10, 0), far = manager.spawn('lion', 80, 12, 80, 0);
+    const near = manager.spawn('lion', 10, 50, 10, 0), far = manager.spawn('lion', 80, 50, 80, 0);
     let nearCalls = 0, farCalls = 0;
     for (const a of [near, far]) {
       a.timer = 100; a.sleep = 10;
@@ -90,9 +90,9 @@ export async function testPhaseB({ newPage, check, out }) {
     }
     for (let i = 0; i < 48; i++) manager.update(0.05, w, { x: 10, z: 10 });
     const distance = nearCalls === 48 && farCalls === 12 && Math.abs(near.sleep - (far.sleep - far.elapsed)) < 0.001;
-    manager.clear(); const hidden = manager.spawn('pig', 48, 12, 60, 0); hidden.timer = 100;
+    manager.clear(); const hidden = manager.spawn('pig', 48, 50, 60, 0); hidden.timer = 100;
     let animations = 0; const show = hidden.show; hidden.show = function (...args) { animations++; return show.apply(this, args); };
-    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100); camera.position.set(48, 13, 48);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 100); camera.position.set(48, 51, 48);
     manager.update(0.1, w, { x: 48, z: 48 }, camera);
     const invisible = !hidden.group.visible && animations === 0;
     camera.rotation.y = Math.PI; manager.update(0.1, w, { x: 48, z: 48 }, camera);
@@ -109,42 +109,42 @@ export async function testPhaseB({ newPage, check, out }) {
     const w = new World(); w.generate('flat', 7);
     const effects = { dust: 0, zzz: 0, water: 0, dustAt() { this.dust++; }, sleepAt() { this.zzz++; }, waterAt() { this.water++; } };
     const manager = new Animals(new Scene(), effects);
-    const cheetah = manager.spawn('cheetah', 40, 12, 65, 0);
+    const cheetah = manager.spawn('cheetah', 40, 50, 65, 0);
     cheetah.walking = true; cheetah.timer = 100; cheetah.sprint = 2; cheetah.sprintWait = 60;
     for (let i = 0; i < 120; i++) cheetah.update(1 / 60, w, effects);
     const sprint = Math.abs((65 - cheetah.z) - 18) < 0.3 && cheetah.sprint < 0.001 && effects.dust > 10;
     const z = cheetah.z; for (let i = 0; i < 60; i++) cheetah.update(1 / 60, w, effects);
     const slows = Math.abs((z - cheetah.z) - 1.7) < 0.05;
-    const lion = manager.spawn('lion', 30, 12, 30, 0); lion.sleep = 10;
+    const lion = manager.spawn('lion', 30, 50, 30, 0); lion.sleep = 10;
     lion.update(0.1, w, effects);
     const sleeps = lion.state === 'slapen' && lion.legs.every((l) => Math.abs(l.rotation.x) > 1) && effects.zzz > 0;
     lion.pet(30, 32); lion.update(0.1, w, effects);
     const wakes = lion.state === 'blij' && lion.sleep === 0 && Math.abs(lion.head.rotation.z) > 0;
-    const elephant = manager.spawn('elephant', 30, 12, 30, 0); elephant.pet(30, 26);
+    const elephant = manager.spawn('elephant', 30, 50, 30, 0); elephant.pet(30, 26);
     let earMotion = false;
     for (let i = 0; i < 50; i++) { elephant.update(1 / 60, w, effects); earMotion ||= Math.abs(elephant.ears[0].rotation.y) > 0.01; }
     const sprays = effects.water === 1 && elephant.trunk[0].rotation.x > 1 && earMotion;
-    const hippo = manager.spawn('hippo', 30, 12, 30, 0); hippo.pet(30, 26); hippo.update(0.8, w, effects);
+    const hippo = manager.spawn('hippo', 30, 50, 30, 0); hippo.pet(30, 26); hippo.update(0.8, w, effects);
     const yawns = hippo.jaw.rotation.x > 0.5 && hippo.head.rotation.x < 0;
-    const meerkat = manager.spawn('meerkat', 30, 12, 30, 0); meerkat.pet(30, 26); meerkat.update(0.9, w, effects);
+    const meerkat = manager.spawn('meerkat', 30, 50, 30, 0); meerkat.pet(30, 26); meerkat.update(0.9, w, effects);
     const hides = meerkat.group.scale.y < 0.2;
     meerkat.update(1, w, effects); const returns = meerkat.group.scale.y === 1;
-    const giraffe = manager.spawn('giraffe', 30, 12, 30, 0);
-    w.set(30, 15, 29, B.ACACIA_LEAVES); giraffe.update(0.1, w, effects);
+    const giraffe = manager.spawn('giraffe', 30, 50, 30, 0);
+    w.set(30, 53, 29, B.ACACIA_LEAVES); giraffe.update(0.1, w, effects);
     const browses = giraffe.browsing && giraffe.state === 'grazen' && giraffe.neck.rotation.x < 0;
     giraffe.pet(30, 26); giraffe.update(0.1, w, effects); const nods = Math.abs(giraffe.neck.rotation.x) > 0;
-    const zebra = manager.spawn('zebra', 25, 12, 30, 0), friend = manager.spawn('zebra', 31, 12, 30, 0);
+    const zebra = manager.spawn('zebra', 25, 50, 30, 0), friend = manager.spawn('zebra', 31, 50, 30, 0);
     zebra.timer = 100; zebra.walking = true; zebra.skillWait = 0; zebra.update(0.1, w, effects, [zebra, friend]);
     const herds = zebra.targetYaw < -1;
     zebra.pet(25, 26); zebra.update(0.1, w, effects); const kicks = zebra.legs[1].rotation.x < 0;
     // Een vijver met drie lagen water: de tijger zwemt, een leeuw stopt aan de kant.
-    for (let x = 20; x <= 45; x++) for (let z = 35; z <= 48; z++) for (let y = 9; y <= 11; y++) w.set(x, y, z, B.WATER);
-    const tiger = manager.spawn('tiger', 30, 11.55, 45, 0); tiger.timer = 100; tiger.walking = true; tiger.skillWait = 100;
+    for (let x = 20; x <= 45; x++) for (let z = 35; z <= 48; z++) for (let y = 47; y <= 49; y++) w.set(x, y, z, B.WATER);
+    const tiger = manager.spawn('tiger', 30, 49.55, 45, 0); tiger.timer = 100; tiger.walking = true; tiger.skillWait = 100;
     for (let i = 0; i < 180; i++) tiger.update(1 / 60, w, effects);
-    const swims = tiger.inWater && Math.abs(tiger.y - 11.55) < 0.05 && tiger.z < 42;
-    const shore = manager.spawn('lion', 30, 12, 50, 0); shore.timer = 100; shore.walking = true;
+    const swims = tiger.inWater && Math.abs(tiger.y - 49.55) < 0.05 && tiger.z < 42;
+    const shore = manager.spawn('lion', 30, 50, 50, 0); shore.timer = 100; shore.walking = true;
     for (let i = 0; i < 120; i++) shore.update(1 / 60, w, effects);
-    const avoids = shore.z >= 49 && shore.y >= 12;
+    const avoids = shore.z >= 49 && shore.y >= 50;
     return { sprint, slows, sleeps, wakes, sprays, yawns, hides, returns, browses, nods, herds, kicks, swims, avoids };
   });
   check(skills.sprint && skills.slows, 'cheetah sprint twee seconden met negen blokken per seconde en stof, daarna weer rustig');
@@ -161,17 +161,17 @@ export async function testPhaseB({ newPage, check, out }) {
     const { Scene } = await import('./lib/three.module.min.js');
     const wall = (height) => {
       const w = new World(); w.generate('flat', 7);
-      for (let x = 2; x < 94; x++) for (let y = 12; y < 12 + height; y++) w.set(x, y, 40, 5);
-      const a = new Animals(new Scene()).spawn('lion', 48.5, 12, 45.5, 0); a.timer = 100; a.walking = true;
+      for (let x = 2; x < 94; x++) for (let y = 50; y < 50 + height; y++) w.set(x, y, 40, 5);
+      const a = new Animals(new Scene()).spawn('lion', 48.5, 50, 45.5, 0); a.timer = 100; a.walking = true;
       for (let i = 0; i < 600; i++) { a.yaw = a.targetYaw = 0; a.update(1 / 60, w); }
       return a;
     };
     const low = wall(1), high = wall(2);
     const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear();
     const before = j.animals.list.length;
-    for (let x = 29; x <= 32; x++) for (let z = 29; z <= 32; z++) j.world.set(x, 14, z, 5);
-    j.placeAnimal({ x: 30, y: 11, z: 30, id: 1, nx: 0, ny: 1, nz: 0 }, 'giraffe');
-    return { low: low.z < 38 && low.y === 12, high: high.z > 41 && high.y === 12, roof: j.animals.list.length === before };
+    for (let x = 29; x <= 32; x++) for (let z = 29; z <= 32; z++) j.world.set(x, 52, z, 5);
+    j.placeAnimal({ x: 30, y: 49, z: 30, id: 1, nx: 0, ny: 1, nz: 0 }, 'giraffe');
+    return { low: low.z < 38 && low.y === 50, high: high.z > 41 && high.y === 50, roof: j.animals.list.length === before };
   });
   check(collision.low && collision.high, 'dieren huppelen over één blok en blijven voor een muur van twee blokken');
   check(collision.roof, 'een groot dier past niet door een laag dak en een mislukte plaatsing laat niets achter');
@@ -179,10 +179,10 @@ export async function testPhaseB({ newPage, check, out }) {
   const integration = await run(async (wild) => {
     const j = window.__jippecraft, { Sounds } = await import('./js/audio.js');
     j.animals.clear(); j.particles.list = [];
-    const elephant = j.animals.spawn('elephant', 40, 12, 40, 0); j.petAnimal(elephant);
+    const elephant = j.animals.spawn('elephant', 40, 50, 40, 0); j.petAnimal(elephant);
     elephant.update(0.1, j.world, j.particles);
     const drops = j.particles.list.length === 40 && j.particles.list.every((p) => p.col[2] === 1);
-    const lion = j.animals.spawn('lion', 45, 12, 40, 0); lion.sleep = 10; lion.update(0.1, j.world, j.particles);
+    const lion = j.animals.spawn('lion', 45, 50, 40, 0); lion.sleep = 10; lion.update(0.1, j.world, j.particles);
     const zzz = j.particles.zzz.some((p) => p.alive);
     const sound = new Sounds(); sound.ok = () => true;
     let calls = []; for (const method of ['tone', 'hiss', 'vibrato']) sound[method] = (...args) => calls.push([method, ...args]);
@@ -195,16 +195,17 @@ export async function testPhaseB({ newPage, check, out }) {
   check(integration.drops && integration.zzz, 'waterdruppels en Zzz worden echt in de spelwereld getekend');
   check(integration.sounds, 'alle negen nieuwe dieren hebben eigen geluiden; het echte Web Audio-pad werkt');
 
-  const storage = await run((wild) => {
+  const storage = await run(async (wild) => {
     const j = window.__jippecraft; j.animals.clear();
-    wild.forEach((t, i) => { const a = j.animals.spawn(t, 25 + i * 3, 12, 40, 0.25); a.hunger = 240 + i; if (t === 'lion') { a.tame = true; a.sleep = 11; } });
-    j.hotbar[0] = 213; j.sel = 0; j.saveNow();
-    return j.storage.loadLocal('slot1');
+    wild.forEach((t, i) => { const a = j.animals.spawn(t, 25 + i * 3, 50, 40, 0.25); a.hunger = 240 + i; if (t === 'lion') { a.tame = true; a.sleep = 11; } });
+    j.world.set(40, 60, 40, 19);
+    j.hotbar[0] = 213; j.sel = 0; j.playing = false; await j.saveNow();
+    return { animals: JSON.stringify(j.makeSave().animals), world: j.world.fingerprint() };
   }, wild);
   await page.reload(); await page.waitForFunction(() => window.__jippecraft, null, { timeout: 30000 });
   check(await run((saved) => {
     const j = window.__jippecraft;
-    return j.hotbar[0] === 213 && JSON.stringify(j.animals.serialize()) === JSON.stringify(saved.animals) && j.world.serialize() === saved.blocks;
+    return j.hotbar[0] === 213 && JSON.stringify(j.animals.serialize()) === saved.animals && j.world.fingerprint() === saved.world && j.world.get(40, 60, 40) === 19;
   }, storage), 'herladen bewaart alle nieuwe dieren, positie, temveld, slaaptijd, honger, onderbalk en blokken');
 
   // Contactblad van de echte 3D-modellen; gebruikt dezelfde renderer als het spel.
@@ -238,7 +239,7 @@ export async function testPhaseB({ newPage, check, out }) {
       const x = 44 + i % 6 * 2, z = 40 - Math.floor(i / 6) * 2;
       j.animals.spawn(wild[i % wild.length], x, j.world.surfaceY(x, z) + 1, z, Math.PI);
     }
-    j.player.setPos({ x: 49, y: 14, z: 52 }); j.player.yaw = 0; j.player.pitch = -0.28; j.player.flying = true;
+    j.player.setPos({ x: 49, y: 52, z: 52 }); j.player.yaw = 0; j.player.pitch = -0.28; j.player.flying = true;
     j.playing = true; j.ui.hideMenu(); j.scene.rebuildAll(j.world);
     const times = [];
     const frame = (t) => { times.push(t); if (times.length < 31) requestAnimationFrame(frame); else resolve((times[30] - times[0]) / 30); };

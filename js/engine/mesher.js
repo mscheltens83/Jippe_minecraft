@@ -1,14 +1,20 @@
-// Zet de blokken van één chunk (16x16 kolommen) om in 3D-vlakken.
-// Alleen vlakken die je kunt zien worden gemaakt. In hoekjes komt een
-// zachte schaduw (ambient occlusion), dat maakt bouwwerken duidelijk.
+// Zet de blokken van één sectie (16 x 16 x 16) om in 3D-vlakken. Alleen vlakken die je kunt
+// zien worden gemaakt. In hoekjes komt een zachte schaduw (ambient occlusion).
+// De blokken komen uit een "pad": de chunk plus één rij blokken van de buren eromheen, zodat
+// dit ook in een worker kan (zonder de hele wereld).
 
-import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from './blocks.js';
-import { SX, SY, SZ, CHUNK } from './world.js';
-import { ATLAS_COLS } from './textures.js';
+import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from '../blocks.js';
+import { CHUNK, SY, SECTION } from './constants.js';
+import { local } from './chunk.js';
 
+const ATLAS_COLS = 16;
 const AO = [0.5, 0.68, 0.84, 1.0];
 const WATER_TOP = 0.875;
 const EPS = 0.0005;
+export const KINDS = ['solid', 'cutout', 'glass', 'water'];
+
+export const PW = CHUNK + 2, PH = SY + 2;
+export const padIndex = (lx, y, lz) => (lx + 1) + PW * ((lz + 1) + PW * (y + 1));
 
 // Per richting: as (0=x, 1=y, 2=z), teken en lichtsterkte
 const FACES = [
@@ -18,6 +24,9 @@ const FACES = [
 ];
 const CORNERS_POS = [[0, 0], [1, 0], [1, 1], [0, 1]];
 const CORNERS_NEG = [[0, 0], [0, 1], [1, 1], [1, 0]];
+
+// helderheid is in sRGB bedacht; de renderer rekent lineair
+const toLinear = (v) => Math.pow(v, 2.2);
 
 class Buf {
   constructor() { this.pos = []; this.uv = []; this.col = []; this.idx = []; this.n = 0; }
@@ -34,17 +43,9 @@ class Buf {
   }
   result() {
     if (!this.n) return null;
-    return {
-      pos: new Float32Array(this.pos),
-      uv: new Float32Array(this.uv),
-      col: new Float32Array(this.col),
-      idx: this.n > 65000 ? new Uint32Array(this.idx) : new Uint16Array(this.idx),
-    };
+    return { n: this.n, pos: new Float32Array(this.pos), uv: new Float32Array(this.uv), col: new Float32Array(this.col), idx: new Uint32Array(this.idx) };
   }
 }
-
-// helderheid is in sRGB bedacht; de renderer rekent lineair
-const toLinear = (v) => Math.pow(v, 2.2);
 
 function tileUV(tile, s, t) {
   const col = tile % ATLAS_COLS, row = Math.floor(tile / ATLAS_COLS);
@@ -63,35 +64,72 @@ function faceST(a, sign, lx, ly, lz) {
 function faceVisible(b, id, nid) {
   if (nid === AIR) return true;
   if (OPAQUE[nid]) return false;
-  // Binnen de grote nieuwe boomkruinen hoeven we geen verborgen bladvlakken te tekenen.
+  // Binnen de grote boomkruinen hoeven we geen verborgen bladvlakken te tekenen.
   if (b.foliage && BLOCKS[nid].foliage) return false;
   if (b.render === 'water') return nid !== B.WATER;
   if (id === nid && (b.render === 'glass' || id === B.GLASS)) return false;
   return true;
 }
 
-export function buildChunk(world, atlas, cx, cz) {
+// Een pad maken uit de wereld (op de hoofdthread). Buiten de wereld: lucht, onderin: bodem.
+export function buildPad(world, cx, cz) {
+  const pad = new Uint16Array(PW * PW * PH);
+  for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+    const c = world.chunk(cx + dx, cz + dz);
+    if (!c) continue;
+    const lx0 = dx < 0 ? CHUNK - 1 : 0, lx1 = dx > 0 ? 0 : CHUNK - 1;
+    const lz0 = dz < 0 ? CHUNK - 1 : 0, lz1 = dz > 0 ? 0 : CHUNK - 1;
+    for (let y = 0; y < SY; y++) for (let lz = lz0; lz <= lz1; lz++) {
+      const pz = lz + dz * CHUNK;
+      for (let lx = lx0; lx <= lx1; lx++) pad[padIndex(lx + dx * CHUNK, y, pz)] = c.blocks[local(lx, y, lz)];
+    }
+  }
+  for (let i = 0; i < PW * PW; i++) pad[i] = B.BEDROCK; // laag y = -1
+  return pad;
+}
+
+// Welke secties hebben iets anders dan lucht? (bitmasker)
+export function filledSections(pad) {
+  let mask = 0;
+  for (let s = 0; s < SY / SECTION; s++) {
+    for (let y = s * SECTION; y < (s + 1) * SECTION && !(mask & (1 << s)); y++) {
+      for (let lz = 0; lz < CHUNK; lz++) {
+        const row = padIndex(0, y, lz);
+        let hit = false;
+        for (let lx = 0; lx < CHUNK; lx++) if (pad[row + lx] !== AIR) { hit = true; break; }
+        if (hit) { mask |= 1 << s; break; }
+      }
+    }
+  }
+  return mask;
+}
+
+export function meshSection(pad, faceTiles, cx, cz, s) {
   const bufs = { solid: new Buf(), cutout: new Buf(), glass: new Buf(), water: new Buf() };
-  const data = world.data;
+  const X0 = cx * CHUNK, Z0 = cz * CHUNK;
   const get = (x, y, z) => {
-    if (y < 0) return B.BEDROCK;
-    if (x < 0 || z < 0 || x >= SX || z >= SZ || y >= SY) return AIR;
-    return data[x + SX * (z + SZ * y)];
+    const lx = x - X0, lz = z - Z0;
+    if (y < -1 || y > SY || lx < -1 || lx > CHUNK || lz < -1 || lz > CHUNK) return AIR;
+    if (y === SY) return AIR;
+    return pad[padIndex(lx, y, lz)];
   };
-  const x0 = cx * CHUNK, z0 = cz * CHUNK;
+  const padWorld = { get };
   const q = [0, 0, 0], L = [0, 0, 0];
   const verts = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const uvs = [[0, 0], [0, 0], [0, 0], [0, 0]];
   const cols = [0, 0, 0, 0];
   const aos = [0, 0, 0, 0];
+  const y0 = s * SECTION;
 
-  for (let y = 0; y < SY; y++) {
-    for (let z = z0; z < z0 + CHUNK; z++) {
-      for (let x = x0; x < x0 + CHUNK; x++) {
-        const id = data[x + SX * (z + SZ * y)];
+  for (let y = y0; y < y0 + SECTION; y++) {
+    for (let lz = 0; lz < CHUNK; lz++) {
+      for (let lx = 0; lx < CHUNK; lx++) {
+        const id = pad[padIndex(lx, y, lz)];
         if (id === AIR) continue;
         const b = BLOCKS[id];
-        const tiles = atlas.faceTiles[id];
+        const tiles = faceTiles[id];
+        if (!b || !tiles) continue;
+        const x = X0 + lx, z = Z0 + lz;
 
         // Plantjes: twee gekruiste vlakjes
         if (b.render === 'cross') {
@@ -107,9 +145,9 @@ export function buildChunk(world, atlas, cx, cz) {
           continue;
         }
 
-        // Bijzondere vormen (trap, deur): losse kleine blokjes
+        // Bijzondere vormen (trap, deur, hek): losse kleine blokjes
         if (b.boxes) {
-          for (const box of blockBoxes(world, x, y, z)) {
+          for (const box of blockBoxes(padWorld, x, y, z)) {
             for (let f = 0; f < 6; f++) {
               const F = FACES[f];
               const a = F.a, u = (a + 1) % 3, v = (a + 2) % 3;
@@ -146,6 +184,7 @@ export function buildChunk(world, atlas, cx, cz) {
           const F = FACES[f];
           const a = F.a, u = (a + 1) % 3, v = (a + 2) % 3;
           q[0] = x; q[1] = y; q[2] = z; q[a] += F.s;
+          if (q[1] < 0) continue; // de onderkant van de bodem zie je nooit
           if (!faceVisible(b, id, get(q[0], q[1], q[2]))) continue;
 
           const tile = a === 1 ? (F.s > 0 ? tiles[0] : tiles[1]) : tiles[2];
@@ -178,8 +217,32 @@ export function buildChunk(world, atlas, cx, cz) {
       }
     }
   }
-  return {
-    solid: bufs.solid.result(), cutout: bufs.cutout.result(),
-    glass: bufs.glass.result(), water: bufs.water.result(),
-  };
+  const out = {};
+  for (const k of KINDS) out[k] = bufs[k].result();
+  return out;
+}
+
+// Alle secties van een chunk (lege secties slaan we over)
+export function meshChunk(pad, faceTiles, cx, cz, mask = filledSections(pad)) {
+  const sections = [];
+  for (let s = 0; s < SY / SECTION; s++) sections.push(mask & (1 << s) ? meshSection(pad, faceTiles, cx, cz, s) : null);
+  return sections;
+}
+
+// Secties samenvoegen tot één lijst per soort (minder tekenopdrachten)
+export function mergeSections(sections, kind) {
+  let n = 0, ni = 0;
+  for (const s of sections) { const d = s?.[kind]; if (d) { n += d.n; ni += d.idx.length; } }
+  if (!n) return null;
+  const pos = new Float32Array(n * 3), uv = new Float32Array(n * 2), col = new Float32Array(n * 3);
+  const idx = n > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
+  let ov = 0, oi = 0;
+  for (const s of sections) {
+    const d = s?.[kind];
+    if (!d) continue;
+    pos.set(d.pos, ov * 3); uv.set(d.uv, ov * 2); col.set(d.col, ov * 3);
+    for (let i = 0; i < d.idx.length; i++) idx[oi + i] = d.idx[i] + ov;
+    ov += d.n; oi += d.idx.length;
+  }
+  return { pos, uv, col, idx };
 }

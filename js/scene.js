@@ -1,8 +1,8 @@
 // De 3D-scene: lucht, zon, wolken, zee rondom en de chunk-meshes.
 
 import * as THREE from '../lib/three.module.min.js';
-import { SX, SZ, SY, CHUNK, SEA } from './world.js';
-import { buildChunk } from './mesher.js';
+import { CHUNK, SY, SEA, SECTION } from './engine/constants.js';
+import { buildPad, meshChunk, meshSection, mergeSections, KINDS } from './engine/mesher.js';
 import { createCrackCanvases } from './textures.js';
 
 const SKY = new THREE.Color('#9ad8ff');
@@ -46,7 +46,8 @@ export class GameScene {
       }),
     };
 
-    this.chunks = new Map();
+    this.chunks = new Map();     // sleutel -> { cx, cz, sections, meshes }
+    this.viewFar = 120;          // tot hoe ver je kunt kijken (hangt af van de zichtafstand)
     this.buildSky();
     this.buildSea();
     this.buildClouds();
@@ -154,7 +155,9 @@ export class GameScene {
     const b = this.biomeCurrent;
     this.scene.background.copy(b.mist);
     this.scene.fog.color.copy(b.mist);
-    this.scene.fog.near = b.mistBegin; this.scene.fog.far = b.mistEind;
+    // Mist van het landschap, maar nooit verder dan de geladen wereld
+    this.scene.fog.far = Math.min(b.mistEind, this.viewFar);
+    this.scene.fog.near = Math.min(b.mistBegin, this.scene.fog.far * 0.6);
     this.sun.material.color.copy(b.zon);
     this.clouds.count = Math.max(0, Math.min(this.cloudData.length, Math.round(b.wolken)));
     const positions = this.sky.geometry.attributes.position, colors = this.sky.geometry.attributes.color;
@@ -167,28 +170,26 @@ export class GameScene {
     colors.needsUpdate = true;
   }
 
+  // Zee tot aan de horizon: een grote ring rond de speler, net onder het echte water.
+  // Binnen de ring liggen de echte chunks; de ring zelf zit meestal al in de mist.
   buildSea() {
-    // Zee rondom het eiland: vier stroken, met een gat waar de wereld zelf ligt
-    const group = new THREE.Group();
-    const waterMat = new THREE.MeshBasicMaterial({ color: '#3d7fd8', transparent: true, opacity: 0.8, depthWrite: false });
-    const sandMat = new THREE.MeshBasicMaterial({ color: '#b9a46e' });
-    const R = 500;
-    const strips = [
-      [-R, -R, SX + R, 0], [-R, SZ, SX + R, SZ + R], [-R, 0, 0, SZ], [SX, 0, SX + R, SZ],
-    ];
-    for (const [x1, z1, x2, z2] of strips) {
-      const w = x2 - x1, d = z2 - z1;
-      const top = new THREE.Mesh(new THREE.PlaneGeometry(w, d), waterMat);
-      top.rotation.x = -Math.PI / 2;
-      top.position.set(x1 + w / 2, SEA + 0.875, z1 + d / 2);
-      top.renderOrder = 2;
-      group.add(top);
-      const bottom = new THREE.Mesh(new THREE.PlaneGeometry(w, d), sandMat);
-      bottom.rotation.x = -Math.PI / 2;
-      bottom.position.set(x1 + w / 2, 5, z1 + d / 2);
-      group.add(bottom);
-    }
-    this.scene.add(group);
+    const geo = new THREE.RingGeometry(1, 700, 48, 1);
+    geo.rotateX(-Math.PI / 2);
+    this.sea = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#3d7fd8' }));
+    this.sea.position.y = SEA + 0.7;
+    this.sea.renderOrder = -1;
+    this.scene.add(this.sea);
+  }
+
+  // Zichtafstand in chunks: bepaalt de mist en waar de zee-ring begint
+  setViewDistance(r) {
+    this.viewFar = Math.max(40, (r - 0.5) * CHUNK);
+    const inner = Math.max(1, (r - 1) * CHUNK);
+    this.sea.geometry.dispose();
+    const geo = new THREE.RingGeometry(inner, 700, 48, 1);
+    geo.rotateX(-Math.PI / 2);
+    this.sea.geometry = geo;
+    if (this.biomeCurrent) this.applyBiome();
   }
 
   buildClouds() {
@@ -201,8 +202,8 @@ export class GameScene {
     const m = new THREE.Matrix4();
     for (let i = 0; i < count; i++) {
       const c = {
-        x: Math.random() * 360 - 130,
-        z: Math.random() * 360 - 130,
+        x: Math.random() * 360 - 180,
+        z: Math.random() * 360 - 180,
         w: 6 + Math.random() * 16,
         d: 5 + Math.random() * 12,
         y: SY + 8 + Math.random() * 4,
@@ -214,11 +215,13 @@ export class GameScene {
     this.scene.add(this.clouds);
   }
 
+  // Wolken drijven langzaam weg en blijven altijd rond de speler (360 x 360 blokken)
   updateClouds(dt) {
-    const m = new THREE.Matrix4();
+    const m = new THREE.Matrix4(), cam = this.camera.position;
+    const wrap = (v, around) => around + ((((v - around + 180) % 360) + 360) % 360) - 180;
     this.cloudData.forEach((c, i) => {
       c.x += dt * 0.8;
-      if (c.x > 230) c.x -= 360;
+      c.x = wrap(c.x, cam.x); c.z = wrap(c.z, cam.z);
       m.makeScale(c.w, 2, c.d).setPosition(c.x, c.y, c.z);
       this.clouds.setMatrixAt(i, m);
     });
@@ -238,49 +241,76 @@ export class GameScene {
     this.highlight.visible = true;
   }
 
-  // Bouw de chunks opnieuw die veranderd zijn (max `budget` per beeldje)
-  updateChunks(world, budget = 4) {
-    let done = 0;
-    for (const key of world.dirtyChunks) {
-      if (done >= budget) break;
-      world.dirtyChunks.delete(key);
-      const [cx, cz] = key.split(',').map(Number);
-      this.rebuildChunk(world, cx, cz);
-      done++;
-    }
+  // ---------- chunks tekenen ----------
+
+  // Een chunk is (opnieuw) helemaal getekend, sectie voor sectie
+  setChunkSections(chunk, sections) {
+    let e = this.chunks.get(chunk.key);
+    if (!e) { e = { cx: chunk.cx, cz: chunk.cz, sections: [], meshes: [] }; this.chunks.set(chunk.key, e); }
+    e.sections = sections;
+    this.rebuildMeshes(e);
   }
 
-  rebuildAll(world) {
-    for (const key of world.dirtyChunks) {
-      const [cx, cz] = key.split(',').map(Number);
-      this.rebuildChunk(world, cx, cz);
-    }
-    world.dirtyChunks.clear();
-  }
-
-  rebuildChunk(world, cx, cz) {
-    const key = cx + ',' + cz;
-    const old = this.chunks.get(key);
-    if (old) for (const m of old) { this.scene.remove(m); m.geometry.dispose(); }
-    const data = buildChunk(world, this.atlas, cx, cz);
-    const meshes = [];
-    for (const kind of ['solid', 'cutout', 'glass', 'water']) {
-      const d = data[kind];
+  // De secties van één chunk samenvoegen: per soort één mesh (weinig tekenopdrachten)
+  rebuildMeshes(e) {
+    for (const m of e.meshes) { this.scene.remove(m); m.geometry.dispose(); }
+    e.meshes = [];
+    let lo = SY, hi = 0;
+    e.sections.forEach((s, i) => { if (s && KINDS.some((k) => s[k])) { lo = Math.min(lo, i * SECTION); hi = Math.max(hi, (i + 1) * SECTION); } });
+    if (hi <= lo) return;
+    const center = new THREE.Vector3(e.cx * CHUNK + CHUNK / 2, (lo + hi) / 2, e.cz * CHUNK + CHUNK / 2);
+    const radius = Math.hypot(CHUNK, hi - lo, CHUNK) / 2 + 1;
+    for (const kind of KINDS) {
+      const d = mergeSections(e.sections, kind);
       if (!d) continue;
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
       geo.setAttribute('uv', new THREE.BufferAttribute(d.uv, 2));
       geo.setAttribute('color', new THREE.BufferAttribute(d.col, 3));
       geo.setIndex(new THREE.BufferAttribute(d.idx, 1));
-      geo.boundingSphere = new THREE.Sphere(
-        new THREE.Vector3(cx * CHUNK + CHUNK / 2, SY / 2, cz * CHUNK + CHUNK / 2), Math.hypot(CHUNK, SY, CHUNK) / 2 + 1,
-      );
+      geo.boundingSphere = new THREE.Sphere(center.clone(), radius);
       const mesh = new THREE.Mesh(geo, this.materials[kind]);
+      mesh.matrixAutoUpdate = false;
       if (kind === 'water' || kind === 'glass') mesh.renderOrder = 1;
       this.scene.add(mesh);
-      meshes.push(mesh);
+      e.meshes.push(mesh);
     }
-    this.chunks.set(key, meshes);
+  }
+
+  removeChunk(key) {
+    const e = this.chunks.get(key);
+    if (!e) return;
+    for (const m of e.meshes) { this.scene.remove(m); m.geometry.dispose(); }
+    this.chunks.delete(key);
+  }
+
+  clearChunks() {
+    for (const key of [...this.chunks.keys()]) this.removeChunk(key);
+  }
+
+  // Wat Jippe veranderde meteen opnieuw tekenen (alleen de secties die het raakt)
+  updateChunks(world, budget = 4) {
+    let done = 0;
+    for (const [key, mask] of world.dirtySections) {
+      if (done >= budget) break;
+      world.dirtySections.delete(key);
+      const c = world.chunks.get(key), e = this.chunks.get(key);
+      if (!c || !e) continue;
+      const pad = buildPad(world, c.cx, c.cz);
+      for (let s = 0; s < SY / SECTION; s++) if (mask & (1 << s)) e.sections[s] = meshSection(pad, this.atlas.faceTiles, c.cx, c.cz, s);
+      this.rebuildMeshes(e);
+      done++;
+    }
+  }
+
+  // Alles wat klaar is meteen tekenen (bij het openen van een wereld, en in de tests)
+  rebuildAll(world) {
+    for (const c of world.chunks.values()) {
+      if (c.meshed || !world.neighboursReady(c.cx, c.cz)) continue;
+      this.setChunkSections(c, meshChunk(buildPad(world, c.cx, c.cz), this.atlas.faceTiles, c.cx, c.cz));
+      c.meshed = true;
+    }
+    this.updateChunks(world, Infinity);
   }
 
   resize(w, h) {
@@ -296,6 +326,8 @@ export class GameScene {
 
   render() {
     this.sky.position.copy(this.camera.position);
+    this.sea.position.x = this.camera.position.x;
+    this.sea.position.z = this.camera.position.z;
     this.renderer.render(this.scene, this.camera);
   }
 }

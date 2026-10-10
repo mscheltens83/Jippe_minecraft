@@ -1,7 +1,8 @@
 // Dieren beheren, bij hun landschap neerzetten, aaien en bewaren.
 import * as THREE from '../lib/three.module.min.js';
 import { B } from './blocks.js';
-import { SX, SZ } from './world.js';
+import { HOME, CHUNK } from './world.js';
+import { hash } from './engine/noise.js';
 import { BIOMES, biomeAt } from './biomes.js';
 import { Animal } from './animals/core.js';
 import { SPECIES, MAX_ANIMALS } from './animals/species.js';
@@ -70,11 +71,11 @@ export class Animals {
         if (a) continue;
         // Eén proefmodel en een vaste kandidatenlijst, ook voor dichtbegroeide seeds.
         const probe = new Animal(type, 0, 0, 0, Math.random() * Math.PI * 2);
-        const count = (SX - 4) * (SZ - 4), offset = Math.floor(Math.random() * count);
+        const count = (HOME - 4) * (HOME - 4), offset = Math.floor(Math.random() * count);
         for (let tries = 0; tries < count; tries++) {
           const index = (offset + tries * 97) % count;
-          const x = 2 + index % (SX - 4), z = 2 + Math.floor(index / (SX - 4));
-          const dist = Math.hypot(x - SX / 2, z - SZ / 2);
+          const x = 2 + index % (HOME - 4), z = 2 + Math.floor(index / (HOME - 4));
+          const dist = Math.hypot(x - HOME / 2, z - HOME / 2);
           if (world.type === 'adventure' && (biomeAt(world.type, x + .5, z + .5) !== biome || (biome === 'island' ? dist > 6 : dist < 14))) continue;
           if (world.type !== 'adventure' && SPECIES[type].dieet === 'boerderij' && (dist < 6 || dist > 26)) continue;
           if (SPECIES[type].dieet !== 'boerderij' && dist < 10) continue;
@@ -91,6 +92,45 @@ export class Animals {
     }
   }
 
+  // Een nieuw stuk wereld krijgt soms een paar dieren van zijn landschap. Die zijn "wild":
+  // als het vol raakt, maken de wilde dieren die het verst weg zijn plaats voor nieuwe.
+  spawnInChunk(world, cx, cz, viewer = null) {
+    const x0 = cx * CHUNK, z0 = cz * CHUNK;
+    // Bij de bouwplek wonen al dieren; verderop af en toe een groepje (ongeveer 1 op de 14 chunks)
+    if (Math.hypot(x0 + 8 - HOME / 2, z0 + 8 - HOME / 2) < 80 || hash(world.seed, cx, cz, 701) > 0.07) return 0;
+    const biome = biomeAt(world.type, x0 + 8, z0 + 8);
+    const kinds = BIOMES[biome]?.dieren || [];
+    if (!kinds.length) return 0;
+    const [type] = kinds[Math.floor(hash(world.seed, cx, cz, 702) * kinds.length)];
+    const n = type === 'zebra' ? 3 : 1 + Math.floor(hash(world.seed, cx, cz, 703) * 2);
+    const probe = new Animal(type, 0, 0, 0, hash(world.seed, cx, cz, 704) * Math.PI * 2);
+    let made = 0;
+    for (let i = 0; i < n * 6 && made < n; i++) {
+      const x = x0 + 1 + Math.floor(hash(world.seed, cx, cz, 710 + i) * (CHUNK - 2));
+      const z = z0 + 1 + Math.floor(hash(world.seed, cx, cz, 760 + i) * (CHUNK - 2));
+      const y = world.surfaceY(x, z);
+      if (!GROUND.includes(world.get(x, y, z)) || world.get(x, y + 1, z) === B.WATER) continue;
+      if (!probe.clearAt(world, x + 0.5, y + 1, z + 0.5)) continue;
+      if (this.full && !this.recycle(viewer)) break;
+      const a = this.spawn(type, x + 0.5, y + 1, z + 0.5, probe.yaw);
+      if (a) { a.wild = true; made++; }
+    }
+    return made;
+  }
+
+  // Haal het verste wilde dier weg (verder dan 100 blokken); tamme en zelf neergezette dieren nooit
+  recycle(viewer) {
+    if (!viewer) return false;
+    let far = null, best = 100;
+    for (const a of this.list) {
+      if (!a.wild || a.tame || a.riding) continue;
+      const d = Math.hypot(a.x - viewer.x, a.z - viewer.z);
+      if (d > best) { best = d; far = a; }
+    }
+    if (far) this.remove(far);
+    return !!far;
+  }
+
   update(dt, world, viewer = null, camera = null, clockDt = dt) {
     this.frame++;
     this.caught.length = 0;
@@ -99,12 +139,17 @@ export class Animals {
       this.frustum.setFromProjectionMatrix(this.matrix);
     }
     for (let i = 0; i < this.list.length; i++) {
-      const a = this.list[i], visible = !camera || this.frustum.intersectsBox(a.box);
+      const a = this.list[i];
+      // Staat het dier in een stuk wereld dat niet geladen is? Dan slaapt het even (onzichtbaar)
+      if (!world.isLoaded(a.x, a.z)) { a.group.visible = false; continue; }
+      const visible = !camera || this.frustum.intersectsBox(a.box);
       if (a.riding) {
         a.elapsed = 0; a.clockElapsed = 0; a.group.visible = true; a.show(dt);
         continue;
       }
-      const far = viewer && Math.hypot(a.x - viewer.x, a.z - viewer.z) > 40;
+      const dist = viewer ? Math.hypot(a.x - viewer.x, a.z - viewer.z) : 0, far = dist > 40;
+      // Verder dan ±28 blokken: als één stuk tekenen (met een beetje speling, zodat het niet knippert)
+      if (viewer) a.setFar(a.lodOn ? dist > 26 : dist > 30);
       a.elapsed += dt;
       a.clockElapsed += clockDt;
       if (!far || (this.frame + i) % 4 === 0) {
@@ -139,7 +184,7 @@ export class Animals {
   serialize() {
     const r = (v) => Math.round(v * 100) / 100;
     return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw),
-      tame: !!a.tame, hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
+      tame: !!a.tame, ...(a.wild ? { wild: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
       sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
       huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 }));
   }
@@ -151,6 +196,7 @@ export class Animals {
       const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw);
       if (!a) break;
       a.tame = !!o.tame;
+      a.wild = !!o.wild;
       a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
       a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
       a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;

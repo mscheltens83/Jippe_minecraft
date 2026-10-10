@@ -61,7 +61,11 @@ export function part(geos, pivotX, pivotY, pivotZ) {
 // De cache bezit de geometrie: een dier weghalen mag die dus niet opruimen.
 const MODEL_CACHE = new Map();
 export function cachedModel(key, build) {
-  if (!MODEL_CACHE.has(key)) MODEL_CACHE.set(key, build());
+  if (!MODEL_CACHE.has(key)) {
+    const source = build();
+    source.merged = mergedPose(source);
+    MODEL_CACHE.set(key, source);
+  }
   const source = MODEL_CACHE.get(key), copies = new Map();
   const roots = [...source.parts, ...source.legs];
   const pair = (a, b) => {
@@ -74,4 +78,22 @@ export function cachedModel(key, build) {
     result[name] = Array.isArray(value) ? value.map((v) => copies.get(v) || v) : copies.get(value) || value;
   }
   return result;
+}
+
+// Het hele dier in rusthouding als één vorm: ver weg tekent de iPad zo één stuk in plaats van ±9.
+// Zadel en tong (die soms aan, soms uit staan) doen niet mee.
+function mergedPose(source) {
+  const root = new THREE.Group(), roots = [...source.parts, ...source.legs];
+  const skip = new Set([source.saddle, source.tongue].filter(Boolean));
+  for (const r of roots) root.add(r);
+  root.updateMatrixWorld(true);
+  const geos = [];
+  const visit = (o) => {
+    if (skip.has(o) || o.visible === false) return;
+    if (o.isMesh) geos.push(o.geometry.clone().applyMatrix4(o.matrixWorld));
+    for (const child of o.children) visit(child);
+  };
+  for (const r of roots) visit(r);
+  for (const r of roots) root.remove(r);
+  return merge(geos);
 }

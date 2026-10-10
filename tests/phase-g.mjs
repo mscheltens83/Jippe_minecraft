@@ -60,6 +60,7 @@ export async function testPhaseG({ newPage, check, out }) {
     const j = window.__jippecraft;
     j.openTreasure({ x: bx, y: by, z: bz }); j.saveNow();
   }, treasure);
+  await run(() => window.__jippecraft.saving); // wacht tot IndexedDB klaar is met bewaren
   await page.reload();
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 30000 });
   check(await run(({ bx, by, bz }) => window.__jippecraft.world.get(bx, by, bz) === 78, treasure),
@@ -92,6 +93,7 @@ export async function testPhaseG({ newPage, check, out }) {
   check(snow.undone && snow.saved === 1, 'terugzetten herstelt de sneeuwblokken en een nieuwe sneeuwpop wordt bewaard');
   await page.waitForTimeout(400);
   await page.screenshot({ path: out + '/28-lopende-sneeuwpop.png' });
+  await run(() => window.__jippecraft.saving); // wacht tot IndexedDB klaar is met bewaren
   await page.reload();
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 30000 });
   check(await run(() => window.__jippecraft.snowmen.list.length === 1), 'sneeuwpop blijft na herladen rondlopen');

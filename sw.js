@@ -2,14 +2,17 @@
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
 // Moet precies 'jippecraft-' + VERSION uit js/version.js zijn (de unit-test controleert dat)
-const CACHE = 'jippecraft-4.0.0';
+const CACHE = 'jippecraft-4.1.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',
-  'js/main.js', 'js/blocks.js', 'js/textures.js', 'js/world.js', 'js/mesher.js', 'js/scene.js',
+  'js/main.js', 'js/blocks.js', 'js/textures.js', 'js/world.js', 'js/scene.js',
   'js/player.js', 'js/raycast.js', 'js/input.js', 'js/ui.js', 'js/icons.js', 'js/audio.js',
   'js/particles.js', 'js/storage.js', 'js/music.js', 'js/models.js', 'js/animals.js', 'js/avatar.js', 'js/album.js',
   'js/stamps.js', 'js/biomes.js', 'js/structures.js', 'js/weather.js', 'js/snowman.js',
+  'js/engine/constants.js', 'js/engine/noise.js', 'js/engine/trees.js', 'js/engine/gen.js', 'js/engine/chunk.js',
+  'js/engine/world.js', 'js/engine/mesher.js', 'js/engine/worker.js', 'js/engine/pool.js', 'js/engine/loader.js',
+  'js/engine/save.js', 'js/engine/migrate.js',
   'js/animals/core.js', 'js/animals/species.js', 'js/animals/skills.js',
   'js/animals/farm.js', 'js/animals/cats.js', 'js/animals/savanna.js', 'js/animals/hunt.js',
   'js/animals/extras.js',

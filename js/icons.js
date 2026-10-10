@@ -15,6 +15,8 @@ const newFace = (color, detail = '', ears = '') => svg(`${ears}<rect x="7" y="9"
   <path d="M21 32 H27 L24 35 Z" fill="#51443d"/><path d="M19 37 Q24 40 29 37" stroke="#51443d" stroke-width="2" fill="none"/>`);
 
 export const ICONS = {
+  goHome: svg(`<circle cx="24" cy="24" r="19" fill="#fff6d7" ${S}/><path d="M24 5 L29 15 H19 Z" fill="#e8503d" ${S}/><path d="M13 28 L24 18 L35 28 H31 V38 H17 V28 Z" fill="#f5b04a" ${S}/><rect x="21.5" y="31" width="5" height="7" fill="#8a4b1f"/>`),
+  arrow: svg(`<path d="M24 4 L40 26 H30 V44 H18 V26 H8 Z" fill="#ffd84a" ${S}/>`),
   home: svg(`<path d="M8 24 L24 9 L40 24 L36 24 L36 39 L12 39 L12 24 Z" fill="#fff" ${S}/><rect x="20" y="28" width="8" height="11" fill="#e0a45a" ${S}/>`),
   build: svg(`<path d="M6 17 L20 10 L34 17 L20 24 Z" fill="#8fdc6a" ${S}/><path d="M6 17 L6 33 L20 40 L20 24 Z" fill="#b0784a" ${S}/><path d="M34 17 L34 33 L20 40 L20 24 Z" fill="#8c5a34" ${S}/><circle cx="36" cy="34" r="9" fill="#fff" ${S}/><path d="M36 29 V39 M31 34 H41" fill="none" stroke="#2b9a3a" stroke-width="3.5" stroke-linecap="round"/>`),
   pick: svg(`<path d="M22 22 L9 39" fill="none" stroke="#1c2a33" stroke-width="8" stroke-linecap="round"/><path d="M22 22 L9 39" fill="none" stroke="#a8743f" stroke-width="4" stroke-linecap="round"/><path d="M8 14 C 16 6, 32 6, 40 14 L 36 17 C 30 12, 18 12, 12 17 Z" fill="#9fe6ef" ${S} transform="rotate(45 24 16) translate(0 4)"/>`),

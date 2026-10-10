@@ -28,4 +28,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 3F | Dierenalbum | Klaar; getest in de browser |
 | 3G | Weer, geluid, extra's | Klaar; getest in de browser |
 | 4A | Fundament: meetscherm, meetrit, ouderscherm, foutenlogboek, lint, unit-tests en tests op GitHub ([metingen](metingen.md)) | Klaar; nulmeting op de iPad nog doen |
-| 4B–4H | Minecraft-kloon: wereldmotor, terrein, licht, beeld, blokken, dieren en dorpen, portalen ([plan](fase-4-plan.md)) | Gepland |
+| 4B | Eindeloze wereld: chunks, workers, opslag in IndexedDB, oude werelden omgezet, huisknop, reservekopie | Klaar (versie 4.1.0); op de iPad nog proberen |
+| 4C–4H | Minecraft-kloon: terrein, licht, beeld, blokken, dieren en dorpen, portalen ([plan](fase-4-plan.md)) | Gepland |

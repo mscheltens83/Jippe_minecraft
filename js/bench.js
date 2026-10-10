@@ -2,7 +2,7 @@
 // vlot het spel loopt. Starten met ?meet achter het adres (?meet=10 voor 10 seconden),
 // of met de knop op het ouderscherm. Er wordt niets bewaard aan de werelden van Jippe.
 
-import { SX, SZ, SEA } from './world.js';
+import { CENTER, SEA } from './world.js';
 import { BIOMES } from './biomes.js';
 import { frameStats, deviceInfo } from './perf.js';
 import { VERSION } from './version.js';
@@ -15,9 +15,9 @@ const KEY = 'jippecraft.metingen.v1';
 export function benchPath(f) {
   const a = f * Math.PI * 2;
   const r = 30 + Math.sin(a * 3) * 4;
-  const x = SX / 2 + Math.cos(a) * r, z = SZ / 2 + Math.sin(a) * r;
+  const x = CENTER + Math.cos(a) * r, z = CENTER + Math.sin(a) * r;
   const y = SEA + 20 + Math.sin(a * 2) * 2;
-  const yaw = Math.atan2(-(SX / 2 - x), -(SZ / 2 - z));
+  const yaw = Math.atan2(-(CENTER - x), -(CENTER - z));
   return { x, y, z, yaw, pitch: -0.42 };
 }
 
@@ -41,6 +41,7 @@ export class Bench {
     // Alles klaarzetten zonder iets te bewaren
     game.readOnly = true;
     game.fixedQuality = true;
+    game.setViewDistance(6); // vaste zichtafstand, zodat metingen te vergelijken zijn
     game.freshWorld('savanna', BENCH_SEED);
     this.fillAnimals();
     game.scene.rebuildAll(game.world);
@@ -75,6 +76,13 @@ export class Bench {
   // Elk beeldje vóór het tekenen: camera verder langs de route
   step(dt) {
     if (this.done) return;
+    // Eerst wachten tot de wereld rond de route helemaal gemaakt en getekend is (hoogstens 30 s)
+    if (!this.ready) {
+      const p = this.game.player;
+      this.waited = (this.waited || 0) + dt;
+      if (this.game.loader.settled(p.x, p.z) || this.waited > 30) this.ready = true;
+      else { this.place(0); return; }
+    }
     this.t += dt;
     this.place(Math.max(0, this.t) / this.seconds);
   }

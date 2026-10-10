@@ -1,4 +1,5 @@
 // Losse vaardigheden: soorten kiezen hun kunstjes in species.js.
+import { SY } from '../world.js';
 import { B } from '../blocks.js';
 import * as THREE from '../../lib/three.module.min.js';
 
@@ -68,7 +69,7 @@ export const SKILLS = {
     if (!a.flight && a.flightWait <= 0) {
       const x = Math.max(3, Math.min(92, a.x + (Math.random() - .5) * 18));
       const z = Math.max(3, Math.min(92, a.z + (Math.random() - .5) * 18));
-      const y = Math.min(42, world.surfaceY(Math.floor(x), Math.floor(z)) + 4 + Math.random() * 5);
+      const y = Math.min(SY - 6, world.surfaceY(Math.floor(x), Math.floor(z)) + 4 + Math.random() * 5);
       if (a.clearAt(world, x, y, z)) {
         a.flight = { x, y, z, left: 5 + Math.random() * 5 };
         a.walking = true;

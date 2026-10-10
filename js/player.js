@@ -2,7 +2,7 @@
 // Botsen gaat met kleine blokjes, zodat je een trap op kunt lopen en langs een open deur kunt.
 
 import { B, BLOCKS, blockBoxes } from './blocks.js';
-import { SX, SZ, SY } from './world.js';
+import { SY, CENTER, BORDER } from './world.js';
 
 const HALF = 0.3;        // halve breedte
 export const HEIGHT = 1.7;
@@ -98,6 +98,9 @@ export class Player {
   }
 
   update(dt, input, world, now) {
+    // Is de wereld hier nog niet geladen? Dan even wachten in plaats van naar beneden vallen
+    if (!world.isLoaded(this.x, this.z)) { this.vx = this.vy = this.vz = 0; return; }
+    const startX = this.x, startZ = this.z;
     const feet = world.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z));
     const head = world.get(Math.floor(this.x), Math.floor(this.y + EYE), Math.floor(this.z));
     this.inWater = feet === B.WATER || head === B.WATER;
@@ -183,10 +186,11 @@ export class Player {
       }
     }
 
-    // Binnen de wereld blijven
-    const edge = this.riding ? 0.45 : HALF;
-    this.x = Math.min(SX - edge, Math.max(edge, this.x));
-    this.z = Math.min(SZ - edge, Math.max(edge, this.z));
+    // Binnen de wereldrand blijven, en niet een stuk wereld in dat nog niet geladen is
+    const edge = this.riding ? 0.45 : HALF, lo = CENTER - BORDER + edge, hi = CENTER + BORDER - edge;
+    this.x = Math.min(hi, Math.max(lo, this.x));
+    this.z = Math.min(hi, Math.max(lo, this.z));
+    if (!world.isLoaded(this.x, this.z)) { this.x = startX; this.z = startZ; this.vx = this.vz = 0; }
     if (this.y > SY + 6) { this.y = SY + 6; this.vy = Math.min(this.vy, 0); }
     if (this.y < -5) this.unstick(world);
   }

@@ -79,7 +79,7 @@ export async function testPhaseD({ newPage, check, out }) {
   const savedRide = await run(() => {
     const j = window.__jippecraft;
     j.saveNow();
-    const s = j.storage.loadLocal('slot' + j.slot);
+    const s = j.metas['slot' + j.slot];
     return { riding: !!j.player.riding, stored: s.riding,
       apart: Math.hypot(s.player.x - j.player.x, s.player.z - j.player.z) };
   });

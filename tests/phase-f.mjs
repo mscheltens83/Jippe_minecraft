@@ -48,6 +48,7 @@ export async function testPhaseF({ newPage, check, out }) {
     document.querySelector('.album-sticker[data-type="pig"]').classList.contains('bounce')),
   'tikken op een gevonden sticker speelt dierengeluid en beweegt de sticker');
   await page.locator('.album-head .close-btn').tap();
+  await run(() => window.__jippecraft.saving); // wacht tot IndexedDB klaar is met bewaren
   await page.reload();
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 30000 });
   check(await run(() => window.__jippecraft.album.known.has('pig')), 'album blijft bewaard na herladen');

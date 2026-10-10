@@ -1,8 +1,8 @@
 // Gemeenschappelijke beweging, botsingen en houdingen voor alle dieren.
 import * as THREE from '../../lib/three.module.min.js';
 import { B, blockBoxes } from '../blocks.js';
-import { SX, SZ, SY } from '../world.js';
-import { cachedModel } from '../models.js';
+import { SY } from '../world.js';
+import { cachedModel, MODEL_MAT } from '../models.js';
 import { SPECIES } from './species.js';
 import { updateSkills } from './skills.js';
 
@@ -14,6 +14,11 @@ export class Animal {
     Object.assign(this, this.model);
     this.group = new THREE.Group();
     this.group.add(...this.parts, ...this.legs);
+    // Ver weg: één vorm in rusthouding in plaats van alle losse stukjes (zie setFar)
+    this.lod = new THREE.Mesh(this.merged, MODEL_MAT);
+    this.lod.visible = false;
+    this.lodOn = false;
+    this.group.add(this.lod);
     this.wings ||= [];
     this.rest = new Map();
     this.group.traverse((o) => { if (o !== this.group) this.rest.set(o, { p: o.position.clone(), r: o.rotation.clone() }); });
@@ -43,6 +48,19 @@ export class Animal {
     return false;
   }
   has(skill) { return this.def.kunstjes.includes(skill); }
+
+  // Ver weg tekenen we het dier als één stuk (minder werk voor de iPad), dichtbij met alle bewegingen
+  setFar(on) {
+    if (this.lodOn === on) return;
+    this.lodOn = on;
+    for (const p of this.parts) p.visible = !on;
+    for (const l of this.legs) l.visible = !on;
+    this.lod.visible = on;
+    if (!on) { // zadel en tong staan alleen aan als dat hoort
+      if (this.saddle) this.saddle.visible = this.tame;
+      if (this.tongue) this.tongue.visible = this.state === 'eten';
+    }
+  }
   waterSurface(world, x = this.x, z = this.z) {
     const ix = Math.floor(x), iz = Math.floor(z);
     for (let y = Math.min(SY - 1, Math.floor(this.y + 1)); y >= Math.floor(this.y) - 2; y--) {
@@ -57,7 +75,8 @@ export class Animal {
   clearAt(world, x, y, z) {
     const r = this.def.w * 0.43, d = this.def.d * 0.3, sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
-    if (x - rx < 0.15 || z - rz < 0.15 || x + rx >= SX - 0.15 || z + rz >= SZ - 0.15) return false;
+    // Niet een stuk wereld in dat (nog) niet geladen is
+    if (!world.isLoaded(x - rx, z - rz) || !world.isLoaded(x + rx, z + rz) || !world.isLoaded(x - rx, z + rz) || !world.isLoaded(x + rx, z - rz)) return false;
     for (let bx = Math.floor(x - rx); bx <= Math.floor(x + rx); bx++) for (let bz = Math.floor(z - rz); bz <= Math.floor(z + rz); bz++) {
       for (let by = Math.floor(y - 0.5); by <= Math.floor(y + this.def.h); by++) {
         for (const q of blockBoxes(world, bx, by, bz, true)) {

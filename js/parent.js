@@ -21,14 +21,34 @@ export class ParentPanel {
         <button type="button" class="parent-btn parent-bench">Meetrit (30 s)</button>
         <button type="button" class="parent-btn parent-copy">Kopieer alles</button>
         <button type="button" class="parent-btn parent-clear">Wis fouten</button>
+        <button type="button" class="parent-btn parent-backup">Reservekopie maken</button>
+        <button type="button" class="parent-btn parent-restore">Reservekopie terugzetten</button>
         <button type="button" class="parent-btn parent-back">Terug</button>
-      </div>`;
+      </div>
+      <p class="parent-note"></p>
+      <input type="file" class="parent-file" accept=".json,application/json" hidden>`;
     const on = (cls, fn) => this.el.querySelector(cls).addEventListener('click', fn);
     on('.parent-fps', () => { h.onFps(); this.refresh(); });
     on('.parent-bench', () => h.onBench());
     on('.parent-copy', (e) => copyText(this.text(), e.currentTarget));
     on('.parent-clear', () => { clearErrors(); this.refresh(); });
     on('.parent-back', () => h.onBack());
+    on('.parent-backup', () => this.run(() => h.onBackup(), 'Reservekopie gemaakt.'));
+    const file = this.el.querySelector('.parent-file');
+    on('.parent-restore', () => { file.value = ''; file.click(); });
+    file.addEventListener('change', () => {
+      const f = file.files?.[0];
+      if (!f) return;
+      if (!confirm('Alle werelden op deze iPad vervangen door de reservekopie?')) return;
+      this.run(async () => h.onRestore(JSON.parse(await f.text())), 'Teruggezet. Het spel start opnieuw.');
+    });
+  }
+
+  // Iets uitvoeren en laten zien of het lukte
+  async run(fn, ok) {
+    const note = this.el.querySelector('.parent-note');
+    note.textContent = 'Even geduld…';
+    try { await fn(); note.textContent = ok; } catch (e) { note.textContent = 'Dat lukte niet: ' + (e?.message || e); }
   }
 
   info() {

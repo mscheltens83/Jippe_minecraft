@@ -4,7 +4,11 @@ import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens 
 import * as THREE from '../lib/three.module.min.js';
 import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial } from './blocks.js';
 import { createAtlas } from './textures.js';
-import { World } from './world.js';
+import { World, CHUNK } from './world.js';
+import { WorkerPool } from './engine/pool.js';
+import { ChunkLoader } from './engine/loader.js';
+import { WorldStore } from './engine/save.js';
+import { migrateSave, isOldSave } from './engine/migrate.js';
 import { GameScene } from './scene.js';
 import { Player, EYE } from './player.js';
 import { raycast } from './raycast.js';
@@ -24,6 +28,7 @@ import { Weather } from './weather.js';
 import { Snowmen } from './snowman.js';
 import { PerfMeter } from './perf.js';
 import { Bench } from './bench.js';
+import { VERSION } from './version.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
@@ -74,6 +79,10 @@ class Game {
     this.fixedQuality = /[?&]vast\b/.test(location.search);
     this.readOnly = false;    // tijdens de meetrit wordt niets bewaard
     this.bench = null;
+    this.metas = {};          // korte beschrijving van elke wereldplek (voor het menu)
+    this.spawned = new Set(); // chunks die al eens dieren kregen
+    this.worldReady = false;
+    this.home = null;         // thuis (startplek, later het bed)
 
     this.ui = new UI(root, this.atlas, {
       onPlay: () => this.play(),
@@ -91,6 +100,7 @@ class Game {
       onToggleMusic: () => this.toggleMusic(),
       onTogglePredators: () => this.togglePredators(),
       onAlbum: () => this.album.open(),
+      onGoHome: () => this.goHome(),
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
@@ -101,6 +111,8 @@ class Game {
         fpsOn: () => this.perf.visible,
         onFps: () => this.toggleFps(),
         onBench: () => { this.saveNow(); location.href = location.pathname + '?meet'; },
+        onBackup: () => this.backup(),
+        onRestore: (data) => this.restore(data),
       },
     });
     this.input = new Input(this.canvas, this.ui.stickBase, this.ui.stickKnob);
@@ -126,20 +138,19 @@ class Game {
     this.perf = new PerfMeter(root);
     this.perf.show(/[?&]fps\b/.test(location.search) || !!this.settings.fps);
 
-    this.migrateOldSaves();
-    const meta = this.storage.loadLocal('meta') || {};
-    this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
-    const save = this.storage.loadLocal('slot' + this.slot);
-    const loaded = !!save && this.applySave(save);
-    if (!loaded) this.freshWorld('island');
-    this.saveT = loaded ? save.t : 0;
-    this.savedPos = this.posKey();
-    this.scene.rebuildAll(this.world);
-    this.scene.precompile();
-    this.refreshUI();
-    this.ui.showMenu();
+    this.store = new WorldStore();
+    const cores = navigator.hardwareConcurrency || 2;
+    this.pool = new WorkerPool(this.atlas.faceTiles, Math.max(1, Math.min(2, cores - 1)));
+    this.loader = new ChunkLoader(this.world, this.scene, this.pool);
+    this.world.onChunkAdded = (c) => this.chunkAdded(c);
+    this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
+    const touch = window.matchMedia?.('(pointer: coarse)').matches;
+    this.maxView = touch ? 7 : 10;
+    this.setViewDistance(touch ? 6 : 8);
+    // ?zicht=3: vaste zichtafstand (de test-browser zonder videokaart is anders erg traag)
+    const zicht = location.search.match(/[?&]zicht=(\d+)/);
+    if (zicht) this.setViewDistance(Math.max(2, Math.min(12, Number(zicht[1]))));
 
-    this.resize();
     window.addEventListener('resize', () => this.resize());
     window.visualViewport?.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
@@ -155,21 +166,65 @@ class Game {
     this.frameTimes = [];
     this.warmup = 2;
     this.lowered = false;
+  }
+
+  // Opstarten: werelden uit de opslag halen (dat gaat in IndexedDB niet in één keer)
+  async init() {
+    await this.store.open();
+    this.migrateOldSaves();
+    await this.migrateToV4();
+    this.metas = await this.store.loadMetas(SLOTS.map((n) => 'slot' + n));
+    const meta = this.storage.loadLocal('meta') || {};
+    this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
+    const loaded = await this.loadSlot(this.slot);
+    if (!loaded) this.freshWorld('island');
+    this.savedPos = this.posKey();
+    this.scene.rebuildAll(this.world);
+    this.scene.precompile();
+    this.refreshUI();
+    this.ui.showMenu();
+    this.resize();
     this.last = performance.now() / 1000;
     requestAnimationFrame((t) => this.frame(t));
-    this.syncRemote();
+    return this;
   }
 
   // ---------- wereld & bewaren ----------
 
-  freshWorld(type, seed) {
+  setViewDistance(r) {
+    this.viewDistance = r;
+    this.loader.radius = r;
+    this.scene.setViewDistance(r);
+  }
+
+  // Een nieuw stuk wereld: soms komen er een paar dieren van dat landschap bij
+  chunkAdded(c) {
+    if (this.spawned.has(c.key)) return;
+    this.spawned.add(c.key);
+    if (!this.worldReady || c.edited || this.readOnly) return;
+    if (this.animals.spawnInChunk(this.world, c.cx, c.cz, this.player)) this.markDirty();
+  }
+
+  // Alles klaarzetten voor een andere wereld
+  openWorld(fn) {
+    this.worldReady = false;
     this.dismount();
     this.snowmen.clear();
-    this.world.generate(type, seed);
+    this.loader.reset();
+    this.spawned = new Set();
+    fn();
+    for (const key of this.world.chunks.keys()) this.spawned.add(key);
+    this.worldReady = true;
+  }
+
+  freshWorld(type, seed) {
+    this.openWorld(() => this.world.generate(type, seed));
+    this.resetSlot = true; // bij het eerstvolgende bewaren eerst de oude chunks van deze plek weghalen
     this.player.setPos(this.world.spawnPoint());
     this.player.yaw = 0;
     this.player.pitch = -0.25;
     this.player.flying = false;
+    this.home = null;
     this.undoStack = [];
     this.thumb = null;
     this.animals.clear();
@@ -182,43 +237,51 @@ class Game {
     // Tijdens automatisch bewaren mag Jippe blijven rijden; de bewaarde plek is naast de leeuw.
     const place = p.riding ? this.dismountSpot() : p;
     return {
-      v: 3,
+      v: 4,
       t: Date.now(),
       type: this.world.type,
       seed: this.world.seed,
-      blocks: this.world.serialize(),
+      classic: this.world.classic,
       player: { x: place.x, y: place.y, z: place.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
+      home: this.home,
       hotbar: this.hotbar,
       sel: this.sel,
       mode: this.mode,
       animals: this.animals.serialize(),
       snowmen: this.snowmen.serialize(),
-      riding: false,
+      riding: false, // je stapt bij het laden altijd af, naast je dier
+      spawned: [...this.spawned],
       thumb: this.thumb,
     };
   }
 
-  applySave(s) {
+  // Een bewaarde wereld (v4) openen; `chunks` zijn de bewerkte chunks uit de opslag
+  applySave(s, chunks = new Map()) {
     try {
-      if (!s || ![1, 2, 3].includes(s.v) || typeof s.blocks !== 'string') return false;
-      this.dismount();
-      this.world.deserialize(s.blocks);
-      this.world.type = BIOMES[s.type] ? s.type : 'island';
-      this.world.seed = s.seed || 1;
+      if (!s || s.v !== 4) return false;
       const p = s.player || {};
       const num = (v, d) => (Number.isFinite(v) ? v : d);
-      const sp = this.world.spawnPoint();
-      this.player.setPos({ x: num(p.x, sp.x), y: num(p.y, sp.y), z: num(p.z, sp.z) });
+      let pos = null;
+      this.resetSlot = false;
+      this.openWorld(() => {
+        this.world.open({ type: s.type, seed: s.seed || 1, classic: !!s.classic }, chunks);
+        const sp = this.world.spawnPoint();
+        pos = { x: num(p.x, sp.x), y: num(p.y, sp.y), z: num(p.z, sp.z) };
+        // Ver van huis bewaard? Dan dat stuk wereld meteen maken
+        this.world.ensureArea(Math.floor(pos.x) - CHUNK, Math.floor(pos.z) - CHUNK, Math.floor(pos.x) + CHUNK, Math.floor(pos.z) + CHUNK);
+      });
+      for (const key of s.spawned || []) this.spawned.add(key);
+      this.player.setPos(pos);
       this.player.yaw = num(p.yaw, 0);
       this.player.pitch = num(p.pitch, -0.25);
       this.player.flying = !!p.flying;
       this.player.unstick(this.world);
-      if (Array.isArray(s.hotbar) && s.hotbar.length === DEFAULT_HOTBAR.length && s.hotbar.every((id) => PALETTE.includes(id))) {
-        this.hotbar = [...s.hotbar];
-      }
+      this.home = s.home && Number.isFinite(s.home.x) ? s.home : null;
+      this.hotbar = Array.isArray(s.hotbar) && s.hotbar.length === DEFAULT_HOTBAR.length && s.hotbar.every((id) => PALETTE.includes(id))
+        ? [...s.hotbar] : [...DEFAULT_HOTBAR];
       this.sel = Number.isInteger(s.sel) && s.sel >= 0 && s.sel < this.hotbar.length ? s.sel : 0;
       this.mode = s.mode === 'break' ? 'break' : 'build';
-      // Wereld van de eerste versie heeft nog geen dieren: die komen er nu bij
+      // Een omgezette wereld van de eerste versie heeft nog geen dieren: die komen er nu bij
       if (Array.isArray(s.animals)) this.animals.load(s.animals);
       else { this.animals.clear(); this.animals.populate(this.world); }
       this.snowmen.load(s.snowmen);
@@ -227,10 +290,17 @@ class Game {
       this.updateBiome(true);
       return true;
     } catch (e) {
-      // deserialize() verandert niets als het mislukt, dus de huidige wereld blijft staan
       console.warn('Kon wereld niet laden', e);
+      logError(e, 'wereld laden');
       return false;
     }
+  }
+
+  async loadSlot(n) {
+    const meta = this.metas['slot' + n];
+    if (!meta) return false;
+    const chunks = await this.store.loadChunks('slot' + n);
+    return this.applySave(meta, chunks);
   }
 
   // De eerste versie had één wereld + "vorige wereld": die worden wereld 1 en 2
@@ -246,14 +316,36 @@ class Game {
     }
   }
 
+  // Werelden van vóór de eindeloze wereld (localStorage) één keer omzetten naar IndexedDB.
+  // De oude versie blijft in localStorage staan als reserve.
+  async migrateToV4() {
+    const metas = await this.store.loadMetas(SLOTS.map((n) => 'slot' + n));
+    for (const n of SLOTS) {
+      if (metas['slot' + n]) continue;
+      const old = this.storage.loadLocal('slot' + n);
+      if (!isOldSave(old)) continue;
+      try {
+        const { meta, chunks } = migrateSave(old);
+        await this.store.save('slot' + n, meta, chunks);
+      } catch (e) {
+        console.warn('Kon oude wereld niet omzetten', n, e);
+        logError(e, 'omzetten wereld ' + n);
+      }
+    }
+  }
+
   saveNow() {
-    if (this.readOnly) return;
+    if (this.readOnly || !this.worldReady) return Promise.resolve();
     const s = this.makeSave();
-    this.storage.save('slot' + this.slot, s);
+    const slot = 'slot' + this.slot;
+    if (this.resetSlot) { this.store.clearSlot(slot); this.resetSlot = false; }
+    this.metas[slot] = s;
+    this.saving = this.store.save(slot, s, this.world.takeUnsaved()).catch((e) => logError(e, 'bewaren'));
     this.saveT = s.t;
     this.dirty = false;
     this.lastPosSave = performance.now() / 1000;
     this.savedPos = this.posKey();
+    return this.saving;
   }
 
   saveSettings() {
@@ -293,65 +385,49 @@ class Game {
 
   slotInfo() {
     return SLOTS.map((n) => {
-      const s = n === this.slot ? { type: this.world.type, thumb: this.thumb } : this.storage.loadLocal('slot' + n);
+      const s = n === this.slot ? { type: this.world.type, thumb: this.thumb } : this.metas['slot' + n];
       return { n, current: n === this.slot, empty: !s, thumb: s?.thumb || null, type: s?.type };
     });
   }
 
-  switchSlot(n) {
+  async switchSlot(n) {
     if (n === this.slot) { this.play(); return; }
-    const s = this.storage.loadLocal('slot' + n);
-    if (!s) return;
-    this.captureThumb();
-    this.saveNow();
-    if (!this.applySave(s)) { this.sounds.nope(); return; }
-    this.slot = n;
-    this.storage.saveLocal('meta', { current: n });
-    this.saveT = s.t;
-    this.edits = 0;
-    this.scene.rebuildAll(this.world);
-    this.refreshUI();
-    this.play();
-  }
-
-  newWorld(n, type) {
-    if (n !== this.slot) { this.captureThumb(); this.saveNow(); }
-    this.slot = n;
-    this.storage.saveLocal('meta', { current: n });
-    this.freshWorld(type);
-    this.scene.rebuildAll(this.world);
-    this.saveNow();
-    this.refreshUI();
-    this.play();
-  }
-
-  // Op claude.ai: kijk of er in de database nieuwere versies van de werelden staan
-  async syncRemote() {
-    const st = this.storage;
-    const db = await st.connect();
-    if (!db) return;
-    const remote = {};
-    await Promise.all(SLOTS.map(async (n) => { remote[n] = await st.loadRemote('slot' + n); }));
-    if (SLOTS.every((n) => !remote[n])) {
-      const [rw, rb] = await Promise.all([st.loadRemote('world'), st.loadRemote('backup')]);
-      if (rw) remote[1] = rw;
-      if (rb) remote[2] = rb;
+    const meta = this.metas['slot' + n];
+    if (!meta || this.switching) return;
+    this.switching = true;
+    try {
+      this.captureThumb();
+      this.saveNow();
+      const chunks = await this.store.loadChunks('slot' + n);
+      if (!this.applySave(meta, chunks)) { this.sounds.nope(); return; }
+      this.slot = n;
+      this.storage.saveLocal('meta', { current: n });
+      this.saveT = meta.t;
+      this.edits = 0;
+      this.scene.rebuildAll(this.world);
+      this.refreshUI();
+      this.play();
+    } finally {
+      this.switching = false;
     }
-    for (const n of SLOTS) {
-      const r = remote[n];
-      const localT = n === this.slot ? this.saveT : (st.loadLocal('slot' + n)?.t || 0);
-      if (r && r.t > localT) {
-        if (n !== this.slot) st.saveLocal('slot' + n, r);
-        else if (this.edits === 0 && this.applySave(r)) {
-          st.saveLocal('slot' + n, r);
-          this.saveT = r.t;
-          this.scene.rebuildAll(this.world);
-          this.refreshUI();
-        }
-      } else if (localT && (!r || localT > r.t)) {
-        if (n === this.slot) this.saveNow();
-        else st.save('slot' + n, st.loadLocal('slot' + n));
-      }
+  }
+
+  async newWorld(n, type) {
+    if (this.switching) return;
+    this.switching = true;
+    try {
+      if (n !== this.slot) { this.captureThumb(); this.saveNow(); }
+      await this.store.clearSlot('slot' + n);
+      delete this.metas['slot' + n];
+      this.slot = n;
+      this.storage.saveLocal('meta', { current: n });
+      this.freshWorld(type);
+      this.scene.rebuildAll(this.world);
+      this.saveNow();
+      this.refreshUI();
+      this.play();
+    } finally {
+      this.switching = false;
     }
   }
 
@@ -413,6 +489,41 @@ class Game {
     this.sounds.pop();
   }
 
+  // Waar is thuis? Het bed (later) of de startplek
+  homeSpot() {
+    if (this.home) return this.home;
+    const x = Math.floor(this.world.spawnPoint().x), z = Math.floor(this.world.spawnPoint().z);
+    return { x: x + 0.5, y: null, z: z + 0.5 };
+  }
+
+  // Met een wolkje glitters naar huis (ook als je op een dier rijdt: dat gaat mee)
+  goHome() {
+    const p = this.player, target = this.homeSpot();
+    const hx = Math.floor(target.x), hz = Math.floor(target.z);
+    this.world.ensureArea(hx - 2 * CHUNK, hz - 2 * CHUNK, hx + 2 * CHUNK, hz + 2 * CHUNK);
+    this.scene.rebuildAll(this.world);
+    this.particles.sparkle(p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + 1.8, p.z + 0.5, 40);
+    const y = target.y ?? this.world.surfaceY(hx, hz) + 1.01;
+    p.setPos({ x: target.x, y, z: target.z });
+    p.unstick(this.world);
+    p.flying = false;
+    this.ui.setFlying(false);
+    this.syncRide(0);
+    this.particles.sparkle(p.x - 0.5, p.y, p.z - 0.5, p.x + 0.5, p.y + 1.8, p.z + 0.5, 60);
+    this.sounds.magic();
+    this.updateBiome(true);
+    this.markDirty();
+  }
+
+  // Het pijltje naar huis: alleen als je verder dan 50 blokken weg bent
+  updateCompass() {
+    const p = this.player, h = this.homeSpot();
+    const dx = h.x - p.x, dz = h.z - p.z;
+    if (!this.playing || Math.hypot(dx, dz) < 50) { this.ui.setCompass(null); return; }
+    const sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
+    this.ui.setCompass(Math.atan2(dx * cos - dz * sin, -dx * sin - dz * cos));
+  }
+
   toggleFly() {
     const p = this.player;
     p.flying = !p.flying;
@@ -443,6 +554,39 @@ class Game {
     this.saveSettings();
     this.ui.setMusic(this.music.on);
     if (this.music.on) this.music.start(); else this.music.stop();
+  }
+
+  // Reservekopie van alle werelden (en de instellingen) als bestand
+  async backup() {
+    this.captureThumb();
+    await this.saveNow();
+    const data = {
+      app: 'JippeCraft', versie: VERSION, datum: new Date().toISOString(),
+      instellingen: this.storage.loadLocal('settings'), huidige: this.slot,
+      werelden: await this.store.exportAll(SLOTS.map((n) => 'slot' + n)),
+    };
+    const name = `jippecraft-reservekopie-${data.datum.slice(0, 10)}.json`;
+    const file = new File([JSON.stringify(data)], name, { type: 'application/json' });
+    // Op de iPad: via het deelmenu (bewaren in Bestanden); anders gewoon downloaden
+    if (navigator.canShare?.({ files: [file] })) {
+      try { await navigator.share({ files: [file], title: name }); return; } catch (e) { if (e?.name === 'AbortError') return; }
+    }
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(file);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    return data;
+  }
+
+  async restore(data) {
+    if (data?.app !== 'JippeCraft' || !data.werelden) throw new Error('dit is geen reservekopie van JippeCraft');
+    this.readOnly = true; // niets meer bewaren tot het spel opnieuw start
+    await this.store.importAll(SLOTS.map((n) => 'slot' + n), data.werelden);
+    if (data.instellingen) this.storage.saveLocal('settings', data.instellingen);
+    if (SLOTS.includes(data.huidige)) this.storage.saveLocal('meta', { current: data.huidige });
+    setTimeout(() => location.reload(), 800);
   }
 
   toggleFps() {
@@ -913,6 +1057,8 @@ class Game {
     this.scene.showHighlight(hl);
 
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
+    this.loader.update(p.x, p.z, -Math.sin(p.yaw), -Math.cos(p.yaw));
+    this.updateCompass();
     this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
     this.snowmen.update(this.playing ? dt : 0, this.world);
     this.weather.update(dt, this.world, this.player, this.scene.pixelRatio, this.playing && !document.hidden);
@@ -938,7 +1084,7 @@ class Game {
     if (this.perf.visible) {
       const info = this.scene.renderer.info.render;
       this.perf.draw(now, {
-        calls: info.calls, triangles: info.triangles, chunks: this.world.dirtyChunks.size,
+        calls: info.calls, triangles: info.triangles, chunks: `${this.loader.pending} (${this.world.chunks.size})`,
         animals: this.animals.list.length, pixelRatio: this.scene.pixelRatio,
         width: this.canvas.width, height: this.canvas.height,
       });
@@ -954,21 +1100,27 @@ class Game {
     this.frameTimes.length = 0;
     if (this.warmup > 0) { this.warmup--; return; }
     const sc = this.scene;
-    if (avg > 1 / 42 && sc.pixelRatio > 0.75) {
-      sc.setPixelRatio(Math.max(0.75, sc.pixelRatio - 0.25));
+    if (avg > 1 / 42) {
+      // Te traag: eerst minder scherp, daarna minder ver kijken
+      if (sc.pixelRatio > 1) { sc.setPixelRatio(sc.pixelRatio - 0.25); this.resize(); }
+      else if (this.viewDistance > 4) this.setViewDistance(this.viewDistance - 1);
+      else if (sc.pixelRatio > 0.75) { sc.setPixelRatio(0.75); this.resize(); }
+      else if (this.viewDistance > 3) this.setViewDistance(3);
       this.lowered = true;
-      this.resize();
-    } else if (avg < 1 / 57 && !this.lowered && sc.pixelRatio < sc.maxPixelRatio) {
-      sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25));
-      this.resize();
+    } else if (avg < 1 / 57 && !this.lowered) {
+      // Snel genoeg: eerst scherper, daarna verder kijken
+      if (sc.pixelRatio < sc.maxPixelRatio) { sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25)); this.resize(); }
+      else if (this.viewDistance < this.maxView) this.setViewDistance(this.viewDistance + 1);
     }
   }
 }
 
-function start() {
+async function start() {
   const root = document.getElementById('app');
   try {
-    const game = window.__jippecraft = new Game(root);
+    const game = new Game(root);
+    await game.init();
+    window.__jippecraft = game;
     // ?meet = meetrit (30 seconden), ?meet=10 = 10 seconden
     const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
     if (meet) game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30);

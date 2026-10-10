@@ -107,6 +107,15 @@ export class UI {
     this.albumHudBtn = button('album-hud-btn', 'book', 'Dierenalbum');
     onPress(this.albumHudBtn, () => { h.onMenu(); h.onAlbum(); });
     this.hud.appendChild(this.albumHudBtn);
+    // Naar huis: een kompasje met een huisje
+    this.homeBtn = button('home-btn', 'goHome', 'Naar huis');
+    onPress(this.homeBtn, () => h.onGoHome());
+    this.hud.appendChild(this.homeBtn);
+    // Pijltje boven de onderbalk dat naar huis wijst (alleen als je ver weg bent)
+    this.compass = el('div', 'compass', ICONS.arrow + `<span class="compass-home">${ICONS.goHome}</span>`);
+    this.compass.hidden = true;
+    this.compassArrow = this.compass.querySelector('svg');
+    this.hud.appendChild(this.compass);
 
     const mode = el('div', 'mode');
     this.buildBtn = button('mode-build', 'build', 'Bouwen');
@@ -343,6 +352,13 @@ export class UI {
     const chest = button('slot chest', 'chest', 'Alle blokken');
     onPress(chest, () => this.h.onChest());
     this.hotbar.appendChild(chest);
+  }
+
+  // angle: richting van huis op het scherm (0 = recht vooruit, met de klok mee), of null
+  setCompass(angle) {
+    if (angle === null) { this.compass.hidden = true; return; }
+    this.compass.hidden = false;
+    this.compassArrow.style.transform = `rotate(${Math.round(angle * 180 / Math.PI)}deg)`;
   }
 
   setMode(mode) {

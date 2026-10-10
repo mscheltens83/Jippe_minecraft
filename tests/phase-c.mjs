@@ -173,6 +173,7 @@ export async function testPhaseC({ newPage, check, out }) {
     j.world.set(52, y, 49, gateId(0, false));
     j.markDirty(); j.saveNow();
   });
+  await run(() => window.__jippecraft.saving); // wacht tot IndexedDB klaar is met bewaren
   await page.reload();
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 20000 });
   check(await run(() => { const j = window.__jippecraft; const y = j.world.surfaceY(52, 48) + 1;

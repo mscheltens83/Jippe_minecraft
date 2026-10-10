@@ -549,3 +549,28 @@ body, #app {
 .bench-card th { padding: 4px 10px 4px 0; text-align: left; font-weight: 500; opacity: 0.75; white-space: nowrap; vertical-align: top; }
 .bench-card td { padding: 4px 0; word-break: break-word; }
 .bench-tip { margin: 12px 0 0; text-align: center; font-size: 14px; opacity: 0.75; }
+
+/* ---------- naar huis ---------- */
+.home-btn {
+  position: absolute;
+  top: calc(var(--top) + var(--btn) + 80px);
+  left: var(--left);
+  width: 60px;
+  height: 60px;
+  padding: 4px;
+  background: #4b7fa8;
+}
+.compass {
+  position: absolute;
+  left: 50%;
+  bottom: calc(var(--bottom) + var(--slot) + 30px);
+  width: 54px;
+  height: 54px;
+  margin-left: -27px;
+  pointer-events: none;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.35));
+}
+.compass > svg { width: 100%; height: 100%; transition: transform 0.15s linear; }
+.compass-home { position: absolute; left: 50%; top: 100%; width: 26px; height: 26px; margin-left: -13px; }
+.compass-home svg { width: 100%; height: 100%; }
+.parent-note { margin: 4px 0 0; min-height: 1.3em; font-size: 14px; text-align: center; }

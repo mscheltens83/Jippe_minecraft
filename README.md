@@ -42,12 +42,17 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Modder** | Op modder loop je langzamer |
 | **Lianen** | Vooruit tegen een liaan of de springknop klimt omhoog. Laat los om te blijven hangen. De omlaagknop laat je zakken |
 | **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
+| **Eindeloze wereld** | De wereld houdt nergens op: loop, zwem of vlieg zo ver je wilt. Verderop liggen nieuwe stukken land, bomen, dieren en soms een tempel, piramide, iglo of leeuwenrots |
+| **Naar huis** | Kompasje linksboven: met een wolkje glitters sta je weer op je bouwplek (rijd je op een dier, dan gaat het mee). Ben je ver weg, dan wijst een geel pijltje boven de onderbalk de weg naar huis |
 
 In het menu onder **Werelden** staan zes plekken in twee rijen, elk met een plaatje van je wereld.
 Tik op een wereld om erheen te gaan, op een lege plek (+) om een nieuwe te maken,
 of op het rondje-pijltje om een wereld opnieuw te beginnen (dat vraagt eerst of je het zeker weet).
-Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**.
-In Avontuur liggen de vier nieuwe landschappen rondom een centrale weide.
+Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**. Alle werelden zijn
+eindeloos. Het Eiland is één groot eiland van ongeveer 400 blokken in een zee zonder einde.
+In Avontuur liggen de vier landschappen rondom een centrale weide en lopen ze verderop door.
+Werelden van vóór versie 4 zijn netjes overgezet: het oude stuk van 96 × 96 blokken ligt nu
+in een zee, en daarachter begint nieuwe wereld om te ontdekken.
 Zoek een tempel, piramide, iglo, leeuwenrots, drinkplaats of oase. De bouwplek in het
 midden blijft vlak. Tik op een schatkist voor confetti en gouden glitters.
 Een leeuw luiert op de leeuwenrots, cheetahs sprinten met stofwolkjes en tijgers zwemmen.
@@ -66,9 +71,9 @@ Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de mui
 
 ### Veilig voor kinderen
 - Geen monsters of schade aan de speler; de speler heeft geen honger. Altijd dag. Een gevangen boerderijdier verdwijnt in een vriendelijke poef en kan meteen opnieuw uit de kist worden geplaatst.
-- Je kunt niet uit de wereld vallen (onbreekbare bodem, onzichtbare rand).
+- Je kunt niet uit de wereld vallen (onbreekbare bodem). Op 4.096 blokken van huis is een rand, en de huisknop brengt je altijd terug.
 - Slopen moet je even vasthouden, dus je sloopt niet per ongeluk je huis.
-- De werelden worden vanzelf bewaard. Een wereld weggooien vraagt altijd eerst om bevestiging.
+- De werelden worden vanzelf bewaard (in de browser, in IndexedDB; alleen de stukken waar je iets veranderde). Een wereld weggooien vraagt altijd eerst om bevestiging. Op het ouderscherm kun je een reservekopie maken.
 - Geen reclame, geen internet nodig tijdens het spelen, geen gegevens die ergens heen gaan.
 
 ### Op een oudere iPad
@@ -82,6 +87,8 @@ Onderin het menu staat klein het **versienummer**. Zo zie je of de iPad de nieuw
 - de **laatste fouten** (als er iets misging), met een knop om alles te kopiëren;
 - **Meetscherm aan/uit**: een klein kader rechtsboven met beelden per seconde (fps), de traagste
   beeldjes (p95) en hoeveel de iPad moet tekenen. Op een computer kan het ook met `?fps` achter het adres;
+- **Reservekopie maken**: alle werelden in één bestand (op de iPad via het deelmenu, bijvoorbeeld
+  naar Bestanden). Met **Reservekopie terugzetten** zet je zo'n bestand weer terug;
 - **Meetrit**: de camera vliegt 30 seconden over een savanne met 60 dieren en laat daarna zien
   hoe vlot het spel liep. Maak er een schermafbeelding van. De werelden van Jippe blijven precies
   zoals ze waren. Op een computer: `?meet` achter het adres (`?meet=10` voor 10 seconden).
@@ -90,13 +97,10 @@ Onderin het menu staat klein het **versienummer**. Zo zie je of de iPad de nieuw
 
 Het spel bestaat uit gewone webbestanden. Het moet op een website staan (via `https://`).
 
-### Optie 1: claude.ai-link (snelst)
-Open de link naar het JippeCraft-artifact op de iPad in Safari (log in op claude.ai).
-De wereld wordt daar ook in de artifact-database bewaard.
-Zie je "This browser isn't supported"? Dan is Safari te oud voor claude.ai: werk de iPad bij
-(Instellingen → Algemeen → Software-update) of gebruik optie 2. Het spel zelf werkt vanaf iPadOS 15.
-
-### Optie 2: als echte app op het beginscherm (aanrader)
+### Als echte app op het beginscherm
+Het spel staat online op https://mscheltens83.github.io/Jippe_minecraft/ en werkt vanaf iPadOS 15.
+De oude claude.ai-links laten een oude versie zien; gebruik die niet meer.
+Zelf ergens anders neerzetten kan ook:
 1. Zet de bestanden op een gratis webhost, bijvoorbeeld:
    - **GitHub Pages**: kan bij een privé-repository alleen met een betaald GitHub-abonnement.
      Anders de repository openbaar maken. Daarna: *Settings → Pages → Deploy from a branch →*
@@ -120,7 +124,7 @@ npm start          # start een lokale webserver op http://localhost:8080
 npm install        # eenmalig, voor de test
 npm run lint       # zoekt tikfouten en vergeten variabelen in de code
 npm test           # unit-tests (snel, zonder browser) en daarna het spel in een gesimuleerde iPad
-FASE=basis,c,4a npm run test:browser   # alleen een paar onderdelen van de browsertest
+FASE=basis,c,4b npm run test:browser   # alleen een paar onderdelen van de browsertest
 npm run icons      # maakt de app-iconen opnieuw
 ```
 
@@ -136,10 +140,10 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/main.js` | Opstarten, de spel-lus, bouwen en slopen |
 | `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
 | `js/textures.js` | De pixel-art texturen, getekend met code |
-| `js/world.js` | De zeven wereldsoorten maken, bewaren en laden |
+| `js/world.js` | Doorgeefluik naar `js/engine/world.js` (de oude imports blijven werken) |
+| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
 | `js/biomes.js` | Landschap, bomen, planten, lucht en mist per wereld |
 | `js/structures.js` | Tempels, piramides, iglo's, leeuwenrotsen, drinkplaatsen en oases |
-| `js/mesher.js` | Blokken omzetten naar 3D-vlakken, met zachte schaduwen |
 | `js/scene.js` | Lucht, zon, wolken en de zee rondom |
 | `js/player.js` | Lopen, springen, vliegen, zwemmen en botsen |
 | `js/raycast.js` | Welk blok tik je aan? |
@@ -159,7 +163,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/errors.js` | Foutenlogboek: de laatste 20 fouten |
 | `js/perf.js`, `js/bench.js` | Meetscherm (`?fps`) en meetrit (`?meet`) |
 | `js/parent.js` | Het ouderscherm |
-| `js/storage.js` | Bewaren van de zes werelden in de browser (en op claude.ai in de database); oude opslag blijft werken |
+| `js/storage.js` | Instellingen en de oude werelden van vóór versie 4 (localStorage) |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
 | `tests/` | Browsertests per fase (`smoke.mjs`, `phase-*.mjs`) en unit-tests (`unit/`) |
 | `lib/three.module.min.js` | [Three.js](https://threejs.org) r170 (MIT-licentie), voor de 3D-weergave |

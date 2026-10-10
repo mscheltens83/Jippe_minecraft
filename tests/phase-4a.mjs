@@ -57,7 +57,8 @@ export async function testPhase4A({ newPage, check, out, version }) {
     check(r && r.dieren === 60 && r.versie === version, 'meetrit rijdt met 60 dieren en noemt de versie');
     check(await page.locator('.bench-card').isVisible(), 'uitslag van de meetrit staat in beeld');
     const keys = await run(() => Object.keys(localStorage).filter((k) => k.startsWith('jippecraft.')).sort());
-    check(keys.join() === 'jippecraft.metingen.v1', 'meetrit bewaart niets aan de werelden' + (keys.join() === 'jippecraft.metingen.v1' ? '' : ': ' + keys.join()));
+    const idb = await run(async () => { const j = window.__jippecraft; await j.store.flush(); return Object.values(await j.store.loadMetas(['slot1', 'slot2'])).filter(Boolean).length; });
+    check(keys.join() === 'jippecraft.metingen.v1' && idb === 0, 'meetrit bewaart niets aan de werelden' + (keys.join() === 'jippecraft.metingen.v1' ? '' : ': ' + keys.join()));
     await page.screenshot({ path: out + '/4a-meetrit.png' });
     await page.locator('.bench-play').click();
     check(await waitTrue(page, () => window.__jippecraft && !window.__jippecraft.bench && !location.search, null, 30000), '"Naar het spel" start het gewone spel');
