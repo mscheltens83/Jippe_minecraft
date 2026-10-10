@@ -78,7 +78,7 @@ export class ParentPanel {
       : '<li>Nog geen meetrit gedaan.</li>';
     const errors = getErrors().slice().reverse();
     this.el.querySelector('.parent-errors').innerHTML = errors.length
-      ? errors.map((e) => `<li><time>${new Date(e.t).toLocaleString('nl-NL')}</time>${e.n > 1 ? ` (${e.n}×)` : ''}<br>${esc(e.msg.split('\n')[0])}</li>`).join('')
+      ? errors.map((e) => `<li><time>${new Date(e.t).toLocaleString('nl-NL')}</time>${e.n > 1 ? ` (${e.n}×)` : ''}${e.where ? ` · ${esc(e.where)}` : ''}<br>${esc(e.msg.split('\n')[0])}</li>`).join('')
       : '<li class="parent-none">Geen fouten.</li>';
     this.el.querySelector('.parent-fps').textContent = this.h.fpsOn() ? 'Meetscherm uit' : 'Meetscherm aan';
     this.el.querySelector('.parent-day').textContent = this.h.alwaysDay() ? 'Dag en nacht: altijd dag' : 'Dag en nacht: aan';

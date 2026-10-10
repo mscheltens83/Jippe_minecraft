@@ -23,6 +23,18 @@ function done(tx) {
   });
 }
 
+// Safari laat IndexedDB vlak na het laden van een pagina soms 'hangen'. Even porren met
+// indexedDB.databases() maakt hem wakker (hoogstens 2 seconden, daarna gewoon doorgaan).
+async function wakeUp() {
+  if (!indexedDB.databases) return;
+  let timer;
+  await Promise.race([
+    new Promise((resolve) => { const poke = () => indexedDB.databases().then(resolve, resolve); poke(); timer = setInterval(poke, 100); }),
+    new Promise((resolve) => setTimeout(resolve, 2000)),
+  ]);
+  clearInterval(timer);
+}
+
 const chunkId = (slot, key) => `${slot}:${keyCx(key)},${keyCz(key)}`;
 const range = (slot) => IDBKeyRange.bound(`${slot}:`, `${slot}:￿`);
 
@@ -36,6 +48,7 @@ export class WorldStore {
   async open() {
     try {
       if (!globalThis.indexedDB) throw new Error('geen IndexedDB');
+      await wakeUp();
       const req = indexedDB.open(DB, VERSION);
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -51,6 +64,20 @@ export class WorldStore {
       this.memory = { werelden: new Map(), chunks: new Map() };
     }
     return this;
+  }
+
+  // Alleen in het geheugen (de meetrit): de bewaarde werelden worden niet aangeraakt
+  memoryOnly() {
+    this.db = null;
+    this.memory = { werelden: new Map(), chunks: new Map() };
+    return this;
+  }
+
+  // De verbinding netjes sluiten voordat de pagina weggaat (wat nog bezig is, wordt eerst afgemaakt)
+  close() {
+    this.db?.close();
+    this.db = null;
+    this.memory = { werelden: new Map(), chunks: new Map() };
   }
 
   get persistent() { return !!this.db; }

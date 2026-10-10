@@ -128,7 +128,7 @@ class Game {
         onAlwaysDay: () => this.setAlwaysDay(!this.daynight.alwaysDay),
         brightCaves: () => !!this.settings.brightCaves,
         onBrightCaves: () => this.setBrightCaves(!this.settings.brightCaves),
-        onBench: () => { this.saveNow(); location.href = location.pathname + '?meet'; },
+        onBench: () => this.leave(location.pathname + '?meet'),
         onBackup: () => this.backup(),
         onRestore: (data) => this.restore(data),
       },
@@ -189,7 +189,7 @@ class Game {
       this.last = performance.now() / 1000;
       if (document.hidden) { this.input.releaseAll(); this.saveNow(); this.sounds.suspend(); }
     });
-    window.addEventListener('pagehide', () => this.saveNow());
+    window.addEventListener('pagehide', () => { if (!this.leaving) this.saveNow(); });
     // Op de iPad mag geluid pas aan na het loslaten van een vinger
     for (const type of ['pointerup', 'touchend', 'keydown']) {
       window.addEventListener(type, () => { this.sounds.unlock(); if (this.playing) this.music.start(); }, true);
@@ -203,10 +203,22 @@ class Game {
   // Opstarten: werelden uit de opslag halen (dat gaat in IndexedDB niet in één keer)
   // bench: de meetrit maakt zelf een eigen wereld, dan hoeft de bewaarde wereld niet eerst te laden
   async init({ bench = false } = {}) {
-    await this.store.open();
-    this.migrateOldSaves();
-    await this.migrateToV4();
-    this.metas = await this.store.loadMetas(SLOTS.map((n) => 'slot' + n));
+    if (bench) {
+      this.store.memoryOnly();
+      this.metas = {};
+    } else {
+      // Reageert de opslag niet (Safari kan dat soms na het wisselen van pagina), dan niet
+      // eindeloos wachten maar een duidelijke melding geven
+      let timer;
+      const stuck = new Promise((resolve, reject) => {
+        timer = setTimeout(() => { const e = new Error('de opslag reageert niet'); e.code = 'opslag'; reject(e); }, 15000);
+      });
+      await Promise.race([this.store.open(), stuck]);
+      this.migrateOldSaves();
+      await this.migrateToV4();
+      this.metas = await Promise.race([this.store.loadMetas(SLOTS.map((n) => 'slot' + n)), stuck]);
+      clearTimeout(timer);
+    }
     const meta = this.storage.loadLocal('meta') || {};
     this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
     if (!bench) {
@@ -387,6 +399,19 @@ class Game {
     this.lastPosSave = performance.now() / 1000;
     this.savedPos = this.posKey();
     return this.saving;
+  }
+
+  // Naar een andere pagina (de meetrit): eerst alles bewaren en de opslag sluiten. Anders kan
+  // Safari de oude pagina bewaren met het bewaren half af, en wacht de nieuwe pagina daar eindeloos op.
+  async leave(url) {
+    if (this.leaving) return;
+    this.leaving = true;
+    try {
+      await this.saveNow();
+      await this.store.flush();
+    } catch (e) { logError(e, 'bewaren voor de meetrit'); }
+    this.store.close();
+    location.href = url;
   }
 
   saveSettings() {
@@ -1494,7 +1519,10 @@ async function start() {
   } catch (e) {
     console.error(e);
     logError(e, 'opstarten');
-    root.innerHTML = '<div class="error"><h1>Oeps!</h1><p>Dit apparaat kan het spel niet laten zien. Werk de iPad bij via Instellingen &rarr; Algemeen &rarr; Software-update.</p></div>';
+    root.innerHTML = e?.code === 'opslag'
+      ? '<div class="error"><h1>Even opnieuw</h1><p>Het spel kan de bewaarde werelden nu niet openen. Je werelden zijn niet weg. ' +
+        'Sluit dit tabblad helemaal en open JippeCraft opnieuw.</p></div>'
+      : '<div class="error"><h1>Oeps!</h1><p>Dit apparaat kan het spel niet laten zien. Werk de iPad bij via Instellingen &rarr; Algemeen &rarr; Software-update.</p></div>';
   }
   // Offline spelen (alleen als het spel op een eigen website staat)
   if ('serviceWorker' in navigator && window.top === window && !window.claude &&

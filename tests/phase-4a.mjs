@@ -1,7 +1,7 @@
 // Fase 4A: versienummer, ouderscherm, foutenlogboek, meetscherm en meetrit.
 import { waitTrue } from './helpers.mjs';
 
-export async function testPhase4A({ newPage, check, out, version }) {
+export async function testPhase4A({ newPage, check, out, version, browser, base, devices }) {
   {
     const { context, page } = await newPage();
     const run = (fn, arg) => page.evaluate(fn, arg);
@@ -64,6 +64,52 @@ export async function testPhase4A({ newPage, check, out, version }) {
     await page.screenshot({ path: out + '/4a-meetrit.png' });
     await page.locator('.bench-play').click();
     check(await waitTrue(page, () => window.__jippecraft && !window.__jippecraft.bench && !location.search, null, 30000), '"Naar het spel" start het gewone spel');
+    await context.close();
+  }
+
+  {
+    // De hele route zoals op de iPad: een bewaarde wereld, dan de knop Meetrit in het ouderscherm,
+    // de meetrit, en terug naar het spel. De wereld moet er daarna nog precies zo zijn.
+    const { context, page } = await newPage();
+    const run = (fn, arg) => page.evaluate(fn, arg);
+    const mark = await run(async () => {
+      const { B } = await import('./js/blocks.js');
+      const j = window.__jippecraft, p = j.player, x = Math.floor(p.x) + 2, z = Math.floor(p.z), y = j.world.surfaceY(x, z) + 1;
+      j.world.set(x, y, z, B.GOLD); j.world.set(x, y + 1, z, B.DIAMOND);
+      j.markDirty();
+      return { x, y, z };
+    });
+    await page.locator('.menu .version').dispatchEvent('pointerdown');
+    await page.waitForTimeout(3300);
+    await page.locator('.menu .version').dispatchEvent('pointerup');
+    await page.locator('.parent-bench').click();
+    check(await waitTrue(page, () => /meet/.test(location.search) && window.__jippecraft?.bench && !window.__jippecraft.store.persistent, null, 30000),
+      'de knop Meetrit opent de meetrit, en die raakt de bewaarde werelden niet aan');
+    check(await waitTrue(page, () => !!window.__jippecraft.benchResult, null, 120000), 'de meetrit vanuit het ouderscherm loopt tot het eind');
+    await page.locator('.bench-play').click();
+    check(await waitTrue(page, () => window.__jippecraft && !window.__jippecraft.bench && !location.search && window.__jippecraft.bootTime, null, 30000), 'daarna start het gewone spel weer');
+    check(await run(async ({ x, y, z }) => {
+      const { B } = await import('./js/blocks.js');
+      const j = window.__jippecraft;
+      for (let i = 0; i < 100 && !j.world.isLoaded(x, z); i++) await new Promise((r) => setTimeout(r, 100));
+      return j.world.get(x, y, z) === B.GOLD && j.world.get(x, y + 1, z) === B.DIAMOND && j.slotInfo().filter((s) => !s.empty).length >= 1;
+    }, mark), 'na de meetrit is de bewaarde wereld er nog, met wat er gebouwd was');
+    check(await run(() => !(JSON.parse(localStorage.getItem('jippecraft.errors.v1') || '[]').length)), 'geen fouten in het logboek na de meetrit');
+    await context.close();
+  }
+
+  {
+    // Reageert de opslag niet (zoals Safari soms na het wisselen van pagina)? Dan een duidelijke
+    // melding na 15 seconden, en zeker niet "deze iPad is te oud"
+    const context = await browser.newContext({ ...devices['iPad Pro 11 landscape'] });
+    await context.route(/fonts\.(googleapis|gstatic)\.com/, (r) => r.fulfill({ status: 200, contentType: 'text/css', body: '' }));
+    await context.addInitScript(() => {
+      IDBFactory.prototype.open = function () { return { set onsuccess(f) {}, set onerror(f) {}, set onupgradeneeded(f) {} }; };
+    });
+    const page = await context.newPage();
+    await page.goto(base);
+    const shown = await waitTrue(page, () => /Even opnieuw/.test(document.querySelector('.error')?.textContent || ''), null, 30000);
+    check(shown && !(await page.locator('text=te oud').count()), 'reageert de opslag niet, dan een duidelijke melding (en niet "te oud")');
     await context.close();
   }
 }

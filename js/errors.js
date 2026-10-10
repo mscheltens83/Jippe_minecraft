@@ -16,7 +16,7 @@ export function clearErrors() {
 }
 
 export function logError(err, where = '') {
-  const msg = String(err?.stack || err?.message || err || 'onbekende fout').slice(0, 600);
+  const msg = String(err?.stack || err?.message || err?.name || err || 'onbekende fout' + (where ? ' (' + where + ')' : '')).slice(0, 600);
   const list = getErrors();
   const last = list[list.length - 1];
   // Dezelfde fout elk beeldje opnieuw: één keer bewaren is genoeg

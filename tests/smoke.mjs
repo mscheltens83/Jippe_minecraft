@@ -386,7 +386,7 @@ if (want('d')) await testPhaseD({ newPage, check, out });
 if (want('e')) await testPhaseE({ newPage, check, out });
 if (want('f')) await testPhaseF({ newPage, check, out });
 if (want('g')) await testPhaseG({ newPage, check, out });
-if (want('4a')) await testPhase4A({ newPage, check, out, version: VERSION });
+if (want('4a')) await testPhase4A({ newPage, check, out, version: VERSION, browser, base, devices });
 if (want('4b')) await testPhase4B({ newPage, check, out });
 if (want('4c')) await testPhase4C({ newPage, check, out });
 if (want('4d')) await testPhase4D({ newPage, check, out });
