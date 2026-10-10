@@ -139,6 +139,24 @@ export class Sounds {
     } else if (sound === 'panda' || sound === 'bear' || sound === 'camel' || sound === 'reindeer') {
       const base = sound === 'bear' ? 105 : sound === 'camel' ? 225 : sound === 'reindeer' ? 275 : 185;
       this.vibrato('triangle', base * p, .42, .1);
+    } else if (sound === 'moo') {
+      this.vibrato('sawtooth', 120 * p, 0.9, 0.12);
+      this.tone('triangle', 140 * p, 105 * p, 0.8, 0.08);
+    } else if (sound === 'bark') {
+      for (let i = 0; i < 2; i++) { this.tone('square', 420 * p, 260 * p, 0.09, 0.09, i * 0.2); this.hiss('bandpass', 900, 2, 0.06, 0.06, i * 0.2); }
+    } else if (sound === 'meow') {
+      this.tone('triangle', 520 * p, 820 * p, 0.18, 0.11); this.tone('triangle', 820 * p, 480 * p, 0.25, 0.1, 0.18);
+    } else if (sound === 'squeak') {
+      this.tone('sine', 1500 * p, 1900 * p, 0.06, 0.08);
+    } else if (sound === 'buzz') {
+      this.vibrato('sawtooth', 220 * p, 0.5, 0.05);
+    } else if (sound === 'bleat') {
+      this.vibrato('sawtooth', 420 * p, 0.45, 0.1);
+    } else if (sound === 'bubble') {
+      for (let i = 0; i < 3; i++) this.tone('sine', (300 + i * 140) * p, (700 + i * 160) * p, 0.06, 0.1, i * 0.09);
+    } else if (sound === 'click') {
+      for (let i = 0; i < 5; i++) this.tone('square', 1800 * p, 1500 * p, 0.03, 0.06, i * 0.06);
+      this.tone('sine', 900 * p, 1500 * p, 0.25, 0.08, 0.32);
     } else if (sound === 'fennec' || sound === 'fox' || sound === 'lizard' || sound === 'turtle' || sound === 'sloth') {
       const base = sound === 'lizard' ? 1200 : sound === 'sloth' ? 260 : sound === 'turtle' ? 340 : 750;
       this.tone('triangle', base * p, base * 1.25, sound === 'sloth' ? .45 : .13, .12);

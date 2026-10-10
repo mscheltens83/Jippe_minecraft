@@ -10,6 +10,9 @@ const GROUPS = [
   { title: 'Jungle', icon: 'jungle', types: ['tiger', 'monkey', 'parrot', 'panda', 'frog', 'sloth'] },
   { title: 'Woestijn', icon: 'desert', types: ['camel', 'fennec', 'lizard', 'turtle'] },
   { title: 'Toendra', icon: 'tundra', types: ['polarBear', 'penguin', 'reindeer', 'arcticFox', 'seal', 'snowyOwl'] },
+  { title: 'Vlakte en bos', icon: 'tree', types: ['cow', 'horse', 'dog', 'cat', 'rabbit', 'fox', 'bee'] },
+  { title: 'Bergen', icon: 'bigWorld', types: ['goat', 'llama'] },
+  { title: 'Zee', icon: 'worlds', types: ['fish', 'dolphin', 'squid'] },
 ];
 
 function button(cls, icon, label) {

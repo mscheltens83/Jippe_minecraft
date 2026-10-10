@@ -189,7 +189,7 @@ export async function testPhase4F2({ newPage, check, out }) {
   }, spot);
   await page.waitForTimeout(300);
   await page.locator('.slot.chest').dispatchEvent('pointerdown');
-  await page.waitForTimeout(500);
+  await waitTrue(page, () => document.querySelector('.slot.chest').classList.contains('picking'), null, 5000);
   const picked = await run(async () => {
     const { B } = await import('./js/blocks.js');
     const j = window.__jippecraft;

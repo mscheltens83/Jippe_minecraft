@@ -8,9 +8,12 @@ import { updateSkills } from './skills.js';
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
 export class Animal {
-  constructor(type, x, y, z, yaw) {
+  constructor(type, x, y, z, yaw, variant = null) {
     this.type = type; this.def = SPECIES[type];
-    this.model = cachedModel(type, this.def.bouw);
+    // Soorten met meer kleuren (paard, kat, ...): elk dier kiest er één
+    const n = this.def.varianten || 0;
+    this.variant = n ? ((variant ?? Math.floor(Math.random() * n)) % n + n) % n : 0;
+    this.model = cachedModel(n ? `${type}:${this.variant}` : type, () => this.def.bouw(this.variant));
     Object.assign(this, this.model);
     this.group = new THREE.Group();
     this.group.add(...this.parts, ...this.legs);
@@ -35,6 +38,7 @@ export class Animal {
     this.sprint = 0; this.sprintWait = 5 + Math.random() * 10; this.dustTime = 0;
     this.skillWait = 0; this.sprayed = false; this.browsing = false;
     this.sleepPuff = 0; this.elapsed = 0; this.clockElapsed = 0;
+    this.baby = 0; this.love = 0; this.breedWait = 0; this.sitting = false; // fokken en zitten (fase 4G)
     this.box = new THREE.Box3();
     this.sync(); this.show(0);
   }
@@ -100,7 +104,8 @@ export class Animal {
 
   choose() {
     // 's Nachts gaan bijna alle dieren slapen (tamme dieren en wie bereden wordt niet)
-    const night = Animal.night && !this.tame && !this.riding;
+    // (een nachtdier zoals de vos slaapt juist overdag)
+    const night = (this.def.nachtdier ? !Animal.night : Animal.night) && !this.tame && !this.riding;
     if (!this.walking && this.onGround && Math.random() < (night ? 0.8 : this.def.slaapkans)) {
       this.sleep = night ? 30 + Math.random() * 40 : 12 + Math.random() * 20; this.walking = false; this.graze = false; return;
     }
@@ -114,6 +119,13 @@ export class Animal {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const nx = this.x - sin * this.speedNow * dt, nz = this.z - cos * this.speedNow * dt;
     let blocked = !this.clearAt(world, nx, this.y, nz);
+    // Vissen, dolfijnen en inktvissen blijven in het water
+    if (this.def.onderwater && this.inWater) {
+      const ahead = world.get(Math.floor(nx - sin * this.def.d * 0.4), Math.floor(this.y + this.def.h / 2), Math.floor(nz - cos * this.def.d * 0.4));
+      if (blocked || !WATERY[ahead]) { this.targetYaw = this.yaw + Math.PI * (0.6 + Math.random() * 0.8); return false; }
+      this.x = nx; this.z = nz;
+      return true;
+    }
     if (!blocked && this.hay && Math.hypot(nx - this.hay.x, nz - this.hay.z) > 6) {
       this.targetYaw = Math.atan2(-(this.hay.x - this.x), -(this.hay.z - this.z));
       return false;
@@ -143,6 +155,7 @@ export class Animal {
     if (this.climbing > 0) { this.climbing = Math.max(0, this.climbing - dt); this.vy = 0; return; }
     const surface = this.waterSurface(world);
     this.inWater = surface !== null;
+    if (this.def.onderwater && this.inWater && this.vy <= 0) { this.swim(dt, world, surface); return; }
     if (this.inWater && this.has('zwemmen') && this.vy <= 0) {
       this.y += (surface - this.def.floatDepth - this.y) * Math.min(1, dt * 7);
       this.vy = 0; this.onGround = false; return;
@@ -162,13 +175,30 @@ export class Animal {
     if (this.y < -3) this.y = 60;
   }
 
+  // Onder water zwemmen op een eigen diepte; af en toe een andere diepte kiezen
+  swim(dt, world, surface) {
+    const ix = Math.floor(this.x), iz = Math.floor(this.z);
+    let bottom = Math.floor(this.y);
+    while (bottom > 0 && WATERY[world.get(ix, bottom - 1, iz)] && bottom > this.y - 10) bottom--;
+    const top = surface - this.def.h - 0.1, low = Math.min(top, bottom + 0.15);
+    if (this.swimY == null || (this.swimWait = (this.swimWait ?? 0) - dt) <= 0) {
+      this.swimY = low + Math.random() * Math.max(0, top - low);
+      this.swimWait = 3 + Math.random() * 5;
+    }
+    const target = Math.max(low, Math.min(top, this.swimY));
+    const next = this.y + Math.max(-dt * 1.2, Math.min(dt * 1.2, target - this.y));
+    if (this.clearAt(world, this.x, next, this.z)) this.y = next;
+    this.vy = 0; this.onGround = false;
+  }
+
   update(dt, world, effects, all = [], animate = true, clockDt = dt) {
     this.time += dt;
     this.happy = Math.max(0, this.happy - dt);
     this.sleep = Math.max(0, this.sleep - clockDt);
     this.eatTime = Math.max(0, this.eatTime - dt);
     this.inWater = this.waterSurface(world) !== null;
-    if (dt > 0 && !this.happy && !this.sleep && !this.hunt && !this.fleeFrom) {
+    if (this.sitting) { this.walking = false; this.graze = false; this.sleep = 0; }
+    else if (dt > 0 && !this.happy && !this.sleep && !this.hunt && !this.fleeFrom) {
       this.timer -= dt;
       if (this.timer <= 0) this.choose();
     }
@@ -213,7 +243,8 @@ export class Animal {
     for (const [node, rest] of this.rest) { node.position.copy(rest.p); node.rotation.copy(rest.r); }
     if (this.saddle) this.saddle.visible = this.tame;
     const asleep = this.state === 'slapen', happy = this.happy > 0, motion = Math.sin(this.phase) * 0.6 * this.swing;
-    this.group.scale.set(1, 1, 1);
+    const size = this.baby > 0 ? 0.55 : 1; // een jong dier is half zo groot
+    this.group.scale.set(size, size, size);
     this.group.position.y = this.y + (happy && this.def.dieet === 'boerderij' ? Math.abs(Math.sin(this.happy * 9)) * 0.12 : 0);
     this.legs.forEach((leg, i) => { leg.rotation.x = asleep ? (i % 2 ? -1.35 : 1.35) : motion * this.pattern[i]; });
     this.head.rotation.x = asleep ? 0.28 : this.graze && !this.walking ? 0.55 + Math.sin(this.time * 3) * 0.08 : this.walking ? Math.sin(this.phase * 2) * 0.06 : 0;
@@ -222,7 +253,12 @@ export class Animal {
       if (this.body) this.body.position.y -= 0.3;
       this.head.position.y -= Math.min(0.4, this.def.h * 0.3);
     }
-    if (this.state === 'sluipen') { this.group.scale.y = 0.82; this.head.rotation.x = -0.18; }
+    if (this.state === 'sluipen') { this.group.scale.y *= 0.82; this.head.rotation.x = -0.18; }
+    if (this.sitting && this.legs.length === 4) {
+      this.legs[2].rotation.x = this.legs[3].rotation.x = -1.3; this.legs[0].rotation.x = this.legs[1].rotation.x = 0;
+      this.body.rotation.x = 0.35; this.body.position.y -= this.def.h * 0.12; this.head.position.y -= this.def.h * 0.05;
+      if (this.saddle) this.saddle.position.y -= this.def.h * 0.05;
+    }
     if (this.tongue) {
       this.tongue.visible = this.state === 'eten';
       if (this.state === 'eten') { this.head.rotation.x = -0.25 + Math.sin(this.time * 14) * 0.12; this.body.position.y -= 0.16; }
@@ -237,11 +273,11 @@ export class Animal {
     if (this.jaw && happy) { this.jaw.rotation.x = 0.72 * Math.sin(Math.PI * Math.min(1, this.happy / 1.8)); this.head.rotation.x = -0.25; }
     if (this.type === 'zebra' && happy) this.legs[1].rotation.x = -0.9 * Math.abs(Math.sin(this.time * 10));
     if (this.type === 'meerkat') {
-      if (happy) { const dip = Math.sin(Math.PI * Math.min(1, this.happy / 1.8)); this.group.scale.y = 1 - dip * 0.9; }
+      if (happy) { const dip = Math.sin(Math.PI * Math.min(1, this.happy / 1.8)); this.group.scale.y *= 1 - dip * 0.9; }
       else if (this.walking) { this.body.rotation.x = -0.45; this.head.position.y -= 0.15; }
       else this.head.rotation.y = Math.sin(this.time * 1.8) * 0.5;
     }
-    if (this.hiding) this.group.scale.y = this.type === 'turtle' ? .38 : .12;
+    if (this.hiding) this.group.scale.y *= this.type === 'turtle' ? .38 : .12;
     if (this.sliding) this.body.rotation.x = -.45;
     if (this.chewing) this.head.rotation.x = Math.sin(this.time * 7) * .08;
     if (this.type === 'panda' && happy) this.body.rotation.z = Math.sin(this.time * 8) * .6;

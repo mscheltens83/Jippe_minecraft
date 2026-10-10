@@ -3,6 +3,7 @@ import { SY } from '../world.js';
 import { B } from '../blocks.js';
 import * as THREE from '../../lib/three.module.min.js';
 
+const FLOWERS = new Set([B.FLOWER_RED, B.FLOWER_YELLOW, B.CORNFLOWER, B.TULIP, B.SUNFLOWER]);
 const toward = (a, x, z) => { a.targetYaw = Math.atan2(-(x - a.x), -(z - a.z)); };
 export const SKILLS = {
   rennen(a, dt, world, effects) {
@@ -67,8 +68,8 @@ export const SKILLS = {
     if (a.happy || a.sleep) return;
     a.flightWait = (a.flightWait ?? 2) - dt;
     if (!a.flight && a.flightWait <= 0) {
-      const x = Math.max(3, Math.min(92, a.x + (Math.random() - .5) * 18));
-      const z = Math.max(3, Math.min(92, a.z + (Math.random() - .5) * 18));
+      const x = a.x + (Math.random() - .5) * 18;
+      const z = a.z + (Math.random() - .5) * 18;
       const y = Math.min(SY - 6, world.surfaceY(Math.floor(x), Math.floor(z)) + 4 + Math.random() * 5);
       if (a.clearAt(world, x, y, z)) {
         a.flight = { x, y, z, left: 5 + Math.random() * 5 };
@@ -98,8 +99,41 @@ export const SKILLS = {
   },
   springen(a, dt) {
     if (a.onGround && !a.sleep && (a.happy || Math.random() < dt * .08)) {
-      a.vy = a.happy ? 7.5 : 5; a.onGround = false;
+      a.vy = a.happy ? Math.max(7.5, a.def.springkracht || 0) : a.def.springkracht || 5; a.onGround = false;
     }
+  },
+  // De bij vliegt van bloem naar bloem (en zweeft er even boven)
+  bloemen(a, dt, world) {
+    if (a.sleep) return;
+    a.flightWait = (a.flightWait ?? 1) - dt;
+    if (!a.flight && a.flightWait <= 0) {
+      let target = null;
+      for (let i = 0; i < 24 && !target; i++) {
+        const x = Math.floor(a.x + (Math.random() - .5) * 16), z = Math.floor(a.z + (Math.random() - .5) * 16);
+        const y = world.surfaceY(x, z) + 1;
+        if (FLOWERS.has(world.get(x, y, z))) target = { x: x + .5, y: y + .55, z: z + .5 };
+      }
+      if (!target) {
+        const x = a.x + (Math.random() - .5) * 10, z = a.z + (Math.random() - .5) * 10;
+        target = { x, y: world.surfaceY(Math.floor(x), Math.floor(z)) + 2 + Math.random() * 2, z };
+      }
+      if (a.clearAt(world, target.x, target.y, target.z)) { a.flight = { ...target, left: 4 + Math.random() * 4 }; a.walking = true; }
+      else a.flightWait = 1;
+    }
+    if (a.flight) {
+      a.flight.left -= dt;
+      const near = Math.hypot(a.flight.x - a.x, a.flight.z - a.z) < .4;
+      if (!near) toward(a, a.flight.x, a.flight.z);
+      a.walking = !near;
+      if (a.flight.left <= 0) { a.flight.left = 0; a.flightWait = .5 + Math.random() * 2; a.flight = null; }
+    }
+  },
+  // Een dolfijn springt af en toe uit het water
+  dolfijnsprong(a, dt, world) {
+    if (!a.inWater || a.vy > 0 || a.happy && a.leapt) return;
+    const surface = a.waterSurface(world);
+    if (surface === null || surface - (a.y + a.def.h) > 0.8) return;
+    if (a.happy || Math.random() < dt * 0.12) { a.vy = 8; a.leapt = a.happy > 0; a.walking = true; a.timer = 2; }
   },
   bamboe(a, dt, world) {
     if ((a.skillWait -= dt) > 0 || a.happy || a.sleep) return;

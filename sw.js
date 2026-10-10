@@ -2,7 +2,7 @@
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
 // Moet precies 'jippecraft-' + VERSION uit js/version.js zijn (de unit-test controleert dat)
-const CACHE = 'jippecraft-4.7.0';
+const CACHE = 'jippecraft-4.8.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',
@@ -12,7 +12,7 @@ const FILES = [
   'js/stamps.js', 'js/biomes.js', 'js/structures.js', 'js/weather.js', 'js/snowman.js',
   'js/engine/constants.js', 'js/engine/noise.js', 'js/engine/trees.js', 'js/engine/gen.js', 'js/engine/chunk.js',
   'js/engine/world.js', 'js/engine/mesher.js', 'js/engine/worker.js', 'js/engine/pool.js', 'js/engine/loader.js',
-  'js/engine/save.js', 'js/engine/migrate.js', 'js/engine/climate.js', 'js/engine/caves.js', 'js/engine/light.js', 'js/engine/tint.js', 'js/engine/physics.js', 'js/hand.js', 'js/daynight.js', 'js/texview.js',
+  'js/engine/save.js', 'js/engine/migrate.js', 'js/engine/climate.js', 'js/engine/caves.js', 'js/engine/light.js', 'js/engine/tint.js', 'js/engine/physics.js', 'js/hand.js', 'js/animals/minecraft.js', 'js/daynight.js', 'js/texview.js',
   'js/animals/core.js', 'js/animals/species.js', 'js/animals/skills.js',
   'js/animals/farm.js', 'js/animals/cats.js', 'js/animals/savanna.js', 'js/animals/hunt.js',
   'js/animals/extras.js',

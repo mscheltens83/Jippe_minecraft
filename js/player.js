@@ -111,7 +111,7 @@ export class Player {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
     const mx = input.move.x, mz = input.move.y;
     const push = Math.min(1, Math.hypot(mx, mz));
-    const rideSpeed = 3.5 + 3 * Math.max(0, (push - 0.45) / 0.55);
+    const rideSpeed = (3.5 + 3 * Math.max(0, (push - 0.45) / 0.55)) * (this.riding?.def?.rijsnelheid || 1);
     // Sprinten: de stuurknop een seconde helemaal naar voren (of Ctrl). Sluipen: omlaag houden tijdens het lopen.
     const onFoot = !this.flying && !this.inWater && !this.climbing && !this.riding;
     this.sprintHold = onFoot && mz > 0.9 && Math.abs(mx) < 0.45 ? (this.sprintHold || 0) + dt : 0;

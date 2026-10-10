@@ -57,7 +57,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
 | **Snel** | Sneller maken na de eerste iPad-meting (38 fps): onzichtbare grotten niet tekenen, meetrit met extra rondjes | Klein | 4F | ✅ Klaar (versie 4.7.0) |
-| **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
+| **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot (2 PR's) | 4C | G1 ✅ klaar (versie 4.8.0), G2 gepland |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
 
 Na elke fase: samenvoegen, op de iPad proberen (checklist in §13) en dan pas verder.
@@ -452,6 +452,15 @@ Het rijsysteem uit 3D wordt algemeen: dieren met `rijdbaar: true` in `SPECIES`. 
 
 ### 11.6 Andere bouwwerken
 Schipwrak op het strand of in ondiepe zee (met schatkist), mijnschacht in grote grotten (houten balken, lantaarns en rails om te bekijken) en een ruïne in het bos.
+
+### 11.8 Zo is deel 1 gebouwd (versie 4.8.0)
+- `js/animals/minecraft.js`: blokkige modellen voor koe, paard, hond, kat, konijn, vos, bij, geit, lama, vis, dolfijn en inktvis. Paard (6), kat (3), konijn (3), lama (4 kleedjes) en vis (4) hebben kleuren (`variant`, wordt bewaard).
+- Nieuwe kunstjes: onder water zwemmen op een eigen diepte (`onderwater`), bijen die van bloem naar bloem vliegen, een dolfijn die uit het water springt, een vos die overdag slaapt (`nachtdier`), een geit die hoog springt (`springkracht`).
+- Elk landschap van de Grote wereld heeft een nieuw recept (koe, paard en konijn in de vlakte, bijen in het bloemenveld, honden in het bos, vossen in het sparrenbos, geiten en lama's in de bergen, vissen, dolfijnen en inktvissen in zee en vissen in rivieren). Waterdieren verschijnen alleen in water van minstens 2 diep.
+- **Fokken:** lievelingseten (`eten` per soort: tarwezaadjes, wortel of aardappel; roofdieren eten alles) maakt een dier 30 seconden verliefd. Twee verliefde dieren van dezelfde soort (of leeuw en leeuwin) zoeken elkaar op en krijgen een jong, half zo groot, dat in 10 minuten opgroeit. Daarna 5 minuten rust. Roofdieren jagen niet op jongen.
+- **Temmen:** drie keer snel aaien temt nu ook paard, hond, kat, kameel, olifant, cheetah en tijger. Tamme dieren volgen je; een tamme hond gaat zitten als je erop tikt. Rijden heeft een snelheid per soort (`rijsnelheid`).
+- Dieren die je geaaid of gevoerd hebt, worden nooit opgeruimd (net als tamme en zelf neergezette dieren).
+- Afwijking van het plan: temmen gaat met aaien in plaats van met een bot (er is geen bot in het spel; aaien kent Jippe al). Een papegaai op je schouder is niet gedaan.
 
 ### 11.7 Klaar als
 - In een Grote wereld vind je binnen 300 blokken een dorp met dorpelingen, een waterput en akkers.

@@ -58,7 +58,7 @@ export function updateHunt(a, dt, world, manager) {
   if (!a.hunt) {
     a.hunger = Math.max(0, a.hunger - dt);
     if (a.hunger > 0 || a.huntPause > 0) return;
-    const prey = manager.list.filter((b) => PREY.has(b.type) && distance(a, b) <= 16)
+    const prey = manager.list.filter((b) => PREY.has(b.type) && !b.baby && distance(a, b) <= 16) // nooit een jong dier
       .sort((b, c) => distance(a, b) - distance(a, c))[0];
     if (!prey) return;
     a.hunt = { target: prey, phase: 'stalk', elapsed: 0, blocked: 0, sidestep: 0 };

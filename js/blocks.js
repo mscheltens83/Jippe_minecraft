@@ -528,6 +528,8 @@ export const ITEM = {
   MONKEY: 60022, PARROT: 60023, PANDA: 60024, FROG: 60025, SLOTH: 60026,
   CAMEL: 60027, FENNEC: 60028, LIZARD: 60029, TURTLE: 60030,
   POLAR_BEAR: 60031, PENGUIN: 60032, REINDEER: 60033, ARCTIC_FOX: 60034, SEAL: 60035, SNOWY_OWL: 60036,
+  // Minecraft-dieren (fase 4G)
+  COW: 60037, HORSE: 60038, DOG: 60039, CAT: 60040, RABBIT: 60041, FOX: 60042, BEE: 60043, GOAT: 60044, LLAMA: 60045, FISH: 60046, DOLPHIN: 60047, SQUID: 60048,
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
 };
@@ -571,6 +573,18 @@ export const SPECIALS = {
   [ITEM.ARCTIC_FOX]: { name: 'Poolvos', kind: 'animal', animal: 'arcticFox' },
   [ITEM.SEAL]: { name: 'Zeehond', kind: 'animal', animal: 'seal' },
   [ITEM.SNOWY_OWL]: { name: 'Sneeuwuil', kind: 'animal', animal: 'snowyOwl' },
+  [ITEM.COW]: { name: 'Koe', kind: 'animal', animal: 'cow' },
+  [ITEM.HORSE]: { name: 'Paard', kind: 'animal', animal: 'horse' },
+  [ITEM.DOG]: { name: 'Hond', kind: 'animal', animal: 'dog' },
+  [ITEM.CAT]: { name: 'Kat', kind: 'animal', animal: 'cat' },
+  [ITEM.RABBIT]: { name: 'Konijn', kind: 'animal', animal: 'rabbit' },
+  [ITEM.FOX]: { name: 'Vos', kind: 'animal', animal: 'fox' },
+  [ITEM.BEE]: { name: 'Bij', kind: 'animal', animal: 'bee' },
+  [ITEM.GOAT]: { name: 'Geit', kind: 'animal', animal: 'goat' },
+  [ITEM.LLAMA]: { name: 'Lama', kind: 'animal', animal: 'llama' },
+  [ITEM.FISH]: { name: 'Vis', kind: 'animal', animal: 'fish' },
+  [ITEM.DOLPHIN]: { name: 'Dolfijn', kind: 'animal', animal: 'dolphin' },
+  [ITEM.SQUID]: { name: 'Inktvis', kind: 'animal', animal: 'squid' },
 };
 
 export function itemName(id) { return SPECIALS[id]?.name ?? BLOCKS[id]?.name ?? ''; }
@@ -641,6 +655,9 @@ export const PALETTE_GROUPS = [
     { title: 'Jungle', icon: 'jungle', items: [ITEM.TIGER, ITEM.MONKEY, ITEM.PARROT, ITEM.PANDA, ITEM.FROG, ITEM.SLOTH] },
     { title: 'Woestijn', icon: 'desert', items: [ITEM.CAMEL, ITEM.FENNEC, ITEM.LIZARD, ITEM.TURTLE] },
     { title: 'Toendra', icon: 'tundra', items: [ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
+    { title: 'Vlakte en bos', icon: 'tree', items: [ITEM.COW, ITEM.HORSE, ITEM.DOG, ITEM.CAT, ITEM.RABBIT, ITEM.FOX, ITEM.BEE] },
+    { title: 'Bergen', icon: 'bigWorld', items: [ITEM.GOAT, ITEM.LLAMA] },
+    { title: 'Zee', icon: 'worlds', items: [ITEM.FISH, ITEM.DOLPHIN, ITEM.SQUID] },
   ]),
 ];
 // Alles wat je kunt kiezen (ook de soorten binnen een familie), zonder dubbele

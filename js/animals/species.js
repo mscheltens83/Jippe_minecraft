@@ -3,6 +3,8 @@ import { buildPig, buildChicken, buildSheep } from './farm.js';
 import { buildCat } from './cats.js';
 import { buildElephant, buildGiraffe, buildZebra, buildHippo, buildMeerkat } from './savanna.js';
 import { buildExtra } from './extras.js';
+import { buildMc, VARIANTS } from './minecraft.js';
+import { ITEM } from '../blocks.js';
 
 const farm = { werelden: ['island', 'flat'], dieet: 'boerderij', slaapkans: 0, kunstjes: [] };
 const cat = { werelden: ['savanna'], dieet: 'roofdier', slaapkans: 0.12, kunstjes: ['slapen'] };
@@ -34,7 +36,38 @@ export const SPECIES = {
   arcticFox: { naam: 'Poolvos', werelden: ['tundra'], w: .58, h: .78, d: .92, speed: 1.7, bouw: () => buildExtra('arcticFox'), geluid: 'fox', kunstjes: ['opduiken'], slaapkans: .03 },
   seal: { naam: 'Zeehond', werelden: ['tundra'], w: .92, h: .7, d: 1.4, speed: .65, bouw: () => buildExtra('seal'), geluid: 'seal', kunstjes: ['zwemmen', 'water'], floatDepth: .3, slaapkans: .08 },
   snowyOwl: { naam: 'Sneeuwuil', werelden: ['tundra'], w: .62, h: 1.0, d: .65, speed: 2.0, bouw: () => buildExtra('snowyOwl'), geluid: 'owl', kunstjes: ['vliegen'], slaapkans: .04 },
+  // Fase 4G: de Minecraft-dieren. varianten = aantal kleuren; onderwater = zwemt onder water;
+  // nachtdier = slaapt overdag; springkracht = hoe hoog hij springt
+  cow: { naam: 'Koe', werelden: [], w: .9, h: 1.4, d: 1.6, speed: .9, bouw: () => buildMc('cow'), geluid: 'moo', kunstjes: [], slaapkans: .04, dieet: 'boerderij' },
+  horse: { naam: 'Paard', werelden: [], w: .75, h: 1.9, d: 1.9, speed: 1.3, rensnelheid: 6, bouw: (v) => buildMc('horse', v), varianten: VARIANTS.horse.length, geluid: 'neigh', kunstjes: [], slaapkans: .03, rijdbaar: true, rijsnelheid: 1.5 },
+  dog: { naam: 'Hond', werelden: [], w: .5, h: .85, d: 1.05, speed: 1.6, rensnelheid: 6, bouw: () => buildMc('dog'), geluid: 'bark', kunstjes: [], slaapkans: .05, volger: true },
+  cat: { naam: 'Kat', werelden: [], w: .4, h: .62, d: .85, speed: 1.3, bouw: (v) => buildMc('cat', v), varianten: VARIANTS.cat.length, geluid: 'meow', kunstjes: [], slaapkans: .15, volger: true },
+  rabbit: { naam: 'Konijn', werelden: [], w: .38, h: .55, d: .55, speed: 1.6, bouw: (v) => buildMc('rabbit', v), varianten: VARIANTS.rabbit.length, geluid: 'squeak', kunstjes: ['springen', 'opduiken'], slaapkans: .04, springkracht: 4.5 },
+  fox: { naam: 'Vos', werelden: [], w: .5, h: .7, d: .95, speed: 1.6, bouw: () => buildMc('fox'), geluid: 'fox', kunstjes: ['springen'], slaapkans: .1, nachtdier: true },
+  bee: { naam: 'Bij', werelden: [], w: .34, h: .38, d: .44, speed: 1.8, bouw: () => buildMc('bee'), geluid: 'buzz', kunstjes: ['bloemen'], slaapkans: 0 },
+  goat: { naam: 'Geit', werelden: [], w: .62, h: 1.15, d: 1.0, speed: 1.2, bouw: () => buildMc('goat'), geluid: 'bleat', kunstjes: ['springen'], slaapkans: .04, springkracht: 9 },
+  llama: { naam: 'Lama', werelden: [], w: .75, h: 1.95, d: 1.25, speed: 1.0, bouw: (v) => buildMc('llama', v), varianten: VARIANTS.llama.length, geluid: 'camel', kunstjes: ['kudde', 'kauwen'], slaapkans: .04 },
+  fish: { naam: 'Vis', werelden: [], w: .18, h: .3, d: .55, speed: 1.4, bouw: (v) => buildMc('fish', v), varianten: VARIANTS.fish.length, geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
+  dolphin: { naam: 'Dolfijn', werelden: [], w: .48, h: .5, d: 1.6, speed: 2.4, bouw: () => buildMc('dolphin'), geluid: 'click', kunstjes: ['zwemmen', 'dolfijnsprong'], slaapkans: 0, onderwater: true },
+  squid: { naam: 'Inktvis', werelden: [], w: .6, h: 1.1, d: .6, speed: .6, bouw: () => buildMc('squid'), geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
 };
+// Fokken (fase 4G): wat een soort graag eet. Twee gevoerde dieren van dezelfde soort (of groep,
+// zoals leeuw en leeuwin) krijgen een jong. Vleeseters zijn hier niet kieskeurig.
+const SEEDS = ITEM.WHEAT_SEEDS, CARROT = ITEM.CARROT, POTATO = ITEM.POTATO, ALL = [SEEDS, CARROT, POTATO];
+const FOOD = {
+  pig: [CARROT, POTATO], chicken: [SEEDS], sheep: [SEEDS], cow: [SEEDS], goat: [SEEDS], llama: [SEEDS],
+  horse: [CARROT, SEEDS], rabbit: [CARROT], lion: ALL, lioness: ALL, tiger: ALL, cheetah: ALL, dog: ALL, cat: ALL, fox: ALL,
+};
+for (const [type, eten] of Object.entries(FOOD)) SPECIES[type].eten = eten;
+SPECIES.lion.fokgroep = SPECIES.lioness.fokgroep = 'leeuw';
+// Rijden (fase 4G): meer dieren met een zadel, elk met een eigen snelheid
+Object.assign(SPECIES.camel, { rijdbaar: true, rijsnelheid: 1.0 });
+Object.assign(SPECIES.elephant, { rijdbaar: true, rijsnelheid: 0.7 });
+Object.assign(SPECIES.cheetah, { rijdbaar: true, rijsnelheid: 1.9 });
+Object.assign(SPECIES.tiger, { rijdbaar: true, rijsnelheid: 1.3 });
+
+// Alle soorten hebben deze velden (ook als ze in het recept ontbreken)
+for (const def of Object.values(SPECIES)) { def.kunstjes ||= []; def.werelden ||= []; def.rensnelheid ||= def.speed * 2; }
 
 export const STATES = ['rust', 'lopen', 'grazen', 'slapen', 'sluipen', 'jagen', 'vluchten', 'eten', 'blij', 'volgen', 'bereden'];
 export const MAX_ANIMALS = 60;

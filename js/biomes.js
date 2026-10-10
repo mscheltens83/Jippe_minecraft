@@ -54,39 +54,39 @@ export const BIOMES = {
     naam: 'Vlakte', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'oak', dichtheid: 0.002 }],
     planten: [{ blok: B.TALLGRASS, dichtheid: 0.14 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.012 }, { blok: B.FLOWER_RED, dichtheid: 0.012 }, { blok: B.CORNFLOWER, dichtheid: 0.006 }],
-    dieren: farmAnimals, achtergrond: 'vogels', muziek: 'island',
+    dieren: [['pig', 2], ['sheep', 2], ['chicken', 2], ['cow', 3], ['horse', 2], ['rabbit', 2]], achtergrond: 'vogels', muziek: 'island',
   },
   flowerField: {
     naam: 'Bloemenveld', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'oak', dichtheid: 0.002 }],
     planten: [{ blok: B.FLOWER_RED, dichtheid: 0.07 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.07 }, { blok: B.CORNFLOWER, dichtheid: 0.06 },
       { blok: B.TULIP, dichtheid: 0.06 }, { blok: B.TALLGRASS, dichtheid: 0.06 }],
-    dieren: [['sheep', 3], ['chicken', 2]], achtergrond: 'vogels', muziek: 'island',
+    dieren: [['sheep', 3], ['chicken', 2], ['bee', 3], ['rabbit', 2]], achtergrond: 'vogels', muziek: 'island',
   },
   forest: {
     naam: 'Bos', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'bigOak', dichtheid: 0.005 }, { soort: 'oak', dichtheid: 0.035 }, { soort: 'birch', dichtheid: 0.008 }],
     planten: [{ blok: B.TALLGRASS, dichtheid: 0.06 }, { blok: B.FERN, dichtheid: 0.03 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.006 },
       { blok: B.MUSHROOM_RED, dichtheid: 0.004 }, { blok: B.FLOWER_RED, dichtheid: 0.004 }],
-    dieren: [['pig', 2], ['chicken', 1]], achtergrond: 'vogels', muziek: 'island',
+    dieren: [['pig', 2], ['chicken', 1], ['dog', 2], ['rabbit', 2], ['bee', 1]], achtergrond: 'vogels', muziek: 'island',
   },
   birchForest: {
     naam: 'Berkenbos', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'birch', dichtheid: 0.035 }],
     planten: [{ blok: B.TALLGRASS, dichtheid: 0.08 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.01 }, { blok: B.TULIP, dichtheid: 0.005 }],
-    dieren: [['sheep', 2], ['chicken', 1]], achtergrond: 'vogels', muziek: 'island',
+    dieren: [['sheep', 2], ['chicken', 1], ['cow', 2], ['rabbit', 2]], achtergrond: 'vogels', muziek: 'island',
   },
   taiga: {
     naam: 'Sparrenbos', lucht: sky('#6fa6d8', '#d7e8f2', '#c9dcea', 45, 120, 40), grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'spruce', dichtheid: 0.035 }],
     planten: [{ blok: B.FERN, dichtheid: 0.09 }, { blok: B.TALLGRASS, dichtheid: 0.04 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.004 }],
-    dieren: [['reindeer', 2], ['arcticFox', 2]], achtergrond: 'wind', muziek: 'toendra',
+    dieren: [['reindeer', 2], ['arcticFox', 2], ['fox', 3], ['dog', 2], ['rabbit', 2]], achtergrond: 'wind', muziek: 'toendra',
   },
   mountains: {
     naam: 'Bergen', lucht: sky('#5e9fdc', '#dce9f5', '#d2e2f0', 50, 140, 30, '#fffbe8'), grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'spruce', dichtheid: 0.006 }],
     planten: [{ blok: B.TALLGRASS, dichtheid: 0.05 }],
-    dieren: [['sheep', 2]], achtergrond: 'wind', muziek: 'toendra',
+    dieren: [['goat', 3], ['llama', 2], ['sheep', 2]], achtergrond: 'wind', muziek: 'toendra',
   },
   mesa: {
     naam: 'Mesa', lucht: sky('#5fb0e8', '#f1c99a', '#e9c290', 50, 130, 12, '#fff1a0'), grond: { top: B.RED_SAND, onder: B.RED_SAND },
@@ -104,8 +104,8 @@ export const BIOMES = {
     bomen: [{ soort: 'palm', dichtheid: 0.003 }], planten: [],
     dieren: [['turtle', 2]], achtergrond: 'wind', muziek: 'island',
   },
-  ocean: { naam: 'Zee', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [], achtergrond: 'wind', muziek: 'island' },
-  river: { naam: 'Rivier', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [], achtergrond: 'vogels', muziek: 'island' },
+  ocean: { naam: 'Zee', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 4], ['dolphin', 2], ['squid', 2]], achtergrond: 'wind', muziek: 'island' },
+  river: { naam: 'Rivier', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 3]], achtergrond: 'vogels', muziek: 'island' },
 };
 
 // De soorten wereld die je kunt hebben (de rest zijn landschappen binnen een wereld)

@@ -1,6 +1,6 @@
 // Dieren beheren, bij hun landschap neerzetten, aaien en bewaren.
 import * as THREE from '../lib/three.module.min.js';
-import { B } from './blocks.js';
+import { B, WATERY } from './blocks.js';
 import { HOME, CHUNK } from './world.js';
 import { hash } from './engine/noise.js';
 import { BIOMES, biomeAt } from './biomes.js';
@@ -40,9 +40,9 @@ export class Animals {
     this.predators = !!on;
     if (!on) for (const a of this.list) if (a.hunt) this.stopHunt(a);
   }
-  spawn(type, x, y, z, yaw = Math.random() * Math.PI * 2) {
+  spawn(type, x, y, z, yaw = Math.random() * Math.PI * 2, variant = null) {
     if (!SPECIES[type] || this.full) return null;
-    const a = new Animal(type, x, y, z, yaw);
+    const a = new Animal(type, x, y, z, yaw, variant);
     this.scene.add(a.group); this.list.push(a); return a;
   }
 
@@ -102,7 +102,8 @@ export class Animals {
     const kinds = BIOMES[biome]?.dieren || [];
     if (!kinds.length) return 0;
     const [type] = kinds[Math.floor(hash(world.seed, cx, cz, 702) * kinds.length)];
-    const n = type === 'zebra' ? 3 : 1 + Math.floor(hash(world.seed, cx, cz, 703) * 2);
+    const n = type === 'zebra' ? 3 : SPECIES[type].onderwater ? 2 + Math.floor(hash(world.seed, cx, cz, 703) * 3) : 1 + Math.floor(hash(world.seed, cx, cz, 703) * 2);
+    if (SPECIES[type].onderwater) return this.spawnInWater(world, type, cx, cz, n, viewer);
     const probe = new Animal(type, 0, 0, 0, hash(world.seed, cx, cz, 704) * Math.PI * 2);
     let made = 0;
     for (let i = 0; i < n * 6 && made < n; i++) {
@@ -116,6 +117,32 @@ export class Animals {
       if (a) { a.wild = true; made++; }
     }
     return made;
+  }
+
+  // Vissen, dolfijnen en inktvissen: in water van minstens 2 diep, ergens tussen bodem en oppervlak
+  spawnInWater(world, type, cx, cz, n, viewer) {
+    const x0 = cx * CHUNK, z0 = cz * CHUNK, def = SPECIES[type];
+    let made = 0;
+    for (let i = 0; i < n * 6 && made < n; i++) {
+      const x = x0 + 1 + Math.floor(hash(world.seed, cx, cz, 810 + i) * (CHUNK - 2));
+      const z = z0 + 1 + Math.floor(hash(world.seed, cx, cz, 860 + i) * (CHUNK - 2));
+      const top = this.waterColumn(world, x, z);
+      if (!top || top.depth < Math.max(2, def.h + 1)) continue;
+      if (this.full && !this.recycle(viewer)) break;
+      const y = top.bottom + 0.2 + hash(world.seed, cx, cz, 900 + i) * Math.max(0, top.depth - def.h - 0.5);
+      const a = this.spawn(type, x + 0.5, y, z + 0.5, hash(world.seed, cx, cz, 950 + i) * Math.PI * 2);
+      if (a) { a.wild = true; made++; }
+    }
+    return made;
+  }
+
+  // Water in deze kolom: bodem en diepte (of null als er bovenaan geen water staat)
+  waterColumn(world, x, z) {
+    const floor = world.surfaceY(x, z);
+    let y = floor + 1;
+    if (!WATERY[world.get(x, y, z)]) return null;
+    while (y < 126 && WATERY[world.get(x, y + 1, z)]) y++;
+    return { bottom: floor + 1, surface: y + 1, depth: y - floor };
   }
 
   // Haal het verste wilde dier weg (verder dan 100 blokken); tamme en zelf neergezette dieren nooit
@@ -153,7 +180,7 @@ export class Animals {
       a.elapsed += dt;
       a.clockElapsed += clockDt;
       if (!far || (this.frame + i) % 4 === 0) {
-        if (a.tame && a.def.rijdbaar && viewer && a.clockElapsed > 0) {
+        if (a.tame && (a.def.rijdbaar || a.def.volger) && !a.sitting && viewer && a.clockElapsed > 0) {
           const dist = Math.hypot(a.x - viewer.x, a.z - viewer.z);
           a.following = dist > 6 && dist <= 20;
           if (a.following) {
@@ -168,6 +195,48 @@ export class Animals {
       a.group.visible = visible;
     }
     for (const prey of this.caught) this.remove(prey);
+    this.updateLove(clockDt);
+  }
+
+  // Fokken: gevoerde dieren zoeken een maatje van dezelfde soort; samen krijgen ze een jong.
+  // Een jong groeit in 10 minuten op.
+  updateLove(dt) {
+    for (const a of this.list) {
+      if (a.baby > 0) { a.baby = Math.max(0, a.baby - dt); if (!a.baby) a.show(0); }
+      if (a.breedWait > 0) a.breedWait = Math.max(0, a.breedWait - dt);
+      if (a.love <= 0) continue;
+      a.love = Math.max(0, a.love - dt);
+      if ((a.heartWait = (a.heartWait ?? 0) - dt) <= 0) { this.effects?.heartsAt?.(a.x, a.y + a.def.h + 0.2, a.z, 0.6); a.heartWait = 1; }
+      const group = a.def.fokgroep || a.type;
+      let mate = null, best = 10;
+      for (const b of this.list) {
+        if (b === a || b.love <= 0 || b.baby > 0 || (b.def.fokgroep || b.type) !== group) continue;
+        const d = Math.hypot(b.x - a.x, b.z - a.z);
+        if (d < best) { best = d; mate = b; }
+      }
+      if (!mate) continue;
+      if (best > (a.def.d + mate.def.d) * 0.35 + 0.6) {
+        a.sitting = false; a.sleep = 0; a.walking = true; a.timer = Math.max(a.timer, 0.5);
+        a.targetYaw = Math.atan2(-(mate.x - a.x), -(mate.z - a.z));
+        continue;
+      }
+      this.breed(a, mate);
+    }
+  }
+
+  breed(a, b) {
+    a.love = b.love = 0;
+    a.breedWait = b.breedWait = 300;
+    a.walking = b.walking = false;
+    const type = Math.random() < 0.5 ? a.type : b.type;
+    const x = (a.x + b.x) / 2, y = Math.max(a.y, b.y), z = (a.z + b.z) / 2;
+    const variant = a.type === b.type && a.def.varianten ? (Math.random() < 0.5 ? a.variant : b.variant) : null;
+    const baby = this.spawn(type, x, y, z, a.yaw, variant);
+    if (!baby) return null;
+    baby.baby = 600; baby.tame = a.tame && b.tame; baby.show(0);
+    this.effects?.heartsAt?.(x, y + 1, z, 1.6);
+    this.onBreed?.(baby);
+    return baby;
   }
 
   pick(ray, maxDist) {
@@ -183,8 +252,8 @@ export class Animals {
 
   serialize() {
     const r = (v) => Math.round(v * 100) / 100;
-    return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw),
-      tame: !!a.tame, ...(a.wild ? { wild: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
+    return this.list.map((a) => ({ t: a.type, x: r(a.x), y: r(a.y), z: r(a.z), yaw: r(a.yaw), ...(a.def.varianten ? { v: a.variant } : {}),
+      tame: !!a.tame, ...(a.wild ? { wild: true } : {}), ...(a.baby ? { baby: Math.round(a.baby) } : {}), ...(a.sitting ? { sit: true } : {}), hunger: Number.isFinite(a.hunger) ? a.hunger : 180 + Math.random() * 180,
       sleep: Number.isFinite(a.sleep) ? a.sleep : 0,
       huntPause: Number.isFinite(a.huntPause) ? a.huntPause : 0 }));
   }
@@ -193,10 +262,12 @@ export class Animals {
     if (!Array.isArray(arr)) return;
     for (const o of arr) {
       if (!SPECIES[o?.t] || ![o.x, o.y, o.z, o.yaw].every(Number.isFinite)) continue;
-      const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw);
+      const a = this.spawn(o.t, o.x, o.y, o.z, o.yaw, Number.isInteger(o.v) ? o.v : null);
       if (!a) break;
       a.tame = !!o.tame;
       a.wild = !!o.wild;
+      a.baby = Number.isFinite(o.baby) ? Math.max(0, o.baby) : 0;
+      a.sitting = !!o.sit;
       a.hunger = Number.isFinite(o.hunger) ? Math.max(0, o.hunger) : 180 + Math.random() * 180;
       a.sleep = Number.isFinite(o.sleep) ? Math.max(0, o.sleep) : 0;
       a.huntPause = Number.isFinite(o.huntPause) ? Math.max(0, o.huntPause) : 0;

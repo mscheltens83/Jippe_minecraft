@@ -22,7 +22,8 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Hand** | Rechtsonder zie je je hand met het blok dat je vasthoudt. Hij zwaait als je bouwt of sloopt |
 | **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs, savannegras, berkenhout, paddenstoelen, waterlelies, bloemen, klei, graniet, grind en alle ertsen uit de kist. De plaatjes staan per landschap bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
-| **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
+| **Dieren** | Varkens, kippen, schapen, 24 wilde diersoorten en 12 Minecraft-dieren lopen rond: koe, paard (6 kleuren), hond, kat, konijn, vos, bij, geit, lama, vis, dolfijn en inktvis. Elk landschap in de Grote wereld heeft zijn eigen dieren, en in zee en rivieren zwemmen vissen. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten (een waterdier in het water) |
+| **Fokken** | Houd lievelingseten vast (tarwezaadjes, wortel of aardappel) en tik op twee dieren van dezelfde soort: ze worden verliefd, zoeken elkaar op en krijgen een jong. Een jong groeit in 10 minuten op; voeren gaat sneller. Roofdieren jagen nooit op een jong dier |
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
 | **Dierenalbum** | Aai een soort voor het eerst en krijg een sticker. Open het boek in het spel of in het menu om je gevonden dieren te bekijken. Tik op een sticker voor het dierengeluid |
 | **Schatkist** | Tik op een schatkist in de tempel of piramide: hij gaat open met gouden glitters en confetti. Terugzetten sluit hem weer |
@@ -32,8 +33,8 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Deur** | Tik op een deur om hem open of dicht te doen |
 | **Stal** | Bouw een hek met hekdeur om je varkens, kippen en schapen. Tik op de hekdeur om hem open of dicht te doen. Een hooibaal houdt de boerderijdieren in de buurt |
 | **Roofdieren** | Leeuwen, leeuwinnen, cheetahs en tijgers jagen soms op boerderijdieren. Je ziet eerst een ! boven de prooi en kunt het roofdier aaien om de jacht te stoppen. In het menu kunnen ouders ‘Roofdieren jagen’ uitzetten |
-| **Vriendjes-leeuw** | Aai dezelfde leeuw of leeuwin drie keer snel achter elkaar. Het rode zadel laat zien dat jullie vrienden zijn; hij volgt je en jaagt niet meer |
-| **Rijden** | Tik nog eens op je vriendjes-leeuw om op te stappen. Duw de joystick helemaal naar voren om te rennen, spring over een hek en tik op het leeuw-pijltje om af te stappen |
+| **Temmen** | Aai een leeuw, paard, hond, kat, kameel, olifant, cheetah of tijger drie keer snel achter elkaar. Een zadel of halsband laat zien dat jullie vrienden zijn; hij volgt je. Tik op een tamme hond: hij gaat zitten (nog eens tikken: hij staat weer op) |
+| **Rijden** | Tik nog eens op een tam paard, leeuw, kameel, olifant, cheetah of tijger om op te stappen. Een paard en een cheetah zijn snel, een olifant is langzaam. Duw de joystick helemaal naar voren om te rennen, spring over een hek en tik op het leeuw-pijltje om af te stappen |
 | **Vuurwerk** | Zet een vuurwerkblok neer en tik erop |
 | **Stuiterblok** | Spring erop en je stuitert hoog de lucht in |
 | **Springen** | Grote pijl rechtsonder. Tegen een opstapje of trap lopen gaat vanzelf |

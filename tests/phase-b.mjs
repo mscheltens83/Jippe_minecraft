@@ -36,8 +36,8 @@ export async function testPhaseB({ newPage, check, out }) {
   await run(() => { const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear(); j.scene.rebuildAll(j.world); });
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Dieren"]').tap();
-  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 27, 'dierenkist bevat de drie boerderijdieren en alle wilde dieren');
-  check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-section')].map((e) => e.textContent).join(',') === 'Boerderij,Savanne,Jungle,Woestijn,Toendra'), 'dierenkist groepeert de plaatjes per wereld');
+  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 39, 'dierenkist bevat de boerderijdieren, alle wilde dieren en de Minecraft-dieren');
+  check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-section')].map((e) => e.textContent).join(',') === 'Boerderij,Savanne,Jungle,Woestijn,Toendra,Vlakte en bos,Bergen,Zee'), 'dierenkist groepeert de plaatjes per wereld');
   check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-item')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && e.querySelector('img').src.includes('svg');
   })), 'alle dieren hebben een herkenbaar plaatje en een grote aanraakknop');
@@ -67,12 +67,15 @@ export async function testPhaseB({ newPage, check, out }) {
     const w = new World(); w.generate('flat', 7);
     const manager = new Animals(new THREE.Scene());
     const same = Object.keys(SPECIES).every((t) => {
-      const a = manager.spawn(t, 30, 50, 30, 0), b = manager.spawn(t, 34, 50, 30, 0);
-      const shared = a.head !== b.head && a.head.geometry === b.head.geometry && a.legs[0].geometry === b.legs[0].geometry;
-      a.legs[0].rotation.x = 1;
-      return shared && b.legs[0].rotation.x === 0;
+      const a = manager.spawn(t, 30, 50, 30, 0, 0), b = manager.spawn(t, 34, 50, 30, 0, 0); // zelfde kleur
+      const limb = (x) => x.legs[0] || x.head; // vissen hebben geen poten
+      const shared = a.head !== b.head && a.head.geometry === b.head.geometry && limb(a).geometry === limb(b).geometry;
+      limb(a).rotation.x = 1;
+      const ok = shared && limb(b).rotation.x === 0;
+      manager.remove(a); manager.remove(b); // anders past het niet in 60 dieren
+      return ok;
     });
-    const geometry = manager.list[0].head.geometry; let disposed = false;
+    const geometry = manager.spawn('pig', 30, 50, 30, 0).head.geometry; let disposed = false;
     geometry.addEventListener('dispose', () => { disposed = true; });
     manager.clear();
     const reuse = manager.spawn('pig', 30, 50, 30, 0).head.geometry === geometry && !disposed;

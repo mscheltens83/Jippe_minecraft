@@ -21,7 +21,7 @@ import { Sounds } from './audio.js';
 import { Music } from './music.js';
 import { Particles } from './particles.js';
 import { Storage } from './storage.js';
-import { Animals } from './animals.js';
+import { Animals, SPECIES } from './animals.js';
 import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
@@ -148,6 +148,7 @@ class Game {
       () => { this.settings.album = []; this.saveSettings(); });
     this.animals.setPredators(this.settings.predators);
     this.animals.onCatch = () => { this.sounds.nom(); this.markDirty(); };
+    this.animals.onBreed = (baby) => { this.sounds.magic(); this.sounds.animal(baby.type); this.markDirty(); };
     this.music.on = settings.music !== false;
     this.thirdPerson = !!settings.third;
     this.ui.setMuted(this.sounds.muted);
@@ -759,7 +760,11 @@ class Game {
     const hit = raycast(this.world, ray.origin, ray.direction, reach);
     if (tap.pick || this.ui.picking) { if (hit) this.pickBlock(hit); return; }
     const pet = this.animals.pick(ray, reach);
-    if (pet && this.animalInFront(pet, hit)) { this.petAnimal(pet.animal); return; }
+    if (pet && this.animalInFront(pet, hit)) {
+      if (pet.animal.def.eten?.includes(this.hotbar[this.sel])) this.feedAnimal(pet.animal);
+      else this.petAnimal(pet.animal);
+      return;
+    }
     if (!hit) return;
     this.hand.swing();
     const forceBreak = mode === 'break' && tap.alt;
@@ -1033,6 +1038,8 @@ class Game {
     const w = this.world, p = this.player;
     const [x, y, z] = this.targetCell(hit, -1);
     if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid || this.animals.full) { this.sounds.nope(); return; }
+    // Vissen, dolfijnen en inktvissen alleen in het water
+    if (SPECIES[type].onderwater && !WATERY[w.get(x, y, z)]) { this.ui.say?.('Zet een waterdier in het water'); this.sounds.nope(); return; }
     const yaw = Math.atan2(-(p.x - x - 0.5), -(p.z - z - 0.5));
     const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, yaw);
     if (!a) { this.sounds.nope(); return; }
@@ -1043,18 +1050,48 @@ class Game {
     this.markDirty();
   }
 
-  petAnimal(a) {
-    if (a.tame && a.def.rijdbaar) { this.mountAnimal(a); return; }
-    this.animals.stopHunt(a, 30);
-    a.pet(this.player.x, this.player.z);
+  // Lievelingseten geven: het dier wordt verliefd (hartjes) en zoekt een maatje; een jong groeit sneller
+  feedAnimal(a) {
+    a.wild = false; // een dier dat je gevoerd hebt, wordt nooit opgeruimd
     this.sounds.animal(a.type);
+    this.discoverAnimal(a);
+    if (a.baby > 0) {
+      a.baby = Math.max(1, a.baby - 90);
+      this.particles.sparkle(a.x - 0.4, a.y, a.z - 0.4, a.x + 0.4, a.y + 0.8, a.z + 0.4, 20);
+    } else if (a.breedWait > 0) {
+      a.pet(this.player.x, this.player.z);
+    } else {
+      a.love = 30; a.sleep = 0; a.sitting = false; a.happy = 1;
+      this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, 1.3);
+    }
+    this.markDirty();
+  }
+
+  discoverAnimal(a) {
     if (this.album.discover(a.type)) {
       this.settings.album = [...this.album.known];
       this.saveSettings();
       this.sounds.magic();
     }
+  }
+
+  petAnimal(a) {
+    if (a.tame && a.def.rijdbaar && !a.baby) { this.mountAnimal(a); return; }
+    // Een tamme hond gaat zitten of staat weer op als je erop tikt
+    if (a.tame && a.type === 'dog') {
+      a.sitting = !a.sitting; a.walking = false;
+      this.sounds.animal(a.type); this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, 0.8);
+      a.show(0); this.markDirty();
+      return;
+    }
+    a.wild = false;
+    this.animals.stopHunt(a, 30);
+    a.pet(this.player.x, this.player.z);
+    this.sounds.animal(a.type);
+    this.discoverAnimal(a);
     let heartSize = 1;
-    if (a.def.rijdbaar && (a.type === 'lion' || a.type === 'lioness')) {
+    // Temmen: drie keer snel aaien (leeuw, paard, hond, kat, kameel, olifant, cheetah, tijger)
+    if ((a.def.rijdbaar || a.def.volger) && !a.tame && !a.baby) {
       const now = performance.now() / 1000;
       a.tameClicks = now <= a.tameUntil ? a.tameClicks + 1 : 1;
       a.tameUntil = now + 10;
