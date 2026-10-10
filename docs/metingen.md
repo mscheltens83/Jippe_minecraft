@@ -32,3 +32,17 @@ driehoeken bij, of wordt het trager?
 
 | Datum | Versie | Apparaat | Beeldkaart | Duur | fps | p50 ms | p95 ms | traagst ms | tekenopdrachten | driehoeken | scherpte · beeld |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-10 07:00 | 4.0.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 9,7 | 100 | 183,4 | 216,8 | 471 (max 553) | 81.003 | 1,5 · 1791×1251 |
+| 2026-10-10 07:01 | 4.0.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 9,4 | 100 | 199,9 | 233,3 | 494 (max 552) | 82.276 | 1,5 · 1791×1251 |
+
+## Wat opvalt (nulmeting 4.0.0)
+
+- **De dieren zijn het duurst om te tekenen.** Op de route van de meetrit zijn het ±490
+  tekenopdrachten met 60 dieren, en **120 zonder dieren**. Elk dier bestaat uit ±9 losse stukjes
+  (lijf, kop, 4 poten, staart, ...) die elk apart getekend worden. Het plan mikt op hoogstens 300.
+  Oplossing voor later: de stukjes van een dier dat ver weg staat samenvoegen tot één geheel, of
+  dieren van dezelfde soort in één keer tekenen (*instancing*). Hoort bij 4B (zichtafstand en
+  tekenbudget) en 4G (meer dieren).
+- Het landschap (36 chunks met zee, lucht en wolken) kost ±120 tekenopdrachten en ±58.000 driehoeken.
+  Dat is voor een iPad weinig.
+- Rekenwerk per beeldje (cpu) is laag: 3–7 ms op de testcomputer. De beeldkaart is de grens.
