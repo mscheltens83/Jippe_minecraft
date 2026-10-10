@@ -18,7 +18,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Toren bouwen** | Recht naar beneden kijken en op de grond onder je tikken: je wipt vanzelf op het nieuwe blok |
 | **Slopen** | Rode knop (houweel) bovenin aan, dan je vinger op een blok **vasthouden** tot het rondje vol is. Blijf je vasthouden, dan graaf je verder |
 | **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft vier tabbladen: Blokken, Natuur, Stempels en Dieren |
-| **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs of savannegras uit de kist. De plaatjes staan per wereld bij elkaar |
+| **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs, savannegras, berkenhout, paddenstoelen, waterlelies, bloemen, klei, graniet, grind en alle ertsen uit de kist. De plaatjes staan per landschap bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
 | **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
 | **Aaien** | Tik op een dier: hartjes, een eigen geluid en een kunstje. Leeuwen schudden hun manen, de olifant spuit water en het nijlpaard gaapt |
@@ -42,14 +42,16 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Modder** | Op modder loop je langzamer |
 | **Lianen** | Vooruit tegen een liaan of de springknop klimt omhoog. Laat los om te blijven hangen. De omlaagknop laat je zakken |
 | **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
+| **Grote wereld** | De echte Minecraft-wereld: vlaktes, bossen, berkenbossen, bloemenvelden, sparrenbossen, sneeuw, hoge bergen, woestijn, mesa, savanne, jungle, moeras, stranden, zee en slingerende rivieren. Onder de grond liggen grotten met kolen, ijzer, goud, redstone, lapis en diamant |
 | **Eindeloze wereld** | De wereld houdt nergens op: loop, zwem of vlieg zo ver je wilt. Verderop liggen nieuwe stukken land, bomen, dieren en soms een tempel, piramide, iglo of leeuwenrots |
 | **Naar huis** | Kompasje linksboven: met een wolkje glitters sta je weer op je bouwplek (rijd je op een dier, dan gaat het mee). Ben je ver weg, dan wijst een geel pijltje boven de onderbalk de weg naar huis |
 
 In het menu onder **Werelden** staan zes plekken in twee rijen, elk met een plaatje van je wereld.
 Tik op een wereld om erheen te gaan, op een lege plek (+) om een nieuwe te maken,
 of op het rondje-pijltje om een wereld opnieuw te beginnen (dat vraagt eerst of je het zeker weet).
-Je kiest uit **Eiland, Plat, Jungle, Woestijn, Toendra, Savanne en Avontuur**. Alle werelden zijn
-eindeloos. Het Eiland is één groot eiland van ongeveer 400 blokken in een zee zonder einde.
+Je kiest uit **Grote wereld, Eiland, Plat, Jungle, Woestijn, Toendra en Savanne**. Alle werelden zijn
+eindeloos. In de Grote wereld begin je altijd in een vlakte met bos in de buurt; muziek, lucht en
+weer veranderen mee met het landschap waar je bent. Oude avonturenwerelden blijven speelbaar. Het Eiland is één groot eiland van ongeveer 400 blokken in een zee zonder einde.
 In Avontuur liggen de vier landschappen rondom een centrale weide en lopen ze verderop door.
 Werelden van vóór versie 4 zijn netjes overgezet: het oude stuk van 96 × 96 blokken ligt nu
 in een zee, en daarachter begint nieuwe wereld om te ontdekken.
@@ -141,7 +143,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
 | `js/textures.js` | De pixel-art texturen, getekend met code |
 | `js/world.js` | Doorgeefluik naar `js/engine/world.js` (de oude imports blijven werken) |
-| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
+| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `climate.js` (biomen, bergen en rivieren van de Grote wereld), `caves.js` (grotten en ertsen), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
 | `js/biomes.js` | Landschap, bomen, planten, lucht en mist per wereld |
 | `js/structures.js` | Tempels, piramides, iglo's, leeuwenrotsen, drinkplaatsen en oases |
 | `js/scene.js` | Lucht, zon, wolken en de zee rondom |

@@ -538,6 +538,83 @@ Object.assign(GEN, {
   },
 });
 
+// Grote wereld (achteraan, zodat de oude tegels hun kleuren houden)
+function ore(t, color) {
+  GEN.stone(t);
+  const dark = shade(color, 0.7), light = shade(color, 1.18);
+  for (let i = 0; i < 5; i++) {
+    const cx = 2 + Math.floor(t.r() * 12), cy = 2 + Math.floor(t.r() * 12);
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1], [-1, 0], [0, -1]]) {
+      if (t.r() < 0.75) t.set(cx + dx, cy + dy, dx + dy > 0 ? dark : dx + dy < 0 ? light : color);
+    }
+  }
+}
+
+function speckled(t, base, specks) {
+  t.noise(base, 0.1);
+  for (const [color, chance] of specks) t.specks(color, chance);
+}
+
+function petals(t, color, center) {
+  t.clear();
+  stem(t);
+  for (let y = 2; y <= 7; y++) for (let x = 5; x <= 10; x++) {
+    const d = Math.hypot(x - 7.5, y - 4.5);
+    if (d < 2.8) t.set(x, y, d < 1 ? center : shade(color, 1 + (t.r() - 0.5) * 0.18));
+  }
+}
+
+function mushroom(t, cap, dots) {
+  t.clear();
+  for (let y = 9; y < 16; y++) { t.set(7, y, [226, 214, 190]); t.set(8, y, [204, 192, 168]); }
+  for (let y = 4; y <= 9; y++) for (let x = 3; x <= 12; x++) {
+    const w = y === 4 ? 2 : y === 5 ? 4 : 5;
+    if (Math.abs(x - 7.5) <= w) t.set(x, y, shade(cap, 1 + (t.r() - 0.5) * 0.12));
+  }
+  if (dots) for (const [x, y] of [[5, 6], [9, 5], [11, 8], [7, 8], [4, 8]]) t.set(x, y, [245, 240, 232]);
+}
+
+Object.assign(GEN, {
+  coal_ore: (t) => ore(t, [44, 44, 46]),
+  iron_ore: (t) => ore(t, [216, 175, 147]),
+  copper_ore: (t) => ore(t, [206, 112, 72]),
+  gold_ore: (t) => ore(t, [250, 214, 60]),
+  lapis_ore: (t) => ore(t, [44, 84, 196]),
+  redstone_ore: (t) => ore(t, [214, 30, 30]),
+  diamond_ore: (t) => ore(t, [92, 232, 226]),
+  emerald_ore: (t) => ore(t, [40, 200, 90]),
+  granite: (t) => speckled(t, [158, 108, 86], [[[186, 132, 110], 0.18], [[124, 82, 66], 0.12], [[214, 176, 160], 0.04]]),
+  diorite: (t) => speckled(t, [196, 196, 196], [[[120, 120, 122], 0.16], [[236, 236, 236], 0.12]]),
+  andesite: (t) => speckled(t, [134, 136, 136], [[[108, 110, 110], 0.2], [[164, 166, 166], 0.12]]),
+  gravel(t) {
+    t.noise([126, 120, 116], 0.12);
+    for (let i = 0; i < 26; i++) {
+      const x = Math.floor(t.r() * 16), y = Math.floor(t.r() * 16);
+      const c = [[90, 86, 84], [160, 154, 150], [118, 100, 88]][i % 3];
+      t.set(x, y, c); t.set(x + 1, y, shade(c, 0.9));
+    }
+  },
+  clay: (t) => speckled(t, [160, 166, 178], [[[146, 152, 164], 0.12], [[176, 182, 194], 0.08]]),
+  birch_log_side(t) {
+    t.noise([218, 216, 206], 0.06);
+    for (let i = 0; i < 9; i++) {
+      const x = Math.floor(t.r() * 14), y = Math.floor(t.r() * 16), len = 2 + Math.floor(t.r() * 3);
+      for (let k = 0; k < len; k++) t.set(x + k, y, [48, 44, 40]);
+    }
+  },
+  birch_log_top: (t) => rings(t, [212, 190, 140], [218, 216, 206]),
+  birch_leaves: (t) => foliage(t, [112, 162, 74]),
+  mushroom_red: (t) => mushroom(t, [208, 40, 36], true),
+  mushroom_brown: (t) => mushroom(t, [150, 110, 80], false),
+  lily_pad(t) {
+    t.noise([52, 128, 44], 0.12);
+    for (let i = 0; i < 16; i++) { t.set(i, i, [36, 100, 32]); t.set(15 - i, i, [36, 100, 32]); }
+    t.specks([84, 160, 64], 0.08);
+  },
+  cornflower: (t) => petals(t, [70, 110, 230], [40, 60, 160]),
+  tulip: (t) => petals(t, [240, 110, 150], [250, 220, 90]),
+});
+
 function bevel(t, base, light, dark) {
   t.noise(base, 0.06);
   for (let i = 0; i < TILE; i++) {

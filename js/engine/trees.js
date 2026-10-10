@@ -57,8 +57,45 @@ export function biomeTree(w, kind, x, y, z, r) {
       for (let k = 1; k <= 3; k++) w.leaf(x + dx * k, y + height - (k === 3 ? 1 : 0), z + dz * k, B.PALM_LEAVES);
     }
   } else if (kind === 'oak') oak(w, x, y, z, r);
+  else if (kind === 'birch') {
+    // Slanke berk: witte stam, smalle kruin
+    const hgt = 5 + Math.floor(r() * 3), top = y + hgt;
+    for (let ly = top - 3; ly <= top + 1; ly++) {
+      const rad = ly >= top ? 1 : ly === top - 3 ? 1 : 2;
+      for (let dx = -rad; dx <= rad; dx++) for (let dz = -rad; dz <= rad; dz++) {
+        if (Math.abs(dx) === rad && Math.abs(dz) === rad && (rad === 2 || ly === top + 1) && r() < 0.7) continue;
+        w.leaf(x + dx, ly, z + dz, B.BIRCH_LEAVES);
+      }
+    }
+    for (let i = 0; i < hgt; i++) w.put(x, y + i, z, B.BIRCH_LOG);
+  } else if (kind === 'bigOak') {
+    // Grote eik: hoge stam, brede ronde kruin en een paar takken
+    const hgt = 7 + Math.floor(r() * 3), top = y + hgt;
+    for (let dy = -3; dy <= 2; dy++) for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) {
+      const d = Math.hypot(dx, dy * 1.3, dz);
+      if (d <= 3.9 - r() * 0.6) w.leaf(x + dx, top + dy, z + dz, B.LEAVES);
+    }
+    for (let i = 0; i < hgt; i++) w.put(x, y + i, z, B.LOG);
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (r() < 0.6) { w.put(x + dx, top - 2, z + dz, B.LOG); w.put(x + dx * 2, top - 1, z + dz * 2, B.LOG); }
+  } else if (kind === 'swampOak') {
+    // Moerasboom: lage, platte kruin met lianen
+    const hgt = 5 + Math.floor(r() * 2), top = y + hgt;
+    for (let dy = -1; dy <= 1; dy++) {
+      const rad = dy === 1 ? 2 : 3;
+      for (let dx = -rad; dx <= rad; dx++) for (let dz = -rad; dz <= rad; dz++) {
+        if (Math.abs(dx) === rad && Math.abs(dz) === rad) continue;
+        w.leaf(x + dx, top + dy, z + dz, B.LEAVES);
+      }
+    }
+    for (let i = 0; i < hgt; i++) w.put(x, y + i, z, B.LOG);
+    for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) {
+      if (Math.max(Math.abs(dx), Math.abs(dz)) !== 3 || Math.abs(dx) === Math.abs(dz) || r() > 0.4) continue;
+      const len = 2 + Math.floor(r() * 3);
+      for (let dy = 2; dy < 2 + len; dy++) w.leaf(x + dx, top - dy, z + dz, B.VINE);
+    }
+  }
 }
 
 // Hoe ver een boom opzij reikt (voor het zoeken naar bomen die in een chunk hangen)
 export const TREE_REACH = 5;
-export const TREE_RADIUS = { giantJungle: 4, acacia: 4, spruce: 3, jungle: 2, palm: 3, oak: 2 };
+export const TREE_RADIUS = { giantJungle: 4, acacia: 4, spruce: 3, jungle: 2, palm: 3, oak: 2, birch: 2, bigOak: 4, swampOak: 3 };

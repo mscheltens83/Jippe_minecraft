@@ -247,6 +247,7 @@ export class UI {
     type.appendChild(el('p', 'hint', 'Wat voor wereld wil je?'));
     const choices = el('div', 'world-choices');
     for (const [t, biome] of Object.entries(BIOMES)) {
+      if (!biome.kies) continue; // Avontuur en de landschappen binnen de Grote wereld staan er niet bij
       const b = button('choice ' + t, biome.icon, biome.naam);
       onPress(b, () => {
         this.pendingType = t;

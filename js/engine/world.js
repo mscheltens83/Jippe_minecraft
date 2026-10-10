@@ -3,7 +3,7 @@
 // Onveranderde chunks maakt de generator steeds opnieuw; alleen wat Jippe veranderde, wordt bewaard.
 
 import { AIR, B, BLOCKS } from '../blocks.js';
-import { BIOMES } from '../biomes.js';
+import { BIOMES, biomeAt, biomeView, worldType } from '../biomes.js';
 import { Generator } from './gen.js';
 import { Chunk, local, encodeRLE, decodeRLE, toBase64 } from './chunk.js';
 import { CHUNK, SY, SEA, SECTION, CENTER, HOME, BORDER, chunkKey, keyCx, keyCz } from './constants.js';
@@ -36,7 +36,7 @@ export class World {
   // Bestaande wereld openen; `stored` bevat de bewerkte chunks
   open({ type, seed, classic = false }, stored = new Map()) {
     this.clear();
-    this.type = BIOMES[type] ? type : 'island';
+    this.type = worldType(type);
     this.seed = seed | 0;
     this.classic = !!classic;
     this.gen = new Generator(this.type, this.seed, { classic: this.classic });
@@ -182,6 +182,17 @@ export class World {
     const lx = x - cx * CHUNK, lz = z - cz * CHUNK;
     for (let y = SY - 1; y >= 0; y--) if (BLOCKS[c.blocks[local(lx, y, lz)]].solid) return y;
     return 0;
+  }
+
+  // Welk landschap is hier? (muziek, weer, lucht en dieren)
+  biomeAt(x, z) {
+    if (this.type !== 'world' || !this.gen) return biomeAt(this.type, x, z);
+    return this.gen.raw(Math.floor(x), Math.floor(z)).biome;
+  }
+
+  biomeView(x, z) {
+    if (this.type !== 'world') return biomeView(this.type, x, z);
+    return { lucht: BIOMES[this.biomeAt(x, z)].lucht };
   }
 
   spawnPoint() {

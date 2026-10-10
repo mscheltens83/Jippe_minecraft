@@ -4,11 +4,13 @@
 // SHIFT blokken omhoog.
 
 import { AIR, B } from '../blocks.js';
-import { BIOMES, biomeWeights } from '../biomes.js';
+import { BIOMES, biomeWeights, worldType } from '../biomes.js';
 import { structureCells, structureBounds } from '../structures.js';
 import { hash, rng, simplex2, fbm } from './noise.js';
 import { CHUNK, SY, SEA, SHIFT, CENTER } from './constants.js';
 import { biomeTree, TREE_RADIUS } from './trees.js';
+import { Climate } from './climate.js';
+import { Underground } from './caves.js';
 
 const OLD_SEA = SEA - SHIFT;      // 10
 const REGION = 128;               // per stuk van 128 x 128 blokken hoogstens één bouwwerk
@@ -33,7 +35,7 @@ const index = (lx, y, lz) => lx + CHUNK * (lz + CHUNK * y);
 export class Generator {
   // classic: een omgezette oude wereld. Het oude eiland ligt dan in een ring van zee.
   constructor(type, seed, { classic = false } = {}) {
-    this.type = BIOMES[type] ? type : 'island';
+    this.type = worldType(type);
     this.seed = seed | 0;
     this.classic = classic;
     this.n1 = simplex2(seed); this.n2 = simplex2(seed + 99); this.river = simplex2(seed + 271);
@@ -42,6 +44,8 @@ export class Generator {
     this.colCache = new Map();
     this.treeCache = new Map();
     this.regionCache = new Map();
+    this.climate = this.type === 'world' ? new Climate(this.seed) : null;
+    this.underground = this.type === 'flat' ? null : new Underground(this.seed);
     this.home = [];
     if (!classic) for (const [kind, dx, dz] of HOME_STRUCTURES[this.type] || []) this.home.push(this.makeStructure(kind, CENTER + dx, CENTER + dz, true));
     this.landmarks = this.home.map((s) => ({ kind: s.kind, x: s.x, y: s.y, z: s.z, ...(s.radius ? { radius: s.radius } : {}) }));
@@ -79,6 +83,16 @@ export class Generator {
   computeRaw(x, z) {
     const type = this.type, dist = Math.hypot(x - CENTER, z - CENTER);
     if (type === 'flat') return { h: OLD_SEA + 1 + SHIFT, biome: 'flat', plateau: 0 };
+    if (type === 'world') {
+      // Grote wereld: het klimaat bepaalt hoogte en landschap; de bouwplek wordt vlak
+      const c = this.climate.column(x, z);
+      let h = c.h;
+      if (dist < 14) {
+        const f = smooth01((dist - 8) / 6);
+        h = h * f + (SEA + 3) * (1 - f);
+      }
+      return { h: Math.round(h), biome: dist < 14 ? 'plains' : c.biome, plateau: c.biome === 'mesa' ? 1 : 0, cold: c.k.T < -0.42 };
+    }
     if (type === 'island') {
       const hills = this.n1(x / 18, z / 18) * 4 + this.n2(x / 7, z / 7) * 1.5
         + Math.max(0, this.n3(x / 60, z / 60)) * 9 * smooth01((dist - 30) / 60); // verderop hogere heuvels
@@ -212,6 +226,8 @@ export class Generator {
       c.top = B.GRASS; c.fill = B.DIRT;
       if (this.type === 'island' && raw.h <= SEA + 1) { c.top = B.SAND; c.fill = B.SAND; }
       if (this.type === 'island' && raw.h >= SEA + 8) c.top = B.SNOW;
+    } else if (this.type === 'world') {
+      this.worldGround(c, x, z);
     } else {
       c.top = raw.h <= SEA ? B.SAND : b.grond.top;
       c.fill = b.grond.onder;
@@ -230,6 +246,21 @@ export class Generator {
     return c;
   }
 
+  // Bovenste blokken in de Grote wereld
+  worldGround(c, x, z) {
+    const b = BIOMES[c.biome], h = c.h;
+    c.cold = this.raw(x, z).cold;
+    c.top = b.grond.top; c.fill = b.grond.onder;
+    if (h <= SEA) {
+      // Onder water: zand, in diepe zee grind, in rivieren soms klei
+      c.top = c.biome === 'river' && hash(this.seed, x, z, S.flower) < 0.3 ? B.CLAY : h < SEA - 10 ? B.GRAVEL : B.SAND;
+      c.fill = B.SAND;
+    } else if (c.biome === 'mountains') {
+      c.top = h > SEA + 44 ? B.SNOW : h > SEA + 24 ? B.STONE : B.GRASS;
+      c.fill = c.top === B.GRASS ? B.DIRT : B.STONE;
+    } else if (h > SEA + 50) { c.top = B.SNOW; c.fill = B.STONE; }
+  }
+
   fillColumn(buf, lx, lz, c) {
     const h = c.h, desert = c.biome === 'desert', island = this.type === 'island' || this.type === 'flat';
     const under = c.biome === 'tundra' ? 2 : 3;
@@ -240,10 +271,14 @@ export class Generator {
       else if (desert) {
         id = y === h ? c.top : y >= h - 2 ? (c.top === B.RED_SAND ? B.RED_SAND : B.SAND)
           : c.plateau ? (Math.floor(y / 3) % 2 ? B.TERRACOTTA_ORANGE : B.TERRACOTTA_BROWN) : B.SANDSTONE;
+      } else if (c.biome === 'mesa' && h > SEA) {
+        // Mesa: lagen oranje en bruin terracotta onder het rode zand
+        id = y === h ? c.top : y >= h - 1 ? B.RED_SAND : (Math.floor(y / 3) % 3 ? B.TERRACOTTA_ORANGE : B.TERRACOTTA_BROWN);
       } else id = y === h ? c.top : y >= h - under ? c.fill : B.STONE;
       buf[index(lx, y, lz)] = id;
     }
-    for (let y = h + 1; y <= SEA; y++) buf[index(lx, y, lz)] = c.biome === 'tundra' && y === SEA ? B.ICE : B.WATER;
+    const frozen = c.biome === 'tundra' || c.cold;
+    for (let y = h + 1; y <= SEA; y++) buf[index(lx, y, lz)] = frozen && y === SEA ? B.ICE : B.WATER;
     const s = c.pad;
     if (!s) return;
     // Vlak stuk grond voor een bouwwerk, zonder water erboven
@@ -351,6 +386,15 @@ export class Generator {
       }
     }
     this.plants(buf, x0, z0, cols, planted);
+    // Onder de grond: grotten (niet bij de bouwplek) en daarna steensoorten en ertsen
+    if (this.underground) {
+      for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
+        const c = cols[lx + lz * CHUNK];
+        c.noCaves = Math.hypot(x0 + lx - CENTER, z0 + lz - CENTER) < 24;
+      }
+      this.underground.carve(buf, cx, cz, cols, this.type === 'world');
+      this.underground.veins(buf, cx, cz, cols, cols.some((c) => c.biome === 'mountains'));
+    }
     if (this.rawCache.size > 6000) { this.rawCache.clear(); this.colCache.clear(); this.treeCache.clear(); }
     return buf;
   }
@@ -360,6 +404,10 @@ export class Generator {
     for (let lz = 0; lz < CHUNK; lz++) for (let lx = 0; lx < CHUNK; lx++) {
       if (planted.has(lx + lz * CHUNK)) continue;
       const c = cols[lx + lz * CHUNK], x = x0 + lx, z = z0 + lz, h = c.h;
+      if (c.biome === 'swamp' && !c.reserved && h < SEA && buf[index(lx, SEA + 1, lz)] === AIR && hash(this.seed, x, z, S.plant) < 0.12) {
+        buf[index(lx, SEA + 1, lz)] = B.LILY_PAD; // waterlelies op het moeras
+        continue;
+      }
       if (c.reserved || h <= SEA || h + 1 >= SY || buf[index(lx, h + 1, lz)] !== AIR) continue;
       if (Math.hypot(x - CENTER, z - CENTER) <= (this.type === 'island' ? 0 : 9)) continue;
       if (this.type === 'island') {

@@ -22,8 +22,7 @@ import { Animals } from './animals.js';
 import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
-import { BIOMES, biomeView } from './biomes.js';
-import { biomeAt } from './biomes.js';
+import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
 import { Snowmen } from './snowman.js';
 import { PerfMeter } from './perf.js';
@@ -177,7 +176,7 @@ class Game {
     const meta = this.storage.loadLocal('meta') || {};
     this.slot = SLOTS.includes(meta.current) ? meta.current : 1;
     const loaded = await this.loadSlot(this.slot);
-    if (!loaded) this.freshWorld('island');
+    if (!loaded) this.freshWorld('world'); // een nieuwe speler begint in de Grote wereld
     this.savedPos = this.posKey();
     this.scene.rebuildAll(this.world);
     this.scene.precompile();
@@ -984,8 +983,10 @@ class Game {
   // ---------- de spel-lus ----------
 
   updateBiome(instant = false) {
-    this.scene.setBiome(biomeView(this.world.type, this.player.x, this.player.z), instant);
-    const biome = biomeAt(this.world.type, this.player.x, this.player.z);
+    const biome = this.world.biomeAt(this.player.x, this.player.z);
+    if (!instant && biome === this.biomeNow && this.world.type === 'world') return; // Avontuur mengt ook binnen een gebied
+    this.biomeNow = biome;
+    this.scene.setBiome(this.world.biomeView(this.player.x, this.player.z), instant);
     this.weather.setBiome(biome);
     this.music.setStyle(BIOMES[biome].muziek);
   }
@@ -1064,7 +1065,7 @@ class Game {
     this.weather.update(dt, this.world, this.player, this.scene.pixelRatio, this.playing && !document.hidden);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
-    if (this.world.type === 'adventure' && now >= (this.nextBiome || 0)) {
+    if ((this.world.type === 'adventure' || this.world.type === 'world') && now >= (this.nextBiome || 0)) {
       this.updateBiome(); this.nextBiome = now + 0.5;
     }
     this.scene.updateBiome(dt);

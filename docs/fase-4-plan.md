@@ -52,7 +52,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 |---|---|---|---|---|
 | **4A** | Fundament: meten, automatische tests op GitHub, kleine fouten | Klein (1 PR) | – | ✅ Klaar (10 oktober 2026); nulmeting op de iPad nog doen |
 | **4B** | Nieuwe wereldmotor: eindeloze chunks, workers, opslag in IndexedDB, oude werelden omzetten | Zeer groot (2–3 PR's) | 4A | ✅ Klaar (versie 4.1.0); iPad-meting nog doen |
-| **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | Gepland |
+| **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | ✅ Klaar (versie 4.2.0) |
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | Gepland |
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | Gepland |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | Gepland |

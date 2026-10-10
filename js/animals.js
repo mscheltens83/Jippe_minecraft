@@ -98,7 +98,7 @@ export class Animals {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
     // Bij de bouwplek wonen al dieren; verderop af en toe een groepje (ongeveer 1 op de 14 chunks)
     if (Math.hypot(x0 + 8 - HOME / 2, z0 + 8 - HOME / 2) < 80 || hash(world.seed, cx, cz, 701) > 0.07) return 0;
-    const biome = biomeAt(world.type, x0 + 8, z0 + 8);
+    const biome = world.biomeAt ? world.biomeAt(x0 + 8, z0 + 8) : biomeAt(world.type, x0 + 8, z0 + 8);
     const kinds = BIOMES[biome]?.dieren || [];
     if (!kinds.length) return 0;
     const [type] = kinds[Math.floor(hash(world.seed, cx, cz, 702) * kinds.length)];

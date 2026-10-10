@@ -25,7 +25,7 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
     'echte fase-2-wereld wordt bij het opstarten omgezet naar de eindeloze wereld (36 chunks bewaard)');
   check(migrated.ids.slice(1).every((n) => n > 0), 'alle oude blokken 1–60 zijn er na het omzetten nog');
   check(migrated.type === phase2Save.type && migrated.seed === phase2Save.seed &&
-    ['x', 'z', 'yaw', 'pitch', 'flying'].every((k) => migrated.player[k] === phase2Save.player[k]) && Math.abs(migrated.player.y - phase2Save.player.y - SHIFT) < 1e-6 &&
+    ['x', 'z', 'pitch', 'flying'].every((k) => migrated.player[k] === phase2Save.player[k]) && Math.abs(migrated.player.yaw - phase2Save.player.yaw) < 0.3 /* achter het menu draait de camera langzaam */ && Math.abs(migrated.player.y - phase2Save.player.y - SHIFT) < 1e-6 &&
     JSON.stringify(migrated.hotbar) === JSON.stringify(phase2Save.hotbar) && migrated.sel === phase2Save.sel && migrated.mode === phase2Save.mode,
   'omzetten bewaart wereldsoort, seed, positie (38 hoger), vliegen, onderbalk en bouwstand');
   check(migrated.animals.length === 3 && migrated.animals.every((a, i) => {
@@ -50,20 +50,21 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   });
   check(grid, 'zes wereldplekken staan in drie kolommen en twee rijen');
   await page.locator('.slot-card[aria-label="Wereld 6"]').tap();
-  check(await page.locator('.choice').count() === 7 && await page.locator('.choice[aria-label="Avontuur"]').isVisible(), 'zeven wereldsoorten met plaatjes om uit te kiezen');
+  check(await page.locator('.choice').count() === 7 && await page.locator('.choice[aria-label="Grote wereld"]').isVisible() &&
+    !(await page.locator('.choice[aria-label="Avontuur"]').count()), 'zeven wereldsoorten om uit te kiezen, met de Grote wereld en zonder Avontuur');
   const touchTargets = await run(() => [...document.querySelectorAll('.choice')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && !!e.querySelector('svg');
   }));
   check(touchTargets, 'nieuwe wereldkaarten zijn minstens 60 px en hebben elk een plaatje');
   await page.screenshot({ path: out + '/11-wereldkeuze.png' });
-  await page.locator('.choice[aria-label="Avontuur"]').tap();
-  await page.waitForFunction(() => window.__jippecraft.slot === 6 && window.__jippecraft.world.type === 'adventure', null, { timeout: 30000 });
+  await page.locator('.choice[aria-label="Grote wereld"]').tap();
+  await page.waitForFunction(() => window.__jippecraft.slot === 6 && window.__jippecraft.world.type === 'world', null, { timeout: 30000 });
   check(await run(async () => { const j = window.__jippecraft; await j.saving; return (await j.store.loadMetas(['slot6'])).slot6?.v === 4; }),
     'nieuwe wereld op plek 6 wordt als v4 bewaard');
   check(await run(async () => (await window.__jippecraft.store.loadChunks('slot3')).size === 36), 'een zesde wereld maken behoudt de oude derde wereld');
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Natuur"]').tap();
-  check(await page.locator('.pal-items:not([hidden]) .pal-section').count() === 4 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat vier wereldgroepen met de nieuwe bouwblokken');
+  check(await page.locator('.pal-items:not([hidden]) .pal-section').count() === 6 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat zes groepen met de nieuwe bouwblokken');
   await page.locator('.pal-item[aria-label="Liaan"]').tap();
   check(await run(() => window.__jippecraft.hotbar[window.__jippecraft.sel] === 63), 'een liaan kiezen uit de kist werkt met aanraken');
 

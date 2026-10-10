@@ -9,11 +9,11 @@ import { Generator } from '../../js/engine/gen.js';
 import { encodeRLE, decodeRLE, toBase64, fromBase64 } from '../../js/engine/chunk.js';
 import { chunkKey } from '../../js/engine/constants.js';
 import { migrateSave } from '../../js/engine/migrate.js';
-import { BIOMES, biomeWeights } from '../../js/biomes.js';
+import { WORLD_TYPES, biomeWeights } from '../../js/biomes.js';
 import { BLOCKS, B } from '../../js/blocks.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const TYPES = Object.keys(BIOMES);
+const TYPES = WORLD_TYPES;
 const same = (a, b) => a.length === b.length && a.every((v, i) => v === b[i]);
 
 for (const type of TYPES) {

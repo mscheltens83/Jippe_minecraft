@@ -24,6 +24,11 @@ export const B = {
   ACACIA_LOG: 86, ACACIA_LEAVES: 87, TALL_DRY_GRASS: 88, TERMITE: 89, MUD: 90,
   FENCE: 91, GATE: 92, // hekdeur 92..99: vier richtingen, open/dicht
   HAY: 100,
+  // Grote wereld: ertsen, steensoorten en natuur
+  COAL_ORE: 101, IRON_ORE: 102, COPPER_ORE: 103, GOLD_ORE: 104, LAPIS_ORE: 105, REDSTONE_ORE: 106,
+  DIAMOND_ORE: 107, EMERALD_ORE: 108, GRANITE: 109, DIORITE: 110, ANDESITE: 111, GRAVEL: 112, CLAY: 113,
+  BIRCH_LOG: 114, BIRCH_LEAVES: 115, MUSHROOM_RED: 116, MUSHROOM_BROWN: 117, LILY_PAD: 118,
+  CORNFLOWER: 119, TULIP: 120,
 };
 
 // Richtingen: 0 = -z (noord), 1 = +x (oost), 2 = +z (zuid), 3 = -x (west)
@@ -207,6 +212,30 @@ for (let d = 0; d < 4; d++) for (const open of [false, true]) {
 }
 def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, { sound: 'grass' });
 
+// Grote wereld: ertsen en steensoorten onder de grond, berkenbos, moeras en bloemenvelden
+def(B.COAL_ORE, 'Kolen', 'coal_ore');
+def(B.IRON_ORE, 'IJzererts', 'iron_ore');
+def(B.COPPER_ORE, 'Kopererts', 'copper_ore');
+def(B.GOLD_ORE, 'Gouderts', 'gold_ore');
+def(B.LAPIS_ORE, 'Lapis', 'lapis_ore');
+def(B.REDSTONE_ORE, 'Redstone', 'redstone_ore');
+def(B.DIAMOND_ORE, 'Diamanterts', 'diamond_ore');
+def(B.EMERALD_ORE, 'Smaragd', 'emerald_ore');
+def(B.GRANITE, 'Graniet', 'granite');
+def(B.DIORITE, 'Dioriet', 'diorite');
+def(B.ANDESITE, 'Andesiet', 'andesite');
+def(B.GRAVEL, 'Grind', 'gravel', { sound: 'sand' });
+def(B.CLAY, 'Klei', 'clay', { sound: 'sand' });
+def(B.BIRCH_LOG, 'Berkenhout', logTex('birch_log'), { sound: 'wood' });
+def(B.BIRCH_LEAVES, 'Berkenbladeren', 'birch_leaves', { render: 'cutout', foliage: true, sound: 'grass' });
+def(B.MUSHROOM_RED, 'Rode paddenstoel', 'mushroom_red', { render: 'cross', sound: 'grass' });
+def(B.MUSHROOM_BROWN, 'Bruine paddenstoel', 'mushroom_brown', { render: 'cross', sound: 'grass' });
+def(B.LILY_PAD, 'Waterlelie', 'lily_pad', {
+  render: 'shape', boxes: [[1 / 16, 0, 1 / 16, 15 / 16, 1 / 16, 15 / 16]], sound: 'grass',
+});
+def(B.CORNFLOWER, 'Korenbloem', 'cornflower', { render: 'cross', sound: 'grass' });
+def(B.TULIP, 'Tulp', 'tulip', { render: 'cross', sound: 'grass' });
+
 // Dezelfde vormen dienen voor tekenen én botsen. Een hek groeit vast aan buren.
 export function blockBoxes(world, x, y, z, collision = false) {
   const id = world.get(x, y, z), b = BLOCKS[id];
@@ -305,8 +334,12 @@ export const PALETTE_GROUPS = [
       { title: 'Woestijn', icon: 'desert', items: [B.CACTUS, B.DEAD_BUSH, B.PALM_LOG, B.PALM_LEAVES] },
       { title: 'Toendra', icon: 'tundra', items: [B.ICE, B.PACKED_ICE, B.SPRUCE_LOG, B.SPRUCE_LEAVES, B.SNOWY_LEAVES] },
       { title: 'Savanne', icon: 'savanna', items: [B.DRY_GRASS, B.ACACIA_LOG, B.ACACIA_LEAVES, B.TALL_DRY_GRASS, B.TERMITE, B.MUD] },
+      { title: 'Bos en moeras', icon: 'bigWorld', items: [B.BIRCH_LOG, B.BIRCH_LEAVES, B.MUSHROOM_RED, B.MUSHROOM_BROWN, B.LILY_PAD, B.CORNFLOWER, B.TULIP, B.CLAY] },
+      { title: 'Onder de grond', icon: 'pick', items: [B.GRANITE, B.DIORITE, B.ANDESITE, B.GRAVEL, B.COAL_ORE, B.IRON_ORE, B.COPPER_ORE,
+        B.GOLD_ORE, B.LAPIS_ORE, B.REDSTONE_ORE, B.DIAMOND_ORE, B.EMERALD_ORE] },
     ],
-    items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90],
+    items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90,
+      114, 115, 116, 117, 118, 119, 120, 113, 109, 110, 111, 112, 101, 102, 103, 104, 105, 106, 107, 108],
   },
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
   { title: 'Dieren', sections: [

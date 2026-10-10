@@ -6,11 +6,17 @@ const sky = (boven, horizon, mist, mistBegin, mistEind, wolken = 46, zon = '#fff
 const oldSky = sky('#4aa3ec', '#c9ecff', '#9ad8ff', 45, 125);
 const farmAnimals = [['pig', 4], ['sheep', 3], ['chicken', 4]];
 
+// kies: staat als kaart in het menu "Nieuwe wereld". De andere recepten zijn landschappen
+// binnen de Grote wereld (of Avontuur, dat je niet meer nieuw kunt kiezen).
 export const BIOMES = {
-  island: { naam: 'Eiland', icon: 'island', lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 } },
-  flat: { naam: 'Plat', icon: 'flat', lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 11, heuvels: 0, schaal: 18 } },
+  world: {
+    naam: 'Grote wereld', icon: 'bigWorld', kies: true, zee: true, lucht: oldSky, dieren: farmAnimals,
+    grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 }, achtergrond: 'vogels', muziek: 'island',
+  },
+  island: { naam: 'Eiland', icon: 'island', kies: true, lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 } },
+  flat: { naam: 'Plat', icon: 'flat', kies: true, lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 11, heuvels: 0, schaal: 18 } },
   jungle: {
-    naam: 'Jungle', icon: 'jungle', zee: true,
+    naam: 'Jungle', icon: 'jungle', zee: true, kies: true,
     lucht: sky('#3f9fdc', '#bfe8d0', '#a9d8c0', 30, 90, 38),
     grond: { top: B.GRASS, onder: B.DIRT, onderWater: B.SAND }, hoogte: { basis: 13, heuvels: 6, schaal: 22 },
     bomen: [{ soort: 'giantJungle', dichtheid: 0.006 }, { soort: 'jungle', dichtheid: 0.02 }],
@@ -19,21 +25,21 @@ export const BIOMES = {
     bouwwerken: ['temple'], dieren: [['tiger', 3], ['monkey', 3], ['parrot', 3], ['panda', 2], ['frog', 3], ['sloth', 2]], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'jungle',
   },
   desert: {
-    naam: 'Woestijn', icon: 'desert', zee: true,
+    naam: 'Woestijn', icon: 'desert', zee: true, kies: true,
     lucht: sky('#5fb0e8', '#f3e2b0', '#f0dca8', 50, 130, 12, '#fff1a0'),
     grond: { top: B.SAND, onder: B.SAND, onderWater: B.SAND }, hoogte: { basis: 12, heuvels: 3, schaal: 30, schaalZ: 12 },
     bomen: [], planten: [{ blok: B.CACTUS, dichtheid: 0.01, hoog: [1, 3] }, { blok: B.DEAD_BUSH, dichtheid: 0.01 }],
     bouwwerken: ['pyramid', 'oasis'], dieren: [['meerkat', 3], ['camel', 3], ['fennec', 3], ['lizard', 3], ['turtle', 2]], weer: null, achtergrond: 'wind', muziek: 'woestijn',
   },
   tundra: {
-    naam: 'Toendra', icon: 'tundra', zee: true,
+    naam: 'Toendra', icon: 'tundra', zee: true, kies: true,
     lucht: sky('#7fb2dc', '#e6f2fb', '#dfeaf5', 40, 110, 42, '#f6fbff'),
     grond: { top: B.SNOW, onder: B.DIRT, onderWater: B.SAND }, hoogte: { basis: 12, heuvels: 4, schaal: 24 },
     bomen: [{ soort: 'spruce', dichtheid: 0.012 }], planten: [{ blok: B.SNOW, dichtheid: 0.004 }, { blok: B.PACKED_ICE, dichtheid: 0.001, hoog: [4, 8] }],
     bouwwerken: ['igloo'], dieren: [['polarBear', 2], ['penguin', 4], ['reindeer', 3], ['arcticFox', 3], ['seal', 2], ['snowyOwl', 2]], weer: 'sneeuw', achtergrond: 'wind', muziek: 'toendra',
   },
   savanna: {
-    naam: 'Savanne', icon: 'savanna', zee: true,
+    naam: 'Savanne', icon: 'savanna', zee: true, kies: true,
     lucht: sky('#58a6e0', '#f6d9a0', '#efd29a', 50, 130, 20, '#ffe296'),
     grond: { top: B.DRY_GRASS, onder: B.RED_DIRT, onderWater: B.SAND }, hoogte: { basis: 12, heuvels: 2, schaal: 30 },
     bomen: [{ soort: 'acacia', dichtheid: 0.006 }], planten: [{ blok: B.TALL_DRY_GRASS, dichtheid: 0.12 }, { blok: B.TERMITE, dichtheid: 0.002, hoog: [2, 4] }],
@@ -42,7 +48,69 @@ export const BIOMES = {
     weer: null, achtergrond: 'krekels', muziek: 'savanne',
   },
   adventure: { naam: 'Avontuur', icon: 'adventure', zee: true, lucht: oldSky },
+
+  // ---------- landschappen in de Grote wereld (naast jungle, woestijn, toendra en savanne) ----------
+  plains: {
+    naam: 'Vlakte', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'oak', dichtheid: 0.002 }],
+    planten: [{ blok: B.TALLGRASS, dichtheid: 0.14 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.012 }, { blok: B.FLOWER_RED, dichtheid: 0.012 }, { blok: B.CORNFLOWER, dichtheid: 0.006 }],
+    dieren: farmAnimals, achtergrond: 'vogels', muziek: 'island',
+  },
+  flowerField: {
+    naam: 'Bloemenveld', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'oak', dichtheid: 0.002 }],
+    planten: [{ blok: B.FLOWER_RED, dichtheid: 0.07 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.07 }, { blok: B.CORNFLOWER, dichtheid: 0.06 },
+      { blok: B.TULIP, dichtheid: 0.06 }, { blok: B.TALLGRASS, dichtheid: 0.06 }],
+    dieren: [['sheep', 3], ['chicken', 2]], achtergrond: 'vogels', muziek: 'island',
+  },
+  forest: {
+    naam: 'Bos', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'bigOak', dichtheid: 0.005 }, { soort: 'oak', dichtheid: 0.035 }, { soort: 'birch', dichtheid: 0.008 }],
+    planten: [{ blok: B.TALLGRASS, dichtheid: 0.06 }, { blok: B.FERN, dichtheid: 0.03 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.006 },
+      { blok: B.MUSHROOM_RED, dichtheid: 0.004 }, { blok: B.FLOWER_RED, dichtheid: 0.004 }],
+    dieren: [['pig', 2], ['chicken', 1]], achtergrond: 'vogels', muziek: 'island',
+  },
+  birchForest: {
+    naam: 'Berkenbos', lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'birch', dichtheid: 0.035 }],
+    planten: [{ blok: B.TALLGRASS, dichtheid: 0.08 }, { blok: B.FLOWER_YELLOW, dichtheid: 0.01 }, { blok: B.TULIP, dichtheid: 0.005 }],
+    dieren: [['sheep', 2], ['chicken', 1]], achtergrond: 'vogels', muziek: 'island',
+  },
+  taiga: {
+    naam: 'Sparrenbos', lucht: sky('#6fa6d8', '#d7e8f2', '#c9dcea', 45, 120, 40), grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'spruce', dichtheid: 0.035 }],
+    planten: [{ blok: B.FERN, dichtheid: 0.09 }, { blok: B.TALLGRASS, dichtheid: 0.04 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.004 }],
+    dieren: [['reindeer', 2], ['arcticFox', 2]], achtergrond: 'wind', muziek: 'toendra',
+  },
+  mountains: {
+    naam: 'Bergen', lucht: sky('#5e9fdc', '#dce9f5', '#d2e2f0', 50, 140, 30, '#fffbe8'), grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'spruce', dichtheid: 0.006 }],
+    planten: [{ blok: B.TALLGRASS, dichtheid: 0.05 }],
+    dieren: [['sheep', 2]], achtergrond: 'wind', muziek: 'toendra',
+  },
+  mesa: {
+    naam: 'Mesa', lucht: sky('#5fb0e8', '#f1c99a', '#e9c290', 50, 130, 12, '#fff1a0'), grond: { top: B.RED_SAND, onder: B.RED_SAND },
+    bomen: [], planten: [{ blok: B.DEAD_BUSH, dichtheid: 0.012 }, { blok: B.CACTUS, dichtheid: 0.004, hoog: [1, 3] }],
+    dieren: [['lizard', 2], ['fennec', 1]], achtergrond: 'wind', muziek: 'woestijn',
+  },
+  swamp: {
+    naam: 'Moeras', lucht: sky('#5f8fae', '#b9c9a8', '#a8b898', 30, 95, 40), grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'swampOak', dichtheid: 0.012 }],
+    planten: [{ blok: B.TALLGRASS, dichtheid: 0.1 }, { blok: B.FERN, dichtheid: 0.03 }, { blok: B.MUSHROOM_BROWN, dichtheid: 0.01 }, { blok: B.MUSHROOM_RED, dichtheid: 0.004 }],
+    dieren: [['frog', 3]], achtergrond: 'krekels', muziek: 'jungle',
+  },
+  beach: {
+    naam: 'Strand', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND },
+    bomen: [{ soort: 'palm', dichtheid: 0.003 }], planten: [],
+    dieren: [['turtle', 2]], achtergrond: 'wind', muziek: 'island',
+  },
+  ocean: { naam: 'Zee', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [], achtergrond: 'wind', muziek: 'island' },
+  river: { naam: 'Rivier', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [], achtergrond: 'vogels', muziek: 'island' },
 };
+
+// De soorten wereld die je kunt hebben (de rest zijn landschappen binnen een wereld)
+export const WORLD_TYPES = ['world', 'island', 'flat', 'jungle', 'desert', 'tundra', 'savanna', 'adventure'];
+export const worldType = (t) => (WORLD_TYPES.includes(t) ? t : 'island');
 
 const smooth = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 

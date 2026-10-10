@@ -3,7 +3,7 @@
 // omhoog, zodat de zee weer op dezelfde hoogte ligt. Eromheen komt nieuwe wereld.
 
 import { AIR, B, BLOCKS } from '../blocks.js';
-import { BIOMES } from '../biomes.js';
+import { worldType } from '../biomes.js';
 import { CHUNK, SY, SHIFT, HOME, chunkKey } from './constants.js';
 import { local, encodeRLE, CHUNK_SIZE } from './chunk.js';
 
@@ -56,7 +56,7 @@ export function migrateSave(s) {
   const meta = {
     v: 4,
     t: s.t || Date.now(),
-    type: BIOMES[s.type] ? s.type : 'island',
+    type: worldType(s.type),
     seed: Number.isFinite(s.seed) ? s.seed | 0 : 1,
     classic: true,
     player: Number.isFinite(p.y) ? { ...p, y: p.y + SHIFT } : null,
