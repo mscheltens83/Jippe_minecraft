@@ -42,6 +42,6 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 4H deel 2 | Portalen naar de themawerelden: portaalsteen in 4 kleuren, toverstaf, portaal-stempel; je dier gaat mee | Klaar (versie 4.11.0) |
 | 5A | Dinowereld: landschappen, 7 dino's, dino-eieren, fossielen, rode portaalsteen ([plan](fase-5-plan.md)) | Klaar (versie 5.0.0) |
 | 5B | Opdrachtjes en stickers, met voorlezen | Klaar (versie 5.1.0) |
-| 5C | Schatkisten en verkleden | Bezig |
-| 5D | Rails met karretje, bootje | Gepland |
+| 5C | Schatkisten en verkleden | Klaar (versie 5.2.0) |
+| 5D | Rails met karretje, bootje | Bezig |
 | 5E | Knoppen, hendels, drukplaten en lampen | Gepland |

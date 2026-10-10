@@ -12,6 +12,7 @@ export const QUEST_GROUPS = [
   { key: 'ontdekken', title: 'Ontdekken', icon: 'goHome' },
   { key: 'werelden', title: 'Werelden', icon: 'portal' },
   { key: 'dinos', title: "Dino's", icon: 'dino' },
+  { key: 'schatten', title: 'Schatten', icon: 'chest' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -51,6 +52,10 @@ export const QUESTS = [
   { id: 'ei', groep: 'dinos', icon: 'raptor', tekst: 'Tik op een dino-ei en laat het uitkomen.', on: 'hatch' },
   { id: 'trex', groep: 'dinos', icon: 'trex', tekst: 'Maak een T-rex tam en rijd erop.', on: 'ride', match: (d) => d.type === 'trex' },
   { id: 'fossiel', groep: 'dinos', icon: 'stegosaurus', tekst: 'Vind een fossiel en graaf het uit.', on: 'break', match: (d) => d.id === B.FOSSIL },
+  // Schatten (fase 5C)
+  { id: 'schat', groep: 'schatten', icon: 'chest', tekst: 'Open een schatkist. Die staan in tempels, piramides, schipwrakken en dorpen.', on: 'treasure' },
+  { id: 'drieSchatten', groep: 'schatten', icon: 'gold', tekst: 'Open drie schatkisten.', on: 'treasure', doel: 3 },
+  { id: 'verkleden', groep: 'schatten', icon: 'hatCrown', tekst: 'Trek iets anders aan in je boek.', on: 'dress' },
   { id: 'vulkaan', groep: 'dinos', icon: 'pteranodon', tekst: 'Ga naar een vulkaan in de Dinowereld.', on: 'biome', match: (d) => d.biome === 'volcano' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));

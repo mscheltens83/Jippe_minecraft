@@ -26,6 +26,8 @@ import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
 import { Quests, hasRoof } from './quests.js';
+import { Wardrobe, STICKER_PRIZES } from './wardrobe.js';
+import { iconURL } from './icons.js';
 import { speech } from './speech.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
@@ -149,10 +151,14 @@ class Game {
     // Opdrachtjes en stickers (fase 5B): van Jippe, in alle werelden samen
     this.quests = new Quests(settings.stickers || {}, (q) => this.questDone(q));
     speech.enabled = !this.sounds.muted;
+    // Verkleden (fase 5C): wat je aanhebt en wat je al gevonden hebt
+    this.wardrobe = new Wardrobe(settings.wardrobe || {});
+    this.avatar.build(this.wardrobe.look);
     this.album = new Album(root, this.settings.album,
       (type) => { this.sounds.unlock(); this.sounds.animal(type); },
       () => { this.settings.album = []; this.saveSettings(); },
-      this.quests, () => { this.settings.stickers = this.quests.save(); this.saveSettings(); });
+      this.quests, () => { this.settings.stickers = this.quests.save(); this.saveSettings(); },
+      this.wardrobe, () => this.dressed());
     this.animals.setPredators(this.settings.predators);
     this.animals.onCatch = () => { this.sounds.nom(); this.markDirty(); };
     this.animals.onBreed = (baby) => { this.sounds.magic(); this.sounds.animal(baby.type); this.markDirty(); this.note('breed', { type: baby.type }); };
@@ -1365,8 +1371,11 @@ class Game {
 
   questDone(q) {
     this.settings.stickers = this.quests.save();
-    this.saveSettings();
     this.album.stickerEarned(q);
+    // Bij sommige stickers hoort iets om aan te trekken
+    const prize = STICKER_PRIZES[q.id] && this.wardrobe.unlock(STICKER_PRIZES[q.id]);
+    if (prize) { this.settings.wardrobe = this.wardrobe.save(); this.album.showNotice('Cadeautje!', iconURL(prize.icon), prize.naam); }
+    this.saveSettings();
     this.sounds.magic();
     const p = this.player;
     this.particles.burst(p.x - 0.5, p.y + 1.6, p.z - 0.5, [[1, 0.85, 0.2], [1, 0.5, 0.7], [0.5, 0.8, 1]], 40, true);
@@ -1386,8 +1395,30 @@ class Game {
     }
   }
 
+  // Iets anders aangetrokken in het boek
+  dressed() {
+    this.avatar.build(this.wardrobe.look);
+    this.settings.wardrobe = this.wardrobe.save();
+    this.saveSettings();
+    this.sounds.pop();
+    this.note('dress');
+  }
+
   openTreasure(hit) {
     this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: B.TREASURE, to: B.TREASURE_OPEN }]);
+    // In de kist: iets om aan te trekken dat je nog niet had, of goud
+    const found = this.wardrobe.treasure();
+    this.settings.wardrobe = this.wardrobe.save();
+    this.saveSettings();
+    if (found.item) {
+      this.album.showNotice('Schat!', iconURL(found.item.icon), found.item.naam);
+      speech.say(`Je vond ${found.item.een}! Trek hem aan in je boek.`);
+    } else {
+      this.album.showNotice('Goud!', iconURL('gold'), `${found.gold} keer goud`);
+      speech.say('Je vond goud!');
+      this.particles.firework(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5);
+    }
+    this.note('treasure');
     this.particles.sparkle(hit.x - .4, hit.y + .2, hit.z - .4,
       hit.x + 1.4, hit.y + 2, hit.z + 1.4, 100);
     this.particles.burst(hit.x, hit.y, hit.z, [[1, .78, .12], [1, .94, .5]], 45, true);

@@ -2,12 +2,24 @@
 
 import * as THREE from '../lib/three.module.min.js';
 import { box, part, ownMaterial } from './models.js';
+import { hatGeos, capeGeos } from './wardrobe.js';
 
-const SKIN = '#f1c7a0', HAIR = '#6b4526', SHIRT = '#e8503d', PANTS = '#2f5da8', SHOES = '#3a3a3a';
+const SKIN = '#f1c7a0', HAIR = '#6b4526', SHOES = '#3a3a3a';
 
 export class Avatar {
-  constructor(scene) {
+  constructor(scene, look = {}) {
     this.group = new THREE.Group();
+    this.build(look);
+    this.group.visible = false;
+    this.phase = 0;
+    this.swing = 0;
+    scene.add(this.group);
+  }
+
+  // Het poppetje (opnieuw) maken met deze kleren: { hat, cape, shirt, pants } (fase 5C)
+  build({ hat = 'none', cape = 'none', shirt = '#e8503d', pants = '#2f5da8' } = {}) {
+    for (const child of [...this.group.children]) { this.group.remove(child); child.traverse((o) => o.geometry?.dispose()); }
+    const SHIRT = shirt, PANTS = pants;
     // benen (scharnier bij de heup)
     this.legs = [-0.125, 0.125].map((x) => part([
       box(0.24, 0.55, 0.24, PANTS, x, 0.375, 0),
@@ -30,12 +42,17 @@ export class Avatar {
       box(0.05, 0.07, 0.02, '#2f6fd6', 0.08, 1.5, -0.235),
       box(0.16, 0.03, 0.02, '#b5654f', 0, 1.36, -0.225),
     ], 0, 1.27, 0);
+    // Hoed aan het hoofd en cape aan het lijf, zodat ze meebewegen
+    const hatG = hatGeos(hat);
+    if (hatG.length) { const h = part(hatG, 0, 1.27, 0); h.position.set(0, 0, 0); this.head.add(h); }
+    this.cape = null;
+    const capeG = capeGeos(cape);
+    if (capeG.length) { this.cape = part(capeG, 0, 1.25, 0.17); this.cape.position.sub(this.body.position); this.body.add(this.cape); }
     this.group.add(this.body, this.head, ...this.legs, ...this.arms);
-    this.group.visible = false;
+    const color = this.mat?.color;
     this.mat = ownMaterial(this.group);
-    this.phase = 0;
-    this.swing = 0;
-    scene.add(this.group);
+    if (color) this.mat.color.copy(color);
+    this.look = { hat, cape, shirt, pants };
   }
 
   update(dt, p, visible) {
@@ -55,6 +72,7 @@ export class Avatar {
     this.arms[0].rotation.z = -0.9 * fly - 0.05;
     this.arms[1].rotation.z = 0.9 * fly + 0.05;
     this.head.rotation.x = Math.max(-0.7, Math.min(0.7, p.pitch * 0.7));
+    if (this.cape) this.cape.rotation.x = 0.08 + Math.min(0.9, speed * 0.12) + (p.flying ? 0.5 : 0); // wappert achter je aan
     this.group.position.set(p.x, p.y + (p.riding ? p.riding.def?.zadel ?? 0.66 : 0), p.z);
     this.group.rotation.y = p.yaw;
   }

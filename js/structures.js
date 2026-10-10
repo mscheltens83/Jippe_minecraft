@@ -36,6 +36,7 @@ export function structureCells(kind, small = false) {
       for (let y = 0; y <= 1; y++) put(0, y, z, AIR);
     }
     put(1, 0, 1, B.WOOL_BLUE);
+    put(-1, 0, 1, B.TREASURE);
   } else if (kind === 'shipwreck') {
     // Een gestrand schip: romp van sparrenhout, een gebroken mast met een gescheurd zeil en een schatkist
     const hull = B.SPRUCE_PLANKS;
@@ -75,6 +76,7 @@ export function structureCells(kind, small = false) {
       else for (let y = 0; y < 3; y++) put(x, y, z, AIR);
     }
     put(0, 0, 0, B.DINO_EGG); put(1, 0, 0, B.DINO_EGG + 1); put(0, 0, 1, B.DINO_EGG + 2);
+    put(-1, 0, -1, B.TREASURE);
     for (const [x, z] of [[3, 0], [-3, 1], [0, -3], [2, 2]]) put(x, 0, z, B.FERN);
   } else if (kind === 'dig') {
     // Opgraving (fase 5A): een kuil met een ladder, en fossielen in de wanden en de bodem
@@ -87,7 +89,7 @@ export function structureCells(kind, small = false) {
     }
     for (let y = -4; y <= -1; y++) put(0, y, 1, B.LADDER + 2); // ladder tegen de wand aan de kant +z
     put(0, 0, 3, AIR);
-    put(-1, -4, -1, B.FOSSIL); put(1, -4, 0, B.AMBER);
+    put(-1, -4, -1, B.FOSSIL); put(1, -4, 0, B.AMBER); put(-1, -4, 1, B.TREASURE);
   } else if (kind === 'lionRock') {
     for (let x = -4; x <= 4; x++) for (let z = 0; z <= 5; z++) {
       const h = Math.abs(x) <= 2 && z >= 2 ? 6 : Math.abs(x) <= 3 ? 2 : 1;
@@ -98,6 +100,7 @@ export function structureCells(kind, small = false) {
     for (let z = -2; z <= 4; z++) for (let x = 3; x <= 4; x++) {
       for (let y = -1; y <= z + 2; y++) put(x, y, z, B.STONE);
     }
+    put(-1, 7, 4, B.TREASURE); // een schat bovenop de rots
   }
   return [...cells.values()];
 }

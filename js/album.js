@@ -3,8 +3,10 @@ import * as THREE from '../lib/three.module.min.js';
 import { Animal } from './animals/core.js';
 import { SPECIES } from './animals/species.js';
 import { ICONS, iconURL } from './icons.js';
-import { QUESTS, QUEST_GROUPS } from './quests.js';
+import { QUESTS, QUEST_GROUPS, QUEST_BY_ID } from './quests.js';
 import { speech } from './speech.js';
+import { Avatar } from './avatar.js';
+import { HATS, CAPES, SHIRTS, PANTS, STICKER_PRIZES } from './wardrobe.js';
 
 const GROUPS = [
   { title: 'Boerderij', icon: 'island', types: ['pig', 'chicken', 'sheep'] },
@@ -27,7 +29,8 @@ function button(cls, icon, label) {
 
 // Het boek heeft tabbladen: de dieren die je vond, en (fase 5B) de stickers van de opdrachtjes
 export class Album {
-  constructor(root, known, onSound, onClear, quests = null, onClearStickers = null) {
+  constructor(root, known, onSound, onClear, quests = null, onClearStickers = null, wardrobe = null, onDress = null) {
+    this.wardrobe = wardrobe; this.onDress = onDress;
     this.known = new Set((known || []).filter((type) => SPECIES[type]));
     this.onSound = onSound; this.onClear = onClear;
     this.quests = quests; this.onClearStickers = onClearStickers; this.tab = 'dieren'; this.lastTip = null;
@@ -41,7 +44,7 @@ export class Album {
     close.addEventListener('click', () => this.close());
     const tabs = document.createElement('div'); tabs.className = 'album-tabs';
     this.tabs = {};
-    for (const [key, icon, label] of [['dieren', 'pig', 'Dieren'], ['stickers', 'star', 'Stickers']]) {
+    for (const [key, icon, label] of [['dieren', 'pig', 'Dieren'], ['stickers', 'star', 'Stickers'], ['kleren', 'hatCrown', 'Verkleden']]) {
       const t = button('album-tab', icon, label);
       t.insertAdjacentHTML('beforeend', `<span>${label}</span>`);
       t.addEventListener('click', () => { this.tab = key; this.confirm.hidden = true; this.render(); this.grid.scrollTop = 0; });
@@ -57,7 +60,7 @@ export class Album {
     this.bubble = document.createElement('p'); this.bubble.className = 'quest-bubble'; this.bubble.hidden = true;
     this.tipRow.append(tip, this.bubble);
     this.grid = document.createElement('div'); this.grid.className = 'album-grid';
-    const foot = document.createElement('div'); foot.className = 'album-foot';
+    const foot = this.foot = document.createElement('div'); foot.className = 'album-foot';
     const clear = button('btn album-clear', 'trash', 'Album leegmaken');
     const clearLabel = document.createElement('span'); clearLabel.textContent = 'Album leegmaken';
     clear.addEventListener('click', () => {
@@ -92,7 +95,10 @@ export class Album {
     this.render();
     if (!this.stickers.size) setTimeout(() => this.prepare(), 0);
   }
-  close() { this.overlay.hidden = true; this.confirm.hidden = true; }
+  close() {
+    this.overlay.hidden = true; this.confirm.hidden = true;
+    this.previewRenderer?.dispose(); this.previewRenderer?.forceContextLoss(); this.previewRenderer = null;
+  }
   get openNow() { return !this.overlay.hidden; }
 
   discover(type) {
@@ -120,6 +126,75 @@ export class Album {
       const next = this.noticeQueue?.shift();
       if (next) this.showNotice(...next);
     }, 2200);
+  }
+
+  // Verkleden (fase 5C): kies een hoed, een cape en de kleur van je kleren
+  renderWardrobe() {
+    const w = this.wardrobe;
+    if (!w) return;
+    const found = [...w.unlocked].filter((k) => !k.endsWith(':none') && k !== 'hat:cap').length;
+    this.count.textContent = `Schatten gevonden: ${found}` + (w.gold ? ` en ${w.gold} keer goud` : '');
+    this.grid.textContent = '';
+    const top = document.createElement('div'); top.className = 'wardrobe-top';
+    this.preview = document.createElement('img'); this.preview.className = 'wardrobe-preview'; this.preview.alt = '';
+    top.appendChild(this.preview);
+    this.grid.appendChild(top);
+    const section = (title, icon, items) => {
+      const sec = document.createElement('section'); sec.className = 'album-section';
+      const h = document.createElement('h3'); h.innerHTML = `${ICONS[icon]}<span>${title}</span>`;
+      const list = document.createElement('div'); list.className = 'album-items wardrobe-items';
+      list.append(...items); sec.append(h, list); this.grid.appendChild(sec);
+    };
+    const pick = (kind, item, key) => {
+      const b = document.createElement('button'); b.type = 'button';
+      const locked = key && !w.has(key), on = w[kind] === item.id;
+      b.className = 'album-sticker wardrobe-item' + (on ? ' found' : '') + (locked ? ' locked' : '');
+      b.dataset.item = kind + ':' + item.id;
+      b.setAttribute('aria-label', item.naam);
+      b.innerHTML = ICONS[item.icon] + (locked ? `<i class="lock">${ICONS.lock}</i>` : '') + `<span>${locked ? '?' : item.naam}</span>`;
+      b.addEventListener('click', () => {
+        if (locked) {
+          const quest = Object.entries(STICKER_PRIZES).find(([, k]) => k === key)?.[0];
+          speech.say(quest ? `Die krijg je met een sticker: ${QUEST_BY_ID.get(quest).tekst}` : 'Die vind je in een schatkist!');
+          b.classList.remove('bounce'); void b.offsetWidth; b.classList.add('bounce');
+          return;
+        }
+        w[kind] = item.id; this.onDress?.(); this.renderWardrobe();
+      });
+      return b;
+    };
+    const color = (kind, c) => {
+      const b = document.createElement('button'); b.type = 'button';
+      b.className = 'wardrobe-color' + (w[kind] === c ? ' active' : '');
+      b.dataset.item = kind + ':' + c;
+      b.style.color = c; b.innerHTML = ICONS[kind === 'shirt' ? 'shirt' : 'pants'];
+      b.setAttribute('aria-label', kind === 'shirt' ? 'Shirt' : 'Broek');
+      b.addEventListener('click', () => { w[kind] = c; this.onDress?.(); this.renderWardrobe(); });
+      return b;
+    };
+    section('Hoed', 'hatCrown', HATS.map((h) => pick('hat', h, 'hat:' + h.id)));
+    section('Cape', 'capeRed', CAPES.map((c) => pick('cape', c, 'cape:' + c.id)));
+    section('Shirt', 'shirt', SHIRTS.map((c) => color('shirt', c)));
+    section('Broek', 'pants', PANTS.map((c) => color('pants', c)));
+    this.drawPreview();
+  }
+
+  // Een plaatje van het poppetje met deze kleren (een eigen WebGL-doek, zolang het boek open is)
+  drawPreview() {
+    try {
+      if (!this.previewRenderer) {
+        const canvas = document.createElement('canvas');
+        this.previewRenderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, preserveDrawingBuffer: true });
+        this.previewRenderer.setPixelRatio(1); this.previewRenderer.setSize(160, 200, false);
+      }
+      const scene = new THREE.Scene(), cam = new THREE.OrthographicCamera(-0.75, 0.75, 1.3, -0.6, 0.1, 20);
+      const av = new Avatar(scene, this.wardrobe.look);
+      av.group.visible = true; av.group.rotation.y = 0.5; // schuin van voren
+      cam.position.set(0, 1.3, -6); cam.lookAt(0, 1.0, 0);
+      this.previewRenderer.render(scene, cam);
+      this.preview.src = this.previewRenderer.domElement.toDataURL('image/png');
+      av.group.traverse((o) => o.geometry?.dispose());
+    } catch (e) { console.warn('Geen voorbeeld van het poppetje', e); }
   }
 
   renderStickers() {
@@ -173,6 +248,8 @@ export class Album {
   render() {
     for (const [key, t] of Object.entries(this.tabs)) t.classList.toggle('active', key === this.tab);
     this.tipRow.hidden = this.tab !== 'stickers';
+    this.foot.hidden = this.tab === 'kleren';
+    if (this.tab === 'kleren') { this.renderWardrobe(); return; }
     this.clearLabel.textContent = this.tab === 'stickers' ? 'Stickers leegmaken' : 'Album leegmaken';
     if (this.tab === 'stickers') { this.renderStickers(); return; }
     const scroll = this.grid.scrollTop;

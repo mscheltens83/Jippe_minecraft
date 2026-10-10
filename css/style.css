@@ -668,3 +668,17 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 .quest-bar { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 8px; border-radius: 4px; background: #8c9498; overflow: hidden; }
 .quest-bar b { display: block; height: 100%; background: #6cc24a; }
 @media (max-width: 700px) { .album-tab span { display: none; } .album-head h2 span { display: none; } }
+
+/* Verkleden (fase 5C) */
+.wardrobe-top { display: flex; justify-content: center; margin: 4px 0 8px; }
+.wardrobe-preview { width: 140px; height: 175px; border: 3px solid var(--ink); border-radius: 18px; background: linear-gradient(#bfe6ff, #e7f6d8); image-rendering: pixelated; }
+.wardrobe-item svg { width: 64px; height: 64px; pointer-events: none; }
+.wardrobe-item span { font-size: 14px; font-weight: 700; color: var(--ink); text-align: center; }
+.wardrobe-item.found { background: radial-gradient(circle, #fffbe8 55%, #ffe08a); border-color: #e2a72e; }
+.wardrobe-item.locked { background: #d6d6d1; border-color: #8c9498; }
+.wardrobe-item.locked svg { filter: grayscale(1) brightness(.8); opacity: .5; }
+.wardrobe-item .lock svg { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; opacity: 1; filter: none; }
+.wardrobe-items { grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); }
+.wardrobe-color { width: 84px; height: 84px; border: 4px solid #8c9498; border-radius: 16px; background: #fff; }
+.wardrobe-color svg { width: 60px; height: 60px; pointer-events: none; }
+.wardrobe-color.active { border-color: #e2a72e; background: #fff4c8; transform: scale(1.06); }

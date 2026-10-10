@@ -140,6 +140,7 @@ export function villageCells(seed, style) {
   }
   // lantaarnpalen bij de put en aan de uiteinden van de paden
   for (const [x, z] of [[3, 3], [-4, -4], [R - 1, 2], [-R + 1, -2], [2, R - 1], [-2, -R + 1]]) lampPost(put, x, z);
+  put(-3, 0, 3, B.TREASURE); // een schatkist bij de put (fase 5C)
   return { cells: w.list(), beds };
 }
 

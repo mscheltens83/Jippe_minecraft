@@ -10,7 +10,7 @@ Zoals altijd: alles in het Nederlands, groot en duidelijk voor een kind van 6, n
 |---|---|---|
 | **5A** | Dinowereld: eigen landschappen, dino's, dino-eieren, rode portaalsteen | 5.0.0 ✅ |
 | **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 ✅ |
-| **5C** | Schatkisten en verkleden | 5.2.0 |
+| **5C** | Schatkisten en verkleden | 5.2.0 ✅ |
 | **5D** | Rails en karretje, bootje | 5.3.0 |
 | **5E** | Knoppen, hendels, drukplaten en lampen | 5.4.0 |
 
@@ -98,6 +98,12 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 ### Klaar als
 - Schatkisten liggen in de bouwwerken en geven een kledingstuk.
 - Verkleden werkt en blijft bewaard.
+
+### Zo is het gebouwd (versie 5.2.0)
+- `wardrobe.js`: hoeden, capes, kleuren; wat je al hebt en wat je aanhebt (bewaard in `settings.wardrobe`). Een schatkist geeft willekeurig iets wat je nog niet had; daarna goud. De dino-kap (sticker "rijd op een T-rex") en de regenboogcape (sticker "alle werelden") krijg je met een sticker.
+- `avatar.js` bouwt het poppetje opnieuw met de kleren; de hoed hangt aan het hoofd, de cape aan het lijf en wappert als je loopt of vliegt.
+- Het boek kreeg een derde tabblad Verkleden met een voorbeeld van je poppetje (een eigen klein WebGL-doek, zolang het boek open is).
+- Nieuwe schatkisten: iglo, leeuwenrots, dinonest, opgraving en elk dorp (bij de put). Drie nieuwe stickers: een schatkist openen, drie schatkisten, iets anders aantrekken.
 
 ## 5. Fase 5D: rails, karretje en bootje
 
