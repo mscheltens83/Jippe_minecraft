@@ -39,7 +39,13 @@ await new Promise((r) => server.listen(0, r));
 const base = `http://127.0.0.1:${server.address().port}/?vast&zicht=3`;
 
 let failures = 0;
-const check = (ok, msg) => { console.log(`${ok ? 'OK  ' : 'FOUT'} ${msg}`); if (!ok) failures++; };
+const check = (ok, msg) => {
+  console.log(`${ok ? 'OK  ' : 'FOUT'} ${msg}`);
+  if (ok) return;
+  failures++;
+  // Op GitHub ook als melding bij de testrun, zodat je de fout ziet zonder het hele logboek
+  if (process.env.GITHUB_ACTIONS) console.log(`::error title=Browsertest::${msg.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A')}`);
+};
 
 const browser = await chromium.launch({
   executablePath: process.env.CHROMIUM_PATH || undefined,
