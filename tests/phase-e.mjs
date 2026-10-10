@@ -34,8 +34,8 @@ export async function testPhaseE({ newPage, check, out }) {
       uniqueItems: new Set(itemTypes).size, iconNamesOK: iconNames.every((s) => s?.startsWith('data:image/svg+xml')),
       saved: save.animals.length, loaded: j.animals.list.length, worlds };
   });
-  check(results.species === 27 && results.items === 27 && results.uniqueItems === 27,
-    '15 nieuwe soorten: 27 dieren in totaal en allemaal één keer in de kist');
+  check(results.species === 39 && results.items === 39 && results.uniqueItems === 39,
+    '39 dieren in totaal (ook de Minecraft-dieren) en allemaal één keer in de kist');
   check(results.iconNamesOK, 'alle dieren hebben een zichtbaar kisticoon');
   check(results.missing.length === 0, 'alle dieren verschijnen in jungle, woestijn, toendra en avontuur bij twee seeds' +
     (results.missing.length ? ` (${results.missing.join(', ')})` : ''));
