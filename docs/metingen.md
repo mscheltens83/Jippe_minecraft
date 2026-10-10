@@ -42,6 +42,10 @@ driehoeken bij, of wordt het trager?
 | 2026-10-10 13:58 | 4.3.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,7 | 266,6 | 566,7 | 700 | 404 (max 487) | 349.846 | 1,5 · 1791×1251 |
 | 2026-10-10 14:04 | 4.4.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,6 | 266,7 | 566,6 | 900 | 417 (max 476) | 353.515 | 1,5 · 1791×1251 |
 | 2026-10-10 14:05 | 4.4.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,7 | 250,1 | 583,2 | 733,4 | 420 (max 476) | 351.333 | 1,5 · 1791×1251 |
+| 2026-10-10 16:51 | 4.5.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,8 | 266,6 | 550 | 649,9 | 406 (max 477) | 352.092 | 1,5 · 1791×1251 |
+| 2026-10-10 16:53 | 4.5.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,1 | 250 | 466,6 | 783,3 | 409 (max 495) | 348.734 | 1,5 · 1791×1251 |
+| 2026-10-10 16:52 | 4.6.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,0 | 249,9 | 483,4 | 900 | 412 (max 482) | 350.409 | 1,5 · 1791×1251 |
+| 2026-10-10 16:54 | 4.6.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,9 | 250 | 550 | 683,3 | 406 (max 490) | 348.792 | 1,5 · 1791×1251 |
 
 ## Wat opvalt (nulmeting 4.0.0)
 
@@ -94,3 +98,10 @@ driehoeken bij, of wordt het trager?
   Op een echte iPad is zacht filteren waarschijnlijk wel goedkoop; dat kan later met een meting op de
   iPad opnieuw bekeken worden.
 
+## Wat opvalt (4.5.0 en 4.6.0, blokken en bouwen)
+
+- 4.5.0 en 4.6.0 zijn om en om gemeten (oud, nieuw, oud, nieuw). Beide gemiddeld ±3,95 fps: **even snel**
+  als elkaar, en iets sneller dan de metingen van 4.4.0 (die op een ander moment zijn gedaan; verschillen
+  van een paar procent zijn op de testcomputer ruis).
+- De natuurkunde kost in de meetrit niets: er verandert niets, dus de wachtrij is leeg. De hand staat
+  in de meetrit uit, zodat de metingen te vergelijken blijven met eerdere versies.
