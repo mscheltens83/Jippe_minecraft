@@ -58,7 +58,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
 | **Snel** | Sneller maken na de eerste iPad-meting (38 fps): onzichtbare grotten niet tekenen, meetrit met extra rondjes | Klein | 4F | ✅ Klaar (versie 4.7.0) |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot (2 PR's) | 4C | ✅ Klaar (G1 versie 4.8.0, G2 versie 4.9.0) |
-| **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
+| **4H** | Extra werelden en portalen | Middel (2 PR's) | 4C, 4G | H1 ✅ klaar (versie 4.10.0), H2 gepland |
 
 Na elke fase: samenvoegen, op de iPad proberen (checklist in §13) en dan pas verder.
 
@@ -510,6 +510,13 @@ Schipwrak op het strand of in ondiepe zee (met schatkist), mijnschacht in grote 
 
 ### 12.3 Ideeën voor later (niet in deze fase)
 Wolkenland (zwevende eilanden), een onderwaterwereld, een dinowereld, een snoepwereld. Elk is een nieuw generator-recept plus portaalsteen in een nieuwe kleur.
+
+### 12.5 Zo is deel 1 gebouwd (versie 4.10.0)
+- `climate.js`: een klimaat met een thema (`THEMES`). Dezelfde vier ruiswaarden als de Grote wereld, maar de landschappen komen uit één familie: jungle (jungle, bamboebos, moeras), woestijn (woestijn, mesa), toendra (sneeuwvlakte, sparrenbos, bergen, bevroren zee) en savanne (savanne, vlakte). Bergen zijn per thema lager (`bergen`), behalve in de toendra. Je begint altijd in het hoofdlandschap.
+- Nieuw landschap: bamboebos (veel bamboe, panda's, papegaaien).
+- Generatorversie in de opslag (`gv`): nieuwe werelden krijgen versie 2. Bewaarde werelden zonder versie houden de oude themawereld, zodat er geen rare randen komen tussen wat al gebouwd was en nieuwe stukken. De meetrit gebruikt ook de oude savanne, zodat metingen te vergelijken blijven.
+- Themawerelden hebben dorpen en (onder de grond) mijnschachten, net als de Grote wereld.
+- Nog niet gedaan: ijsbergen, een droge rivier in de woestijn en nijlpaarden in de rivier van de savanne.
 
 ### 12.4 Klaar als
 - Je kunt een portaal bouwen en aansteken, er doorheen en weer terug.

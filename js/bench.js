@@ -56,7 +56,7 @@ export class Bench {
     game.readOnly = true;
     game.fixedQuality = true;
     game.setViewDistance(6); // vaste zichtafstand, zodat metingen te vergelijken zijn
-    game.freshWorld('savanna', BENCH_SEED);
+    game.freshWorld('savanna', BENCH_SEED, 1); // altijd de oude savanne, zodat metingen te vergelijken blijven
     this.fillAnimals();
     game.scene.rebuildAll(game.world);
     game.ui.hideMenu();

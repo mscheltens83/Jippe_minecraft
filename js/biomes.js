@@ -93,6 +93,12 @@ export const BIOMES = {
     bomen: [], planten: [{ blok: B.DEAD_BUSH, dichtheid: 0.012 }, { blok: B.CACTUS, dichtheid: 0.004, hoog: [1, 3] }],
     dieren: [['lizard', 2], ['fennec', 1]], achtergrond: 'wind', muziek: 'woestijn',
   },
+  bamboo: {
+    naam: 'Bamboebos', lucht: sky('#3f9fdc', '#bfe8d0', '#a9d8c0', 30, 90, 38), grond: { top: B.GRASS, onder: B.DIRT },
+    bomen: [{ soort: 'jungle', dichtheid: 0.004 }],
+    planten: [{ blok: B.BAMBOO, dichtheid: 0.09, hoog: [4, 9] }, { blok: B.FERN, dichtheid: 0.05 }, { blok: B.JUNGLE_FLOWER, dichtheid: 0.01 }],
+    dieren: [['panda', 3], ['parrot', 2], ['monkey', 1]], weer: 'blaadjes', achtergrond: 'vogels', muziek: 'jungle',
+  },
   swamp: {
     naam: 'Moeras', lucht: sky('#5f8fae', '#b9c9a8', '#a8b898', 30, 95, 40), grond: { top: B.GRASS, onder: B.DIRT },
     bomen: [{ soort: 'swampOak', dichtheid: 0.012 }],

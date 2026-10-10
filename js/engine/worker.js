@@ -11,8 +11,8 @@ self.onmessage = (e) => {
   const m = e.data;
   try {
     if (m.type === 'init') { faceTiles = m.faceTiles; return; }
-    const key = `${m.worldType}|${m.seed}|${m.classic ? 1 : 0}`;
-    if (key !== genKey) { gen = new Generator(m.worldType, m.seed, { classic: m.classic }); genKey = key; }
+    const key = `${m.worldType}|${m.seed}|${m.classic ? 1 : 0}|${m.gv}`;
+    if (key !== genKey) { gen = new Generator(m.worldType, m.seed, { classic: m.classic, gv: m.gv ?? 1 }); genKey = key; }
     if (m.type === 'gen') {
       const blocks = gen.chunk(m.cx, m.cz);
       self.postMessage({ id: m.id, blocks }, [blocks.buffer]);

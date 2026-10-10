@@ -267,8 +267,8 @@ class Game {
     this.worldReady = true;
   }
 
-  freshWorld(type, seed) {
-    this.openWorld(() => this.world.generate(type, seed));
+  freshWorld(type, seed, gv) {
+    this.openWorld(() => this.world.generate(type, seed, gv));
     // Dorpen die meteen al geladen zijn, krijgen nu hun dorpelingen
     if (!this.readOnly) for (const c of this.world.chunks.values()) this.animals.spawnVillages(this.world, c.cx, c.cz, this.player);
     this.resetSlot = true; // bij het eerstvolgende bewaren eerst de oude chunks van deze plek weghalen
@@ -295,6 +295,7 @@ class Game {
       type: this.world.type,
       seed: this.world.seed,
       classic: this.world.classic,
+      gv: this.world.gv,
       player: { x: place.x, y: place.y, z: place.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
       home: this.home,
       time: this.daynight.time,
@@ -318,7 +319,7 @@ class Game {
       let pos = null;
       this.resetSlot = false;
       this.openWorld(() => {
-        this.world.open({ type: s.type, seed: s.seed || 1, classic: !!s.classic }, chunks);
+        this.world.open({ type: s.type, seed: s.seed || 1, classic: !!s.classic, gv: s.gv || 1 }, chunks);
         const sp = this.world.spawnPoint();
         pos = { x: num(p.x, sp.x), y: num(p.y, sp.y), z: num(p.z, sp.z) };
         // Ver van huis bewaard? Dan dat stuk wereld meteen maken
@@ -1319,7 +1320,7 @@ class Game {
 
   updateBiome(instant = false) {
     const biome = this.world.biomeAt(this.player.x, this.player.z);
-    if (!instant && biome === this.biomeNow && this.world.type === 'world') return; // Avontuur mengt ook binnen een gebied
+    if (!instant && biome === this.biomeNow && this.world.gen?.climate) return; // Avontuur mengt ook binnen een gebied
     this.biomeNow = biome;
     this.scene.setBiome(this.world.biomeView(this.player.x, this.player.z), instant);
     this.weather.setBiome(biome);
@@ -1409,7 +1410,7 @@ class Game {
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
     this.updateTime(this.playing ? dt : 0, now);
-    if ((this.world.type === 'adventure' || this.world.type === 'world') && now >= (this.nextBiome || 0)) {
+    if ((this.world.type === 'adventure' || this.world.gen?.climate) && now >= (this.nextBiome || 0)) {
       this.updateBiome(); this.nextBiome = now + 0.5;
     }
     this.scene.updateBiome(dt);

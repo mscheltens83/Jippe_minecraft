@@ -51,6 +51,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Lianen** | Vooruit tegen een liaan of de springknop klimt omhoog. Laat los om te blijven hangen. De omlaagknop laat je zakken |
 | **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
 | **Grote wereld** | De echte Minecraft-wereld: vlaktes, bossen, berkenbossen, bloemenvelden, sparrenbossen, sneeuw, hoge bergen, woestijn, mesa, savanne, jungle, moeras, stranden, zee en slingerende rivieren. Onder de grond liggen grotten met kolen, ijzer, goud, redstone, lapis en diamant |
+| **Themawerelden** | Jungle, Woestijn, Toendra en Savanne zijn eindeloos en hebben elk hun eigen landschappen: jungle met bamboebos en moeras; woestijn met mesa; toendra met sparrenbos, bergen en een bevroren zee; savanne met vlaktes. Werelden die je al eerder bewaard had, blijven zoals ze waren |
 | **Eindeloze wereld** | De wereld houdt nergens op: loop, zwem of vlieg zo ver je wilt. Verderop liggen nieuwe stukken land, bomen, dieren en soms een tempel, piramide, iglo of leeuwenrots |
 | **Dag en nacht** | Een hele dag duurt 20 minuten. 's Avonds kleurt de lucht oranje, 's nachts zie je de maan en sterren, gaan de dieren slapen en hoor je krekels en een uil |
 | **Licht** | In de kist onder **Licht**: fakkel (op de grond of tegen een muur), lantaarn (staand, of hangend als je onder een blok tikt), gloeisteen, pompoenlantaarn en kampvuur. Ze geven een cirkel van licht, ook in donkere grotten. De lamp en het regenboogblok geven nu ook echt licht |

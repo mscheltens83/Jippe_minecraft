@@ -4,7 +4,7 @@
 
 import { AIR, B, BLOCKS, OPAQUE } from '../blocks.js';
 import { BIOMES, biomeAt, biomeView, worldType } from '../biomes.js';
-import { Generator } from './gen.js';
+import { Generator, GEN_VERSION } from './gen.js';
 import { Chunk, local, encodeRLE, decodeRLE, toBase64 } from './chunk.js';
 import { relight, SKY_FULL } from './light.js';
 import { CHUNK, SY, SEA, SECTION, CENTER, HOME, BORDER, chunkKey, keyCx, keyCz } from './constants.js';
@@ -31,17 +31,19 @@ export class World {
   // ---------- een wereld beginnen ----------
 
   // Nieuwe wereld: alles leeg, de bouwplek staat meteen klaar
-  generate(type = 'island', seed = (Math.random() * 1e9) | 0) {
-    this.open({ type, seed, classic: false });
+  generate(type = 'island', seed = (Math.random() * 1e9) | 0, gv = GEN_VERSION) {
+    this.open({ type, seed, classic: false, gv });
   }
 
   // Bestaande wereld openen; `stored` bevat de bewerkte chunks
-  open({ type, seed, classic = false }, stored = new Map()) {
+  // gv: versie van de generator (oude bewaarde werelden: 1)
+  open({ type, seed, classic = false, gv = 1 }, stored = new Map()) {
     this.clear();
     this.type = worldType(type);
     this.seed = seed | 0;
     this.classic = !!classic;
-    this.gen = new Generator(this.type, this.seed, { classic: this.classic });
+    this.gv = gv;
+    this.gen = new Generator(this.type, this.seed, { classic: this.classic, gv });
     this.landmarks = this.gen.landmarks;
     this.stored = stored;
     // Het oude stuk van 96 x 96 en een rand eromheen meteen maken (dieren, startplek, tests)
@@ -237,12 +239,12 @@ export class World {
 
   // Welk landschap is hier? (muziek, weer, lucht en dieren)
   biomeAt(x, z) {
-    if (this.type !== 'world' || !this.gen) return biomeAt(this.type, x, z);
+    if (!this.gen?.climate) return biomeAt(this.type, x, z);
     return this.gen.raw(Math.floor(x), Math.floor(z)).biome;
   }
 
   biomeView(x, z) {
-    if (this.type !== 'world') return biomeView(this.type, x, z);
+    if (!this.gen?.climate) return biomeView(this.type, x, z);
     return { lucht: BIOMES[this.biomeAt(x, z)].lucht };
   }
 

@@ -9,11 +9,14 @@ import { structureCells, structureBounds } from '../structures.js';
 import { hash, rng, simplex2, fbm } from './noise.js';
 import { CHUNK, SY, SEA, SHIFT, CENTER } from './constants.js';
 import { biomeTree, TREE_RADIUS } from './trees.js';
-import { Climate } from './climate.js';
+import { Climate, THEMES } from './climate.js';
 import { Underground } from './caves.js';
 import { villageCells, villageStyle, VILLAGE_STYLES, VILLAGE_RADIUS } from './village.js';
 
 const OLD_SEA = SEA - SHIFT;      // 10
+// Versie van de generator. 2 (fase 4H): ook de themawerelden zijn eindeloos met meerdere
+// landschappen. Bewaarde werelden van vóór 4H (versie 1) houden de oude themawerelden.
+export const GEN_VERSION = 2;
 const REGION = 128;               // per stuk van 128 x 128 blokken hoogstens één bouwwerk
 const S = { biome: 1, tree: 2, prio: 3, treeSeed: 4, plant: 5, plantH: 6, flower: 7, region: 8, rx: 9, rz: 10, kind: 11, pond: 12, palms: 13, village: 14, mine: 15 };
 const MINE_REGION = 112;           // per stuk van 112 x 112 hoogstens één mijnschacht
@@ -37,8 +40,9 @@ const index = (lx, y, lz) => lx + CHUNK * (lz + CHUNK * y);
 
 export class Generator {
   // classic: een omgezette oude wereld. Het oude eiland ligt dan in een ring van zee.
-  constructor(type, seed, { classic = false } = {}) {
+  constructor(type, seed, { classic = false, gv = GEN_VERSION } = {}) {
     this.type = worldType(type);
+    this.gv = gv;
     this.seed = seed | 0;
     this.classic = classic;
     this.n1 = simplex2(seed); this.n2 = simplex2(seed + 99); this.river = simplex2(seed + 271);
@@ -48,12 +52,14 @@ export class Generator {
     this.treeCache = new Map();
     this.regionCache = new Map();
     this.mineCache = new Map();
-    this.climate = this.type === 'world' ? new Climate(this.seed) : null;
+    // Grote wereld, en (vanaf versie 2) de themawerelden: het klimaat bepaalt hoogte en landschap
+    this.climate = this.type === 'world' ? new Climate(this.seed)
+      : THEMES[this.type] && gv >= 2 && !classic ? new Climate(this.seed, this.type) : null;
     this.underground = this.type === 'flat' ? null : new Underground(this.seed);
     this.home = [];
     if (!classic) for (const [kind, dx, dz] of HOME_STRUCTURES[this.type] || []) this.home.push(this.makeStructure(kind, CENTER + dx, CENTER + dz, true));
     // In de Grote wereld ligt er altijd een dorp binnen 300 blokken van de start
-    if (this.type === 'world') { const v = this.findVillage(); if (v) this.home.push(v); }
+    if (this.climate) { const v = this.findVillage(); if (v) this.home.push(v); }
     this.landmarks = this.home.map((s) => ({ kind: s.kind, x: s.x, y: s.y, z: s.z, ...(s.radius ? { radius: s.radius } : {}) }));
   }
 
@@ -89,15 +95,16 @@ export class Generator {
   computeRaw(x, z) {
     const type = this.type, dist = Math.hypot(x - CENTER, z - CENTER);
     if (type === 'flat') return { h: OLD_SEA + 1 + SHIFT, biome: 'flat', plateau: 0 };
-    if (type === 'world') {
-      // Grote wereld: het klimaat bepaalt hoogte en landschap; de bouwplek wordt vlak
-      const c = this.climate.column(x, z);
+    if (this.climate) {
+      // Grote wereld en themawerelden: het klimaat bepaalt hoogte en landschap; de bouwplek wordt vlak
+      const c = this.climate.column(x, z), start = this.climate.theme ? THEMES[this.climate.theme].main : 'plains';
       let h = c.h;
       if (dist < 14) {
         const f = smooth01((dist - 8) / 6);
         h = h * f + (SEA + 3) * (1 - f);
       }
-      return { h: Math.round(h), biome: dist < 14 ? 'plains' : c.biome, plateau: c.biome === 'mesa' ? 1 : 0, cold: c.k.T < -0.42 };
+      const cold = this.climate.theme ? !!THEMES[this.climate.theme].cold : c.k.T < -0.42;
+      return { h: Math.round(h), biome: dist < 14 ? start : c.biome, plateau: c.biome === 'mesa' ? 1 : 0, cold };
     }
     if (type === 'island') {
       const hills = this.n1(x / 18, z / 18) * 4 + this.n2(x / 7, z / 7) * 1.5
@@ -235,7 +242,7 @@ export class Generator {
       const z = rz * REGION + 24 + Math.floor(hash(this.seed, rx, rz, S.rz) * 80);
       const raw = this.raw(x, z);
       // in ondiepe zee kan een schipwrak liggen (onder water)
-      const kinds = raw.biome === 'ocean' && raw.h >= SEA - 4 && this.type === 'world' ? ['shipwreck'] : BIOMES[raw.biome]?.bouwwerken || [];
+      const kinds = raw.biome === 'ocean' && raw.h >= SEA - 4 && this.climate ? ['shipwreck'] : BIOMES[raw.biome]?.bouwwerken || [];
       const kind = kinds[Math.floor(hash(this.seed, rx, rz, S.kind) * kinds.length)];
       // een schipwrak ligt aan de waterkant, de rest op het droge
       if (Math.hypot(x - CENTER, z - CENTER) > 170 && kinds.length && (raw.h > SEA + 1 || kind === 'shipwreck')) {
@@ -334,7 +341,7 @@ export class Generator {
       c.top = B.GRASS; c.fill = B.DIRT;
       if (this.type === 'island' && raw.h <= SEA + 1) { c.top = B.SAND; c.fill = B.SAND; }
       if (this.type === 'island' && raw.h >= SEA + 8) c.top = B.SNOW;
-    } else if (this.type === 'world') {
+    } else if (this.climate) {
       this.worldGround(c, x, z);
     } else {
       c.top = raw.h <= SEA ? B.SAND : b.grond.top;
@@ -500,7 +507,7 @@ export class Generator {
         const c = cols[lx + lz * CHUNK];
         c.noCaves = Math.hypot(x0 + lx - CENTER, z0 + lz - CENTER) < 24;
       }
-      this.underground.carve(buf, cx, cz, cols, this.type === 'world');
+      this.underground.carve(buf, cx, cz, cols, !!this.climate);
       this.underground.veins(buf, cx, cz, cols, cols.some((c) => c.biome === 'mountains'));
       for (const m of this.minesNear(x0, z0, x0 + CHUNK - 1, z0 + CHUNK - 1)) for (const [x, y, z, id] of this.mineCells(m)) put(x, y, z, id);
     }

@@ -44,8 +44,10 @@ test('bouwwerken bij de bouwplek staan er echt, met een schatkist in tempel en p
   for (const [type, kinds] of Object.entries(want)) {
     const w = new World();
     w.generate(type, 777);
-    assert.deepEqual(w.landmarks.map((l) => l.kind), kinds, type);
-    for (const l of w.landmarks) {
+    // (een dorp ligt verder weg, in een themawereld die genoeg vlakke grond heeft)
+    const near = w.landmarks.filter((l) => l.kind !== 'village');
+    assert.deepEqual(near.map((l) => l.kind), kinds, type);
+    for (const l of near) {
       assert.ok(Math.hypot(l.x - CENTER, l.z - CENTER) < 40, `${type}: ${l.kind} ligt te ver weg`);
       if (l.kind === 'temple' || l.kind === 'pyramid') assert.equal(w.get(l.x, l.y, l.z + 1), B.TREASURE, `${type}: schatkist in ${l.kind}`);
       if (l.kind === 'lionRock') assert.equal(w.get(l.x, l.y + 6, l.z + 3), B.STONE, 'leeuwenrots heeft een vlak bovenop');

@@ -103,7 +103,7 @@ export class ChunkLoader {
   requestGen(cx, cz, key) {
     const w = this.world, epoch = this.epoch;
     this.genJobs.add(key);
-    this.pool.run({ type: 'gen', worldType: w.type, seed: w.seed, classic: w.classic, cx, cz }).then((res) => {
+    this.pool.run({ type: 'gen', worldType: w.type, seed: w.seed, classic: w.classic, gv: w.gv, cx, cz }).then((res) => {
       if (epoch !== this.epoch) return;
       this.genJobs.delete(key);
       if (!w.chunks.has(key) && !w.stored.has(key)) w.addChunk(cx, cz, res.blocks, false);
@@ -116,7 +116,7 @@ export class ChunkLoader {
     c.meshing = true;
     this.meshJobs.add(c.key);
     const w = this.world;
-    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz, worldType: w.type, seed: w.seed, classic: w.classic }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
+    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz, worldType: w.type, seed: w.seed, classic: w.classic, gv: w.gv }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
       // c.meshing blijft aan tot de chunk echt getekend is, anders vragen we hem nog eens aan

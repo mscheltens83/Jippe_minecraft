@@ -37,4 +37,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Sneller | Onzichtbare grotten niet meer tekenen (±50% sneller op de testcomputer), meetrit met extra rondjes | Klaar (versie 4.7.0) |
 | 4G deel 1 | 12 Minecraft-dieren (ook in zee), fokken met jonge dieren, temmen en rijden op meer dieren | Klaar (versie 4.8.0) |
 | 4G deel 2 | Dorpen met dorpelingen, katten en een ijzergolem; schipwrak, ruïne en mijnschacht; dorpshuis en waterput als stempel | Klaar (versie 4.9.0) |
-| 4H | Extra werelden en portalen ([plan](fase-4-plan.md)) | Gepland |
+| 4H deel 1 | Themawerelden eindeloos met meerdere landschappen (en een bamboebos) | Klaar (versie 4.10.0) |
+| 4H deel 2 | Portalen naar de themawerelden ([plan](fase-4-plan.md)) | Gepland |

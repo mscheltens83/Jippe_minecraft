@@ -24,6 +24,7 @@ export const TINTS = {
   river: [0x8eb971, 0x71a74d, 0x3f76e4],
 };
 TINTS.island = TINTS.flat = TINTS.world = TINTS.adventure = TINTS.plains;
+TINTS.bamboo = TINTS.jungle;
 export const DEFAULT_TINT = TINTS.plains;
 
 // Welke blokken meekleuren: 1 = graskleur, 2 = bladkleur, 3 = waterkleur
