@@ -53,7 +53,15 @@ export async function testPhase4C({ newPage, check, out }) {
     const j = window.__jippecraft, sc = j.scene, w = j.world, gl = sc.renderer.getContext(), cam = sc.camera;
     const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
     const grab = () => { sc.render(); const px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px); return [px, sc.renderer.info.render.triangles]; };
-    const all = () => { for (const e of sc.chunks.values()) for (const m of e.meshes) { m.visible = true; m.geometry.setDrawRange(0, Infinity); } };
+    // alles tekenen, maar alleen binnen de zichtafstand (verder weg tekent het spel nooit; op een trage
+    // computer kunnen daar nog oude chunks klaarliggen)
+    const all = () => {
+      const R = (sc.viewDistance || 6) + 2, ccx = Math.floor(cam.position.x / 16), ccz = Math.floor(cam.position.z / 16);
+      for (const e of sc.chunks.values()) for (const m of e.meshes) {
+        const near = Math.abs(e.cx - ccx) < R && Math.abs(e.cz - ccz) < R;
+        m.visible = near; m.geometry.setDrawRange(0, Infinity);
+      }
+    };
     const out = [];
     j.playing = false;
     const x = Math.floor(j.player.x), z = Math.floor(j.player.z);
