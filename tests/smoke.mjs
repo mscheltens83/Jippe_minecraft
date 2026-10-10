@@ -91,7 +91,7 @@ const pickFromChest = async (label) => {
 const edits = () => g(() => window.__jippecraft.edits);
 const lookAt = (pitch, yaw = 0) => g(([p, y]) => { const j = window.__jippecraft; j.player.pitch = p; j.player.yaw = y; }, [pitch, yaw]);
 // Alleen rond de speler tellen en zoeken (verderop kan een dorp met deuren liggen)
-const countIds = (lo, hi) => g(([a, b]) => nearBlocks(a, b).length, [lo, hi]);
+const countIds = (lo, hi) => g(([a, b]) => window.nearBlocks(a, b).length, [lo, hi]);
 const NEAR = `window.nearBlocks = (a, b, max = Infinity) => {
   const j = window.__jippecraft, w = j.world, px = Math.floor(j.player.x), pz = Math.floor(j.player.z), out = [];
   for (let x = px - 24; x <= px + 24; x++) for (let z = pz - 24; z <= pz + 24; z++) for (let y = 0; y < 128; y++) {
@@ -216,12 +216,12 @@ await pickFromChest('Deur');
 await lookAt(-0.55);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy + 40);
-check(await until(() => !!nearBlocks(45, 60, 1)[0]), 'deur geplaatst');
-const doorOpen = () => g(() => { const d = nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; });
+check(await until(() => !!window.nearBlocks(45, 60, 1)[0]), 'deur geplaatst');
+const doorOpen = () => g(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; });
 await lookAt(-0.35);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy);
-check(await until(() => { const d = nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
+check(await until(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
 check(await doorOpen(), 'deur staat open');
 
 await reset();
@@ -230,7 +230,7 @@ await pickFromChest('Trap');
 await lookAt(-0.6, Math.PI / 2);
 await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy + 40);
-check(await until(() => !!nearBlocks(41, 44, 1)[0]), 'trap geplaatst');
+check(await until(() => !!window.nearBlocks(41, 44, 1)[0]), 'trap geplaatst');
 await pickFromChest('Rood glas');
 await page.touchscreen.tap(cx + 90, cy + 40);
 check(await until(() => !!window.__jippecraft.world.findBlock((id) => id === 36)), 'rood glas geplaatst');
