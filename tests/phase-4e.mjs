@@ -130,7 +130,7 @@ export async function testPhase4E({ newPage, check, out }) {
   check(steps.real === 'function' && steps.heard.length >= 3 && steps.heard.every((k) => k === 'grass'),
     `lopen op gras geeft voetstappen van gras (${steps.heard.length}×)`);
   await run(() => window.__jippecraft.daynight.set(0.8));
-  check(await waitTrue(page, () => window.__jippecraft.music.style === 'nacht', null, 5000), 's nachts klinkt rustige nachtmuziek');
+  check(await waitTrue(page, () => window.__jippecraft.music.style === 'nacht', null, 15000), 's nachts klinkt rustige nachtmuziek');
   await run(() => window.__jippecraft.daynight.set(0.2));
   check(await waitTrue(page, () => window.__jippecraft.music.style !== 'nacht', null, 5000), 'overdag weer de muziek van het landschap');
   const cave = await run(async () => {

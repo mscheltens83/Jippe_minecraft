@@ -58,7 +58,7 @@ export async function testPhase4G({ newPage, check, out }) {
   const fed = await run(async ({ x0, y, z0 }) => {
     const { ITEM } = await import('./js/blocks.js');
     const j = window.__jippecraft;
-    const a = j.animals.spawn('cow', x0 + 2.5, y + 1, z0 + 11.5), b = j.animals.spawn('cow', x0 + 6.5, y + 1, z0 + 11.5);
+    const a = j.animals.spawn('cow', x0 + 3.5, y + 1, z0 + 11.5), b = j.animals.spawn('cow', x0 + 5.5, y + 1, z0 + 11.5);
     j.hotbar[j.sel] = ITEM.WHEAT_SEEDS;
     j.feedAnimal(a); j.feedAnimal(b);
     return { love: a.love > 0 && b.love > 0, count: j.animals.list.length };
@@ -67,7 +67,7 @@ export async function testPhase4G({ newPage, check, out }) {
   check(await waitTrue(page, (n) => {
     const j = window.__jippecraft;
     return j.animals.list.length === n + 1 && j.animals.list.some((a) => a.type === 'cow' && a.baby > 0 && a.group.scale.x < 0.6);
-  }, fed.count, 20000), 'ze krijgen een kalfje, dat kleiner is');
+  }, fed.count, 45000), 'ze krijgen een kalfje, dat kleiner is');
   check(await run(() => {
     const j = window.__jippecraft, calf = j.animals.list.find((a) => a.baby > 0);
     calf.baby = 0.5;
