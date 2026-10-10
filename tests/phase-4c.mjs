@@ -47,5 +47,29 @@ export async function testPhase4C({ newPage, check, out }) {
     return w.get(x, y + 1, z) === 107;
   });
   check(placed, 'een diamanterts uit de kist bouwen werkt');
+
+  // Grotten die je niet kunt zien, worden niet getekend (en het beeld blijft precies hetzelfde)
+  const cull = await run(() => {
+    const j = window.__jippecraft, sc = j.scene, w = j.world, gl = sc.renderer.getContext(), cam = sc.camera;
+    const W = gl.drawingBufferWidth, H = gl.drawingBufferHeight;
+    const grab = () => { sc.render(); const px = new Uint8Array(W * H * 4); gl.readPixels(0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, px); return [px, sc.renderer.info.render.triangles]; };
+    const all = () => { for (const e of sc.chunks.values()) for (const m of e.meshes) { m.visible = true; m.geometry.setDrawRange(0, Infinity); } };
+    const out = [];
+    j.playing = false;
+    const x = Math.floor(j.player.x), z = Math.floor(j.player.z);
+    for (const [y, pitch] of [[w.surfaceY(x, z) + 12, -0.6], [w.surfaceY(x, z) + 30, -1.2]]) {
+      cam.position.set(x + 0.5, y, z + 0.5); cam.rotation.set(pitch, 0.7, 0, 'YXZ'); cam.updateMatrixWorld();
+      sc.cullOff = false; sc.visDirty = true; const [a, ta] = grab();
+      sc.cullOff = true; all(); const [b, tb] = grab();
+      sc.cullOff = false; sc.visDirty = true;
+      let diff = 0;
+      for (let i = 0; i < a.length; i += 4) if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 30) diff++;
+      out.push({ diff: diff / (W * H), fewer: ta < tb * 0.85 });
+    }
+    j.playing = true;
+    return out;
+  });
+  check(cull.every((c) => c.fewer), 'onzichtbare grotten worden niet getekend (minder driehoeken)');
+  check(cull.every((c) => c.diff < 0.002), 'het beeld is precies hetzelfde als wanneer alles getekend wordt');
   await context.close();
 }

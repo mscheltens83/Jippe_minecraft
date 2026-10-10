@@ -51,6 +51,10 @@ driehoeken bij, of wordt het trager?
 | 2026-10-10 16:53 | 4.5.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,1 | 250 | 466,6 | 783,3 | 409 (max 495) | 348.734 | 1,5 · 1791×1251 |
 | 2026-10-10 16:52 | 4.6.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,0 | 249,9 | 483,4 | 900 | 412 (max 482) | 350.409 | 1,5 · 1791×1251 |
 | 2026-10-10 16:54 | 4.6.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,9 | 250 | 550 | 683,3 | 406 (max 490) | 348.792 | 1,5 · 1791×1251 |
+| 2026-10-10 18:40 | 4.6.3 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,0 | 249,9 | — | — | 424 | 351.050 | 1,5 · 1791×1251 |
+| 2026-10-10 18:41 | 4.7.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 6,1 | 166,6 | — | — | 292 | 151.304 | 1,5 · 1791×1251 |
+| 2026-10-10 18:42 | 4.6.3 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 3,9 | 266,6 | — | — | 418 | 352.276 | 1,5 · 1791×1251 |
+| 2026-10-10 18:43 | 4.7.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 5,9 | 166,7 | — | — | 293 | 152.136 | 1,5 · 1791×1251 |
 
 ## Wat opvalt (nulmeting 4.0.0)
 
@@ -110,3 +114,14 @@ driehoeken bij, of wordt het trager?
   van een paar procent zijn op de testcomputer ruis).
 - De natuurkunde kost in de meetrit niets: er verandert niets, dus de wachtrij is leeg. De hand staat
   in de meetrit uit, zodat de metingen te vergelijken blijven met eerdere versies.
+
+## Wat opvalt (4.7.0, sneller maken)
+
+- **±50% sneller** op de testcomputer (3,95 → 6,0 fps, om en om gemeten), met **57% minder driehoeken**
+  (351.000 → 152.000) en 30% minder tekenopdrachten (420 → 292).
+- Oorzaak: 65% van alle driehoeken lag meer dan 3 blokken onder de grond, in grotten die je niet ziet.
+  Nu wordt per sectie (16 × 16 × 16) bijgehouden welke zijkanten via lucht met elkaar verbonden zijn,
+  en wordt vanaf de camera gezocht welke secties je kunt zien (zoals Minecraft's "cave culling").
+  Een automatische test vergelijkt het beeld met en zonder wegsnijden: het is hetzelfde.
+- De meetrit heeft nu extra rondjes (gewoon, minder pixels, zonder dieren, kleine zichtafstand) en meet
+  het rekenwerk per beeldje, zodat een meting op de iPad laat zien waar het werk nog zit.

@@ -56,6 +56,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | ✅ Klaar (versie 4.3.0) |
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | ✅ Klaar (F1 versie 4.5.0, F2 versie 4.6.0) |
+| **Snel** | Sneller maken na de eerste iPad-meting (38 fps): onzichtbare grotten niet tekenen, meetrit met extra rondjes | Klein | 4F | ✅ Klaar (versie 4.7.0) |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
 
@@ -389,6 +390,11 @@ Deze varianten krijgen elk een eigen id (zoals nu bij trap, deur en hekdeur), me
 - **Hand** (`js/hand.js`): een armpje met het blok (echte tegels) of een plaatje (plantje, stempel, dier, emmer), aan de camera vast en altijd bovenop getekend. Wiebelt bij lopen, zwaait bij bouwen en slopen, en krijgt het licht van de plek. Niet te zien van achteren, bij rijden, in de kist en in de meetrit (die blijft daardoor vergelijkbaar).
 - **Sprinten:** joystick een seconde helemaal naar voren (of Ctrl): 1,6 × zo snel, kijkhoek 72° → 80°, stofwolkjes. **Sluipen:** omlaag-knop tijdens het lopen (die knop is er nu altijd, met de naam "Sluipen"): 0,35 × zo snel, de camera iets lager, en je loopt niet van een rand. **Vliegen:** twee keer springen binnen 0,3 s. **Zwemmen:** springen houden; nieuw is **duiken** met omlaag.
 - **Na 4.6.0 (4.6.1 en 4.6.2), gevonden op de iPad:** de knop Meetrit bewaarde de wereld en ging meteen naar de meetpagina. Safari bewaarde de oude pagina met het bewaren half af, en de nieuwe pagina wachtte daarna eindeloos op de opslag (IndexedDB). Daardoor verscheen na 12 seconden "Deze iPad is te oud", en later "Werelden bewaard: 0". Opgelost: eerst alles bewaren en de opslag sluiten, dan pas naar de meetpagina; de meetrit gebruikt de opslag helemaal niet meer; de melding "te oud" komt alleen als het spel echt niet kan starten; reageert de opslag na 15 seconden nog niet, dan staat er "Sluit dit tabblad en open JippeCraft opnieuw". Het ouderscherm toont hoe lang het opstarten duurde.
+
+### 9.9 Sneller maken (versie 4.7.0)
+- De eerste meetrit op de iPad (10,2 inch, versie 4.6.2) gaf 38 fps: net onder het minimum van 40, wel gelijkmatig.
+- 65% van de driehoeken lag in grotten onder de grond. Nieuw: per sectie van 16 × 16 × 16 berekent de mesher welke zijkanten via lucht, water of glas verbonden zijn (`sectionVis`), en de scene zoekt elk keer dat de camera een andere sectie in gaat welke secties je kunt zien (`cull`). Per chunk wordt alleen het stuk van de laagste tot de hoogste zichtbare sectie getekend. Op de testcomputer: 57% minder driehoeken, ±50% sneller, en hetzelfde beeld.
+- De meetrit (zonder getal achter `?meet`) heeft vier extra rondjes van 8 seconden en meet het rekenwerk per beeldje. Zo laat één meting op de iPad zien of pixels, dieren of de hoeveelheid wereld het meeste kost.
 
 ---
 

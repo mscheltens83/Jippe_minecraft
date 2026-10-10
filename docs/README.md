@@ -34,4 +34,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 4E | Texturen in Minecraft-stijl, mipmaps, graskleur per landschap, golvend water, wolken, onder water, brokjes en geluid | Klaar (versie 4.4.0) |
 | 4F deel 1 | ±370 nieuwe blokken en standen, 16 kleuren, huisblokken, planten en moestuin, stromend water, vallend zand | Klaar (versie 4.5.0) |
 | 4F deel 2 | Kist met families, blok kopiëren, hand in beeld, sprinten, sluipen, dubbeltik vliegen en duiken | Klaar (versie 4.6.0) |
+| Sneller | Onzichtbare grotten niet meer tekenen (±50% sneller op de testcomputer), meetrit met extra rondjes | Klaar (versie 4.7.0) |
 | 4G – 4H | Dieren en dorpen; portalen ([plan](fase-4-plan.md)) | Gepland |

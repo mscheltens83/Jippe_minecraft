@@ -1,8 +1,8 @@
 // De 3D-scene: lucht, zon, wolken, zee rondom en de chunk-meshes.
 
 import * as THREE from '../lib/three.module.min.js';
-import { CHUNK, SY, SEA, SECTION } from './engine/constants.js';
-import { buildPad, meshChunk, meshSection, mergeSections, KINDS } from './engine/mesher.js';
+import { CHUNK, SY, SEA, SECTION, chunkKey } from './engine/constants.js';
+import { buildPad, meshChunk, meshSection, mergeSections, KINDS, VIS_ALL, pairBit } from './engine/mesher.js';
 import { buildLightPad, regionFor, LIGHT_LINEAR } from './engine/light.js';
 import { tintsFor } from './engine/tint.js';
 import { NIGHT_LIGHT } from './daynight.js';
@@ -316,6 +316,8 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
 
   // Zichtafstand in chunks: bepaalt de mist en waar de zee-ring begint
   setViewDistance(r) {
+    this.viewDistance = r;
+    this.visDirty = true;
     this.viewFar = Math.max(40, (r - 0.5) * CHUNK);
     const inner = Math.max(1, (r - 1) * CHUNK);
     this.sea.geometry.dispose();
@@ -406,6 +408,8 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
   rebuildMeshes(e) {
     for (const m of e.meshes) { this.scene.remove(m); m.geometry.dispose(); }
     e.meshes = [];
+    e.vis = e.sections.map((s) => (s ? s.vis ?? VIS_ALL : VIS_ALL)); // lege sectie: helemaal open
+    this.visDirty = true;
     let lo = SY, hi = 0;
     e.sections.forEach((s, i) => { if (s && KINDS.some((k) => s[k])) { lo = Math.min(lo, i * SECTION); hi = Math.max(hi, (i + 1) * SECTION); } });
     if (hi <= lo) return;
@@ -423,6 +427,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
       geo.boundingSphere = new THREE.Sphere(center.clone(), radius);
       const mesh = new THREE.Mesh(geo, this.materials[kind]);
       mesh.matrixAutoUpdate = false;
+      mesh.userData.ranges = d.ranges;
       if (kind === 'water' || kind === 'glass') mesh.renderOrder = 1;
       this.scene.add(mesh);
       e.meshes.push(mesh);
@@ -455,6 +460,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     if (!e) return;
     for (const m of e.meshes) { this.scene.remove(m); m.geometry.dispose(); }
     this.chunks.delete(key);
+    this.visDirty = true;
   }
 
   clearChunks() {
@@ -525,6 +531,59 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     this.sky.position.copy(this.camera.position);
     this.sea.position.x = this.camera.position.x;
     this.sea.position.z = this.camera.position.z;
+    this.cull();
     this.renderer.render(this.scene, this.camera);
+  }
+
+  // Welke secties kun je vanaf de camera zien? Zoeken vanaf de sectie van de camera, alleen door
+  // verbonden zijkanten en steeds verder van de camera af (zoals Minecraft). Grotten zonder opening
+  // naar je toe vallen zo weg. Alleen opnieuw als de camera een andere sectie in gaat of de wereld verandert.
+  cull() {
+    if (this.cullOff) return;
+    const p = this.camera.position;
+    const ccx = Math.floor(p.x / CHUNK), ccz = Math.floor(p.z / CHUNK), csy = Math.floor(p.y / SECTION);
+    const at = ccx + ',' + csy + ',' + ccz;
+    if (!this.visDirty && at === this.cullAt) return;
+    this.visDirty = false;
+    this.cullAt = at;
+    const NS = SY / SECTION, R = (this.viewDistance || 6) + 2, W = 2 * R + 1;
+    const seen = new Uint8Array(W * W * NS);
+    const visible = this.visibleSections = new Map(); // chunk -> bitmasker van zichtbare secties
+    const qx = [], qy = [], qz = [], qf = [], qd = [];
+    const push = (cx, sy, cz, from, dirs) => {
+      const i = (cx - ccx + R) + W * ((cz - ccz + R) + W * sy);
+      if (seen[i]) return;
+      seen[i] = 1;
+      qx.push(cx); qy.push(sy); qz.push(cz); qf.push(from); qd.push(dirs);
+    };
+    // Boven de wereld: van bovenaf in alle chunks binnen bereik; anders vanuit de sectie van de camera
+    if (csy >= NS) { for (let dz = -R + 1; dz < R; dz++) for (let dx = -R + 1; dx < R; dx++) push(ccx + dx, NS - 1, ccz + dz, 3, 1 << 2); }
+    else push(ccx, Math.max(0, csy), ccz, -1, 0);
+    const DX = [-1, 1, 0, 0, 0, 0], DY = [0, 0, -1, 1, 0, 0], DZ = [0, 0, 0, 0, -1, 1], OPP = [1, 0, 3, 2, 5, 4];
+    for (let h = 0; h < qx.length; h++) {
+      const cx = qx[h], sy = qy[h], cz = qz[h], from = qf[h], dirs = qd[h];
+      const e = this.chunks.get(chunkKey(cx, cz));
+      if (!e) continue; // nog niet geladen: daar kijk je niet doorheen
+      visible.set(e, (visible.get(e) || 0) | (1 << sy));
+      const vis = e.vis ? e.vis[sy] : VIS_ALL;
+      for (let f = 0; f < 6; f++) {
+        if (dirs & (1 << OPP[f])) continue;                        // nooit terug naar de camera
+        if (from >= 0 && from !== f && !(vis & pairBit(from, f))) continue; // niet verbonden
+        const nx = cx + DX[f], ny = sy + DY[f], nz = cz + DZ[f];
+        if (ny < 0 || ny >= NS || Math.abs(nx - ccx) >= R || Math.abs(nz - ccz) >= R) continue;
+        push(nx, ny, nz, OPP[f], dirs | (1 << f));
+      }
+    }
+    // Per mesh alleen het stuk van de laagste tot de hoogste zichtbare sectie tekenen
+    for (const e of this.chunks.values()) {
+      const mask = visible.get(e) || 0;
+      for (const m of e.meshes) {
+        const ranges = m.userData.ranges;
+        let lo = -1, hi = -1;
+        for (let s = 0; s < ranges.length; s++) if ((mask & (1 << s)) && ranges[s][1]) { if (lo < 0) lo = s; hi = s; }
+        m.visible = lo >= 0;
+        if (lo >= 0) m.geometry.setDrawRange(ranges[lo][0], ranges[hi][0] + ranges[hi][1] - ranges[lo][0]);
+      }
+    }
   }
 }

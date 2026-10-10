@@ -25,7 +25,7 @@ self.onmessage = (e) => {
       const tints = tintsFor(gen, m.cx, m.cz);
       const sections = meshChunk(pad, region.lightPad(m.cx, m.cz), faceTiles, m.cx, m.cz, tints);
       const transfer = [light.buffer, tints.buffer];
-      for (const s of sections) if (s) for (const k in s) if (s[k]) transfer.push(s[k].pos.buffer, s[k].uv.buffer, s[k].col.buffer, s[k].tint.buffer, s[k].idx.buffer);
+      for (const s of sections) if (s) for (const k in s) if (s[k]?.pos) transfer.push(s[k].pos.buffer, s[k].uv.buffer, s[k].col.buffer, s[k].tint.buffer, s[k].idx.buffer);
       self.postMessage({ id: m.id, sections, light, tints }, transfer);
     }
   } catch (err) {

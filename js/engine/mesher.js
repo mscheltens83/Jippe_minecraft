@@ -271,7 +271,55 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
   }
   const out = {};
   for (const k of KINDS) out[k] = bufs[k].result();
+  out.vis = sectionVis(pad, s);
   return out;
+}
+
+// ---------- Wat kun je zien? (zoals Minecraft's "cave culling") ----------
+// Per sectie van 16 x 16 x 16: welke zijkanten zijn met elkaar verbonden via lucht, water, glas,
+// bladeren of andere niet-dichte blokken? Een grot zonder opening naar de camera hoeft dan niet
+// getekend te worden. Zijkanten: 0 = -x, 1 = +x, 2 = -y, 3 = +y, 4 = -z, 5 = +z.
+export const VIS_ALL = 0x7fff;                 // alle 15 paren verbonden (een lege sectie)
+export const PAIR = [];                        // PAIR[a][b] = bitnummer van het paar a-b
+{
+  let bit = 0;
+  for (let a = 0; a < 6; a++) PAIR.push([]);
+  for (let a = 0; a < 6; a++) for (let b = a + 1; b < 6; b++) { PAIR[a][b] = PAIR[b][a] = bit++; }
+}
+export const pairBit = (a, b) => 1 << PAIR[a][b];
+const visSeen = new Uint8Array(4096), visStack = new Uint16Array(4096);
+
+export function sectionVis(pad, s) {
+  const y0 = s * SECTION;
+  visSeen.fill(0);
+  let vis = 0;
+  for (let i = 0; i < 4096 && vis !== VIS_ALL; i++) {
+    if (visSeen[i]) continue;
+    visSeen[i] = 1;
+    if (OPAQUE[pad[padIndex(i & 15, y0 + (i >> 8), (i >> 4) & 15)]]) continue;
+    // Een "bel" van open vakjes: welke zijkanten raakt hij?
+    let faces = 0, top = 0;
+    visStack[top++] = i;
+    while (top) {
+      const c = visStack[--top], x = c & 15, z = (c >> 4) & 15, y = c >> 8;
+      if (x === 0) faces |= 1; else if (x === 15) faces |= 2;
+      if (y === 0) faces |= 4; else if (y === 15) faces |= 8;
+      if (z === 0) faces |= 16; else if (z === 15) faces |= 32;
+      const visit = (n, nx, ny, nz) => {
+        if (visSeen[n]) return;
+        visSeen[n] = 1;
+        if (!OPAQUE[pad[padIndex(nx, y0 + ny, nz)]]) visStack[top++] = n;
+      };
+      if (x > 0) visit(c - 1, x - 1, y, z);
+      if (x < 15) visit(c + 1, x + 1, y, z);
+      if (z > 0) visit(c - 16, x, y, z - 1);
+      if (z < 15) visit(c + 16, x, y, z + 1);
+      if (y > 0) visit(c - 256, x, y - 1, z);
+      if (y < 15) visit(c + 256, x, y + 1, z);
+    }
+    for (let a = 0; a < 6; a++) if (faces & (1 << a)) for (let b = a + 1; b < 6; b++) if (faces & (1 << b)) vis |= 1 << PAIR[a][b];
+  }
+  return vis;
 }
 
 // Alle secties van een chunk (lege secties slaan we over)
@@ -281,7 +329,8 @@ export function meshChunk(pad, lpad, faceTiles, cx, cz, tints = null, mask = fil
   return sections;
 }
 
-// Secties samenvoegen tot één lijst per soort (minder tekenopdrachten)
+// Secties samenvoegen tot één lijst per soort (minder tekenopdrachten).
+// ranges[s] = [eerste index, aantal indexen] van sectie s, om onzichtbare secties over te slaan.
 export function mergeSections(sections, kind) {
   let n = 0, ni = 0;
   for (const s of sections) { const d = s?.[kind]; if (d) { n += d.n; ni += d.idx.length; } }
@@ -289,12 +338,15 @@ export function mergeSections(sections, kind) {
   const pos = new Float32Array(n * 3), uv = new Float32Array(n * 3), col = new Float32Array(n * 3), tint = new Uint8Array(n * 3);
   const idx = n > 65535 ? new Uint32Array(ni) : new Uint16Array(ni);
   let ov = 0, oi = 0;
-  for (const s of sections) {
+  const ranges = sections.map(() => [0, 0]);
+  sections.forEach((s, si) => {
     const d = s?.[kind];
-    if (!d) continue;
+    ranges[si][0] = oi;
+    if (!d) return;
     pos.set(d.pos, ov * 3); uv.set(d.uv, ov * 3); col.set(d.col, ov * 3); tint.set(d.tint, ov * 3);
     for (let i = 0; i < d.idx.length; i++) idx[oi + i] = d.idx[i] + ov;
+    ranges[si][1] = d.idx.length;
     ov += d.n; oi += d.idx.length;
-  }
-  return { pos, uv, col, tint, idx };
+  });
+  return { pos, uv, col, tint, idx, ranges };
 }
