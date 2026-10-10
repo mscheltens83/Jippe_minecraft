@@ -1,7 +1,7 @@
 // Het eigen poppetje, te zien als de camera achter je hangt.
 
 import * as THREE from '../lib/three.module.min.js';
-import { box, part } from './models.js';
+import { box, part, ownMaterial } from './models.js';
 
 const SKIN = '#f1c7a0', HAIR = '#6b4526', SHIRT = '#e8503d', PANTS = '#2f5da8', SHOES = '#3a3a3a';
 
@@ -32,6 +32,7 @@ export class Avatar {
     ], 0, 1.27, 0);
     this.group.add(this.body, this.head, ...this.legs, ...this.arms);
     this.group.visible = false;
+    this.mat = ownMaterial(this.group);
     this.phase = 0;
     this.swing = 0;
     scene.add(this.group);

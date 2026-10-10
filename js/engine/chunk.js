@@ -1,4 +1,5 @@
 // Eén chunk: 16 x 16 kolommen van 128 blokken hoog, in 8 secties van 16 hoog.
+import { OPAQUE } from '../blocks.js';
 import { CHUNK, SY, SECTION, chunkKey } from './constants.js';
 
 export const SECTIONS = SY / SECTION;
@@ -17,7 +18,20 @@ export class Chunk {
     this.sectionVersion = new Uint32Array(SECTIONS);
     this.meshed = false;          // al eens getekend
     this.meshing = false;         // een worker is ermee bezig
+    this.light = null;            // licht per blok (zon * 16 + lamp), komt bij het eerste tekenen
+    this.height = heights(blocks); // per kolom: vanaf deze hoogte schijnt de zon
   }
+}
+
+// Per kolom het eerste vakje boven het hoogste dichte blok
+export function heights(blocks) {
+  const h = new Uint8Array(CHUNK * CHUNK);
+  for (let col = 0; col < CHUNK * CHUNK; col++) {
+    let y = SY - 1;
+    while (y >= 0 && !OPAQUE[blocks[col + CHUNK * CHUNK * y]]) y--;
+    h[col] = y + 1;
+  }
+  return h;
 }
 
 // Inpakken voor de opslag: paren [aantal, blok] (aantal tot 65535)

@@ -17,7 +17,7 @@ const SPECIAL_ICONS = {
   [ITEM.POLAR_BEAR]: 'polarBear', [ITEM.PENGUIN]: 'penguin', [ITEM.REINDEER]: 'reindeer', [ITEM.ARCTIC_FOX]: 'arcticFox', [ITEM.SEAL]: 'seal', [ITEM.SNOWY_OWL]: 'snowyOwl',
   [ITEM.IGLOO]: 'igloo', [ITEM.PYRAMID]: 'pyramid', [ITEM.TEMPLE]: 'temple', [ITEM.LION_ROCK]: 'lionRock',
 };
-const GROUP_ICONS = { Blokken: 'build', Natuur: 'tree', Stempels: 'house', Dieren: 'pig' };
+const GROUP_ICONS = { Blokken: 'build', Natuur: 'tree', Licht: 'torch', Stempels: 'house', Dieren: 'pig' };
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);
@@ -157,7 +157,27 @@ export class UI {
 
     this.tapLayer = el('div', 'taps');
     root.appendChild(this.tapLayer);
+
+    // Kort berichtje midden in beeld (met een plaatje, want Jippe leest nog niet veel)
+    this.toast = el('div', 'toast');
+    this.toast.hidden = true;
+    root.appendChild(this.toast);
+    // Zwart scherm als je gaat slapen
+    this.fader = el('div', 'sleep-fade');
+    root.appendChild(this.fader);
   }
+
+  say(text, icon) {
+    this.toast.innerHTML = `${ICONS[icon] || ''}<span>${text}</span>`;
+    this.toast.hidden = false;
+    this.toast.classList.remove('show');
+    void this.toast.offsetWidth; // animatie opnieuw starten
+    this.toast.classList.add('show');
+    clearTimeout(this.toastTimer);
+    this.toastTimer = setTimeout(() => { this.toast.hidden = true; }, 2200);
+  }
+
+  fade(on) { this.fader.classList.toggle('on', on); }
 
   // --- de kist met blokken, natuur, stempels en dieren ---
   buildPalette(root) {

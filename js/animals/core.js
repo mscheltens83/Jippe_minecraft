@@ -2,7 +2,7 @@
 import * as THREE from '../../lib/three.module.min.js';
 import { B, blockBoxes } from '../blocks.js';
 import { SY } from '../world.js';
-import { cachedModel, MODEL_MAT } from '../models.js';
+import { cachedModel, MODEL_MAT, ownMaterial } from '../models.js';
 import { SPECIES } from './species.js';
 import { updateSkills } from './skills.js';
 
@@ -19,6 +19,7 @@ export class Animal {
     this.lod.visible = false;
     this.lodOn = false;
     this.group.add(this.lod);
+    this.mat = ownMaterial(this.group);
     this.wings ||= [];
     this.rest = new Map();
     this.group.traverse((o) => { if (o !== this.group) this.rest.set(o, { p: o.position.clone(), r: o.rotation.clone() }); });
@@ -98,8 +99,10 @@ export class Animal {
   }
 
   choose() {
-    if (!this.walking && this.onGround && Math.random() < this.def.slaapkans) {
-      this.sleep = 12 + Math.random() * 20; this.walking = false; this.graze = false; return;
+    // 's Nachts gaan bijna alle dieren slapen (tamme dieren en wie bereden wordt niet)
+    const night = Animal.night && !this.tame && !this.riding;
+    if (!this.walking && this.onGround && Math.random() < (night ? 0.8 : this.def.slaapkans)) {
+      this.sleep = night ? 30 + Math.random() * 40 : 12 + Math.random() * 20; this.walking = false; this.graze = false; return;
     }
     this.walking = !this.walking && Math.random() < 0.75;
     this.timer = this.walking ? 1.5 + Math.random() * 3 : 1 + Math.random() * 3.5;
@@ -255,3 +258,6 @@ export class Animal {
     this.targetYaw = Math.atan2(-(px - this.x), -(pz - this.z)); this.show(0);
   }
 }
+
+// Is het nacht? Wordt door het spel gezet (dan gaan de dieren slapen)
+Animal.night = false;

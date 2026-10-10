@@ -23,9 +23,10 @@ export async function testPhaseF({ newPage, check, out }) {
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight };
   });
   await page.touchscreen.tap(spot.x, spot.y);
-  await page.waitForFunction(() => window.__jippecraft.album.known.has('pig'), null, { timeout: 30000 });
-  check(await page.locator('.album-new').isVisible() &&
-    await run(() => JSON.parse(localStorage.getItem('jippecraft.settings.v1')).album.includes('pig')),
+  // "Nieuw!" staat maar 2,2 seconden in beeld: meteen controleren als de sticker binnenkomt (de test-browser is traag)
+  const shown = await page.waitForFunction(() => { const a = window.__jippecraft.album; return a.known.has('pig') && !a.notice.hidden; }, null, { timeout: 30000 })
+    .then(() => true, () => false);
+  check(shown && await run(() => JSON.parse(localStorage.getItem('jippecraft.settings.v1')).album.includes('pig')),
   '10: eerste echte aai toont Nieuw! en bewaart de sticker in de instellingen');
   await page.screenshot({ path: out + '/25-nieuwe-sticker.png' });
   await page.locator('.album-hud-btn').tap();

@@ -4,6 +4,7 @@
 
 import { CHUNK, chunkKey } from './constants.js';
 import { buildPad, meshChunk } from './mesher.js';
+import { regionFor } from './light.js';
 
 export class ChunkLoader {
   constructor(world, scene, pool) {
@@ -94,7 +95,7 @@ export class ChunkLoader {
       const job = this.ready.shift();
       job.c.meshing = false;
       if (w.chunks.get(job.c.key) !== job.c) continue;
-      this.apply(job.c, job.sections, job.versions);
+      this.apply(job.c, job.sections, job.versions, job.light, job.around);
     }
   }
 
@@ -109,14 +110,15 @@ export class ChunkLoader {
   }
 
   requestMesh(c) {
-    const epoch = this.epoch, pad = buildPad(this.world, c.cx, c.cz), versions = c.sectionVersion.slice();
+    const epoch = this.epoch, versions = c.sectionVersion.slice();
+    const { blocks, versions: around } = this.world.around(c.cx, c.cz);
     c.meshing = true;
     this.meshJobs.add(c.key);
-    this.pool.run({ type: 'mesh', pad, cx: c.cx, cz: c.cz }, [pad.buffer]).then((res) => {
+    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
       // c.meshing blijft aan tot de chunk echt getekend is, anders vragen we hem nog eens aan
-      this.ready.push({ c, sections: res.sections, versions });
+      this.ready.push({ c, sections: res.sections, versions, light: res.light, around });
     }, () => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
@@ -126,15 +128,24 @@ export class ChunkLoader {
 
   meshNow(c) {
     const versions = c.sectionVersion.slice();
-    const sections = meshChunk(buildPad(this.world, c.cx, c.cz), this.scene.atlas.faceTiles, c.cx, c.cz);
-    this.apply(c, sections, versions);
+    const region = regionFor(this.world, c.cx - 1, c.cz - 1, 3, 3);
+    c.light = region.chunkLight(c.cx, c.cz);
+    const sections = meshChunk(buildPad(this.world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.scene.atlas.faceTiles, c.cx, c.cz);
+    this.apply(c, sections, versions, c.light, null);
   }
 
-  apply(c, sections, versions) {
+  apply(c, sections, versions, light, around) {
+    let mask = 0;
+    // Is er in de buurt gebouwd terwijl de worker bezig was? Dan klopt het licht misschien niet meer:
+    // opnieuw uitrekenen (hier) en de hele chunk nog eens tekenen.
+    if (around && this.world.aroundVersions(c.cx, c.cz).some((v, i) => v !== around[i])) {
+      light = regionFor(this.world, c.cx - 1, c.cz - 1, 3, 3).chunkLight(c.cx, c.cz);
+      mask = (1 << versions.length) - 1;
+    }
+    c.light = light;
     this.scene.setChunkSections(c, sections);
     c.meshed = true;
     // Veranderd terwijl de worker bezig was? Dan die secties nog eens op de hoofdthread
-    let mask = 0;
     for (let s = 0; s < versions.length; s++) if (versions[s] !== c.sectionVersion[s]) mask |= 1 << s;
     if (mask) this.world.dirtySections.set(c.key, (this.world.dirtySections.get(c.key) || 0) | mask);
   }

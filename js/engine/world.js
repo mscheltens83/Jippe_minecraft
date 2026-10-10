@@ -2,10 +2,11 @@
 // Van buiten ziet de wereld eruit zoals vroeger: get, set, inside en surfaceY.
 // Onveranderde chunks maakt de generator steeds opnieuw; alleen wat Jippe veranderde, wordt bewaard.
 
-import { AIR, B, BLOCKS } from '../blocks.js';
+import { AIR, B, BLOCKS, OPAQUE } from '../blocks.js';
 import { BIOMES, biomeAt, biomeView, worldType } from '../biomes.js';
 import { Generator } from './gen.js';
 import { Chunk, local, encodeRLE, decodeRLE, toBase64 } from './chunk.js';
+import { relight, SKY_FULL } from './light.js';
 import { CHUNK, SY, SEA, SECTION, CENTER, HOME, BORDER, chunkKey, keyCx, keyCz } from './constants.js';
 
 const validBlock = (id) => !!BLOCKS[id];
@@ -148,13 +149,61 @@ export class World {
     const c = this.chunk(cx, cz);
     if (!c) return false;
     const lx = x - cx * CHUNK, lz = z - cz * CHUNK, i = local(lx, y, lz);
-    if (c.blocks[i] === id) return false;
+    const old = c.blocks[i];
+    if (old === id) return false;
     c.blocks[i] = id;
     c.edited = true;
     c.version++;
     this.unsaved.add(c.key);
+    // Hoogte van de kolom bijhouden (daar begint het zonlicht)
+    const col = lx + CHUNK * lz, h0 = c.height[col];
+    if (OPAQUE[id] && y >= h0) c.height[col] = y + 1;
+    else if (!OPAQUE[id] && OPAQUE[old] && y === h0 - 1) {
+      let yy = y - 1;
+      while (yy >= 0 && !OPAQUE[c.blocks[local(lx, yy, lz)]]) yy--;
+      c.height[col] = yy + 1;
+    }
     this.markDirty(cx, cz, lx, y, lz);
+    for (const [key, mask] of relight(this, x, y, z, old, id, h0, c.height[col])) this.addDirty(key, mask);
     return true;
+  }
+
+  // Secties die opnieuw getekend moeten worden omdat het licht veranderde
+  addDirty(key, mask) {
+    const n = this.chunks.get(key);
+    if (!n) return;
+    for (let k = 0; k < SY / SECTION; k++) if (mask & (1 << k)) n.sectionVersion[k]++;
+    if (n.meshed) this.dirtySections.set(key, (this.dirtySections.get(key) || 0) | mask);
+  }
+
+  // Licht op deze plek (zon * 16 + lamp). Nog geen licht uitgerekend: een schatting.
+  lightAt(x, y, z) {
+    x = Math.floor(x); y = Math.floor(y); z = Math.floor(z);
+    if (y >= SY) return SKY_FULL;
+    if (y < 0) return 0;
+    const cx = Math.floor(x / CHUNK), cz = Math.floor(z / CHUNK);
+    const c = this.chunk(cx, cz);
+    if (!c) return SKY_FULL;
+    const lx = x - cx * CHUNK, lz = z - cz * CHUNK;
+    if (c.light) return c.light[local(lx, y, lz)];
+    return y >= c.height[lx + CHUNK * lz] ? SKY_FULL : 0;
+  }
+
+  // De blokken van een chunk en zijn 8 buren (kopieën, voor de worker), en hun versies
+  around(cx, cz) {
+    const blocks = [], versions = [];
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const c = this.chunk(cx + dx, cz + dz);
+      blocks.push(c ? c.blocks.slice() : null);
+      versions.push(c ? c.version : -1);
+    }
+    return { blocks, versions };
+  }
+
+  aroundVersions(cx, cz) {
+    const versions = [];
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) versions.push(this.chunk(cx + dx, cz + dz)?.version ?? -1);
+    return versions;
   }
 
   // Een blok raakt ook de buursecties en buurchunks (vlakken en schaduw in hoekjes)

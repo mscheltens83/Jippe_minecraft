@@ -16,6 +16,8 @@ const newFace = (color, detail = '', ears = '') => svg(`${ears}<rect x="7" y="9"
 
 export const ICONS = {
   goHome: svg(`<circle cx="24" cy="24" r="19" fill="#fff6d7" ${S}/><path d="M24 5 L29 15 H19 Z" fill="#e8503d" ${S}/><path d="M13 28 L24 18 L35 28 H31 V38 H17 V28 Z" fill="#f5b04a" ${S}/><rect x="21.5" y="31" width="5" height="7" fill="#8a4b1f"/>`),
+  torch: svg(`<rect x="20" y="20" width="8" height="24" rx="1" fill="#a8743f" ${S}/><path d="M24 4 C 33 11, 33 19, 24 22 C 15 19, 15 11, 24 4 Z" fill="#ffb230" ${S}/><path d="M24 11 C 28 15, 27 18, 24 19 C 21 18, 20 15, 24 11 Z" fill="#fff3a0"/>`),
+  sun: svg(`<path d="M24 3 V9 M24 39 V45 M3 24 H9 M39 24 H45 M9 9 L13 13 M35 35 L39 39 M39 9 L35 13 M13 35 L9 39" stroke="#f5a623" stroke-width="4" stroke-linecap="round"/><rect x="13" y="13" width="22" height="22" rx="3" fill="#ffd84a" ${S}/>`),
   arrow: svg(`<path d="M24 4 L40 26 H30 V44 H18 V26 H8 Z" fill="#ffd84a" ${S}/>`),
   home: svg(`<path d="M8 24 L24 9 L40 24 L36 24 L36 39 L12 39 L12 24 Z" fill="#fff" ${S}/><rect x="20" y="28" width="8" height="11" fill="#e0a45a" ${S}/>`),
   build: svg(`<path d="M6 17 L20 10 L34 17 L20 24 Z" fill="#8fdc6a" ${S}/><path d="M6 17 L6 33 L20 40 L20 24 Z" fill="#b0784a" ${S}/><path d="M34 17 L34 33 L20 40 L20 24 Z" fill="#8c5a34" ${S}/><circle cx="36" cy="34" r="9" fill="#fff" ${S}/><path d="M36 29 V39 M31 34 H41" fill="none" stroke="#2b9a3a" stroke-width="3.5" stroke-linecap="round"/>`),

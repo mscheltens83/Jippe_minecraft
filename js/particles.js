@@ -158,6 +158,21 @@ export class Particles {
     sprite.scale.set(0.7, 0.7, 1); this.scene.add(sprite); this.warnings.set(animal, { sprite, count: 1 });
   }
 
+  // Rookpluimpje boven een fakkel of kampvuur; een kampvuur geeft ook vonkjes
+  smokeAt(x, y, z, fire = false) {
+    this.add({
+      x: x + (Math.random() - 0.5) * (fire ? 0.5 : 0.08), y, z: z + (Math.random() - 0.5) * (fire ? 0.5 : 0.08),
+      vx: (Math.random() - 0.5) * 0.15, vy: 0.5 + Math.random() * 0.4, vz: (Math.random() - 0.5) * 0.15,
+      g: -0.15, drag: 1, life: 0, max: 1.4 + Math.random(), size: fire ? 0.16 : 0.07,
+      col: Math.random() < 0.5 ? [0.42, 0.42, 0.44] : [0.55, 0.55, 0.57], collide: false,
+    });
+    if (fire && Math.random() < 0.6) this.add({
+      x: x + (Math.random() - 0.5) * 0.5, y: y - 0.3, z: z + (Math.random() - 0.5) * 0.5,
+      vx: (Math.random() - 0.5) * 0.4, vy: 1.2 + Math.random(), vz: (Math.random() - 0.5) * 0.4,
+      g: 0.6, drag: 1, life: 0, max: 0.6 + Math.random() * 0.4, size: 0.05, col: [1, 0.66, 0.2], collide: false,
+    });
+  }
+
   poofAt(x, y, z, feathers = false) {
     this.burst(x - 0.5, y - 0.5, z - 0.5, [[1, 1, 1], [0.92, 0.96, 1]], 70, true);
     this.sparkle(x - 0.6, y - 0.3, z - 0.6, x + 0.6, y + 0.7, z + 0.6, 24);

@@ -36,6 +36,8 @@ driehoeken bij, of wordt het trager?
 | 2026-10-10 07:01 | 4.0.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 9,4 | 100 | 199,9 | 233,3 | 494 (max 552) | 82.276 | 1,5 · 1791×1251 |
 | 2026-10-10 10:55 | 4.1.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 7,0 | 149,9 | 266,6 | 333,3 | 262 (max 340) | 118.745 | 1,5 · 1791×1251 |
 | 2026-10-10 10:56 | 4.1.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 6,9 | 149,9 | 250 | 350 | 271 (max 370) | 119.094 | 1,5 · 1791×1251 |
+| 2026-10-10 12:49 | 4.2.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,2 | 233,3 | 466,6 | 600 | 410 (max 484) | 350.615 | 1,5 · 1791×1251 |
+| 2026-10-10 12:50 | 4.3.0 | Testcomputer (nagebootste iPad Pro 11) | SwiftShader (software) | 30 s | 4,0 | 233,3 | 516,6 | 583,4 | 410 (max 489) | 352.960 | 1,5 · 1791×1251 |
 
 ## Wat opvalt (nulmeting 4.0.0)
 
@@ -62,4 +64,17 @@ driehoeken bij, of wordt het trager?
   **Een meting op de iPad moet dat bevestigen.**
 - De meetrit wacht nu eerst tot de wereld rond de route klaar is, zodat laden de meting niet beïnvloedt.
 - Is de iPad te traag, dan verlaagt het spel vanzelf eerst de scherpte en daarna de zichtafstand (tot 3 chunks).
+
+## Wat opvalt (4.3.0, licht en dag en nacht)
+
+- 4.2.0 en 4.3.0 zijn vlak na elkaar gemeten met dezelfde instellingen (zichtafstand 6, zoals op een tablet).
+  **Het licht kost op de testcomputer ±5% (4,2 → 4,0 fps)**; het doel was hoogstens 10%. De tekenopdrachten
+  blijven gelijk: het licht zit in het kleurkanaal dat er al was, en de shader rekent één regel extra.
+- Licht uitrekenen gebeurt in de worker: ±3,7 ms per chunk, naast ±7 ms voor de vlakken. Bij bouwen werkt
+  de hoofdthread alleen het stukje licht bij dat verandert.
+- **Let op voor later:** sinds 4.2.0 tekent de meetrit ±350.000 driehoeken in plaats van ±120.000 (en ±410
+  tekenopdrachten in plaats van ±265). Waarschijnlijk komt dat door de grotten onder de grond (hun wanden
+  worden ook getekend als je ze niet ziet) en misschien door een andere zichtafstand; dat zoeken we nog uit. Voor een iPad is dat nog
+  weinig, maar het is een goede kandidaat om in 4E op te ruimen (grotten die je niet kunt zien overslaan).
+- De meetrit meet altijd op het middaguur, zodat de metingen te vergelijken blijven.
 

@@ -3,9 +3,17 @@
 import * as THREE from '../lib/three.module.min.js';
 import { CHUNK, SY, SEA, SECTION } from './engine/constants.js';
 import { buildPad, meshChunk, meshSection, mergeSections, KINDS } from './engine/mesher.js';
+import { buildLightPad, regionFor, LIGHT_LINEAR } from './engine/light.js';
+import { NIGHT_LIGHT } from './daynight.js';
 import { createCrackCanvases } from './textures.js';
 
 const SKY = new THREE.Color('#9ad8ff');
+// Lucht 's nachts en de oranje gloed bij zonsopkomst en zonsondergang
+const NIGHT = { boven: new THREE.Color('#070b1f'), horizon: new THREE.Color('#18264a'), mist: new THREE.Color('#0e1530') };
+const GLOW = new THREE.Color('#ff8d45'), SUN_LOW = new THREE.Color('#ffb066');
+const MOONLIGHT = new THREE.Color(0.62, 0.72, 1), DUSKLIGHT = new THREE.Color(1, 0.82, 0.66);
+const SEA_COLOR = new THREE.Color('#3d7fd8'), CLOUD_NIGHT = new THREE.Color('#3b4562');
+const lin = (v) => Math.pow(v, 2.2);
 
 export class GameScene {
   constructor(canvas, atlas) {
@@ -37,13 +45,33 @@ export class GameScene {
     tex.colorSpace = THREE.SRGBColorSpace;
     this.atlas = atlas;
 
+    // Licht: per hoekpunt zon (groen) en lamp (blauw), per beeldje het daglicht.
+    // Zelfde getallen voor alle materialen (één keer veranderen is overal veranderd).
+    this.light = {
+      uSkyLight: { value: new THREE.Color(1, 1, 1) },   // kleur en sterkte van het zonlicht nu
+      uLampLight: { value: new THREE.Color(1, 0.9, 0.72) }, // warm licht van fakkels en lampen
+      uMinLight: { value: Math.pow(0.18, 2.2) },          // nooit helemaal donker
+    };
+    const lit = (m) => {
+      m.onBeforeCompile = (shader) => {
+        Object.assign(shader.uniforms, this.light);
+        shader.fragmentShader = 'uniform vec3 uSkyLight;\nuniform vec3 uLampLight;\nuniform float uMinLight;\n' +
+          shader.fragmentShader.replace('#include <color_fragment>', `
+            vec3 jcLight = max(vColor.g * uSkyLight, vColor.b * uLampLight);
+            jcLight = max(jcLight, vec3(uMinLight));
+            jcLight = mix(jcLight, vec3(1.0), step(1.5, vColor.g));
+            diffuseColor.rgb *= vColor.r * jcLight;`);
+      };
+      m.customProgramCacheKey = () => 'jippecraft-licht';
+      return m;
+    };
     this.materials = {
-      solid: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true }),
-      cutout: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide }),
-      glass: new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, depthWrite: false }),
-      water: new THREE.MeshBasicMaterial({
+      solid: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true })),
+      cutout: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, alphaTest: 0.5, side: THREE.DoubleSide })),
+      glass: lit(new THREE.MeshBasicMaterial({ map: tex, vertexColors: true, transparent: true, depthWrite: false })),
+      water: lit(new THREE.MeshBasicMaterial({
         map: tex, vertexColors: true, transparent: true, opacity: 0.72, depthWrite: false, side: THREE.DoubleSide,
-      }),
+      })),
     };
 
     this.chunks = new Map();     // sleutel -> { cx, cz, sections, meshes }
@@ -51,6 +79,7 @@ export class GameScene {
     this.buildSky();
     this.buildSea();
     this.buildClouds();
+    this.setTime(1, 0, Math.PI * 0.4);
     this.buildHighlight();
     this.buildCrack();
   }
@@ -108,14 +137,69 @@ export class GameScene {
     this.sky.renderOrder = -10;
     this.scene.add(this.sky);
 
-    // Vierkante zon, net als in Minecraft
-    const sun = this.sun = new THREE.Mesh(
-      new THREE.PlaneGeometry(40, 40),
-      new THREE.MeshBasicMaterial({ color: '#fff4b0', fog: false, depthWrite: false }),
-    );
-    sun.position.set(120, 200, -140);
-    sun.lookAt(0, 0, 0);
-    this.sky.add(sun);
+    // Zon, maan en sterren draaien samen rond (een hele baan per dag)
+    this.heavens = new THREE.Group();
+    this.sky.add(this.heavens);
+    const flat = (size, color, map, turn) => {
+      const g = new THREE.PlaneGeometry(size, size);
+      g.rotateY(turn);
+      const m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color, map, fog: false, depthWrite: false, transparent: true }));
+      m.renderOrder = -9;
+      return m;
+    };
+    // Vierkante zon, net als in Minecraft (kijkt naar het midden)
+    this.sun = flat(36, '#fff4b0', null, -Math.PI / 2);
+    this.sun.position.set(250, 0, 0);
+    // Vierkante maan met een paar kraters
+    const mc = document.createElement('canvas'); mc.width = mc.height = 8;
+    const mx = mc.getContext('2d');
+    mx.fillStyle = '#eef2ff'; mx.fillRect(0, 0, 8, 8);
+    mx.fillStyle = '#c3cbe0'; for (const [x, y, w] of [[1, 1, 2], [5, 2, 1], [4, 5, 2], [1, 5, 1]]) mx.fillRect(x, y, w, w);
+    const moonTex = new THREE.CanvasTexture(mc);
+    moonTex.magFilter = THREE.NearestFilter; moonTex.minFilter = THREE.NearestFilter; moonTex.colorSpace = THREE.SRGBColorSpace;
+    this.moon = flat(26, '#ffffff', moonTex, Math.PI / 2);
+    this.moon.position.set(-250, 0, 0);
+    // Sterren: kleine puntjes op een bol, alleen 's nachts te zien
+    const stars = [];
+    for (let i = 0; i < 420; i++) {
+      const u = Math.random() * 2 - 1, a = Math.random() * Math.PI * 2, r = Math.sqrt(1 - u * u) * 240;
+      stars.push(Math.cos(a) * r, u * 240, Math.sin(a) * r);
+    }
+    const sg = new THREE.BufferGeometry();
+    sg.setAttribute('position', new THREE.Float32BufferAttribute(stars, 3));
+    this.stars = new THREE.Points(sg, new THREE.PointsMaterial({
+      color: '#ffffff', size: 2, sizeAttenuation: false, fog: false, depthWrite: false, transparent: true, opacity: 0,
+    }));
+    this.stars.renderOrder = -9;
+    this.stars.visible = false;
+    this.heavens.add(this.sun, this.moon, this.stars);
+    this.time = { sun: 1, glow: 0, angle: Math.PI / 2 };
+  }
+
+  // Tijd van de dag: zon (0..1), oranje gloed (0..1) en stand van de zon
+  setTime(sun, glow, angle) {
+    // De baan staat een beetje schuin, zodat de zon niet recht boven je hoofd staat
+    this.heavens.rotation.set(-0.45, 0.35, angle);
+    const t = this.time, changed = Math.abs(t.sun - sun) + Math.abs(t.glow - glow) > 0.003;
+    t.sun = sun; t.glow = glow; t.angle = angle;
+    if (!changed && this.timeApplied) return;
+    this.timeApplied = true;
+    this.stars.material.opacity = Math.max(0, 1 - sun * 1.4) * 0.95;
+    this.stars.visible = this.stars.material.opacity > 0.01;
+    // Licht van de zon op de wereld: 's nachts zwakker en blauwig, bij zonsondergang warm
+    const day = lin(NIGHT_LIGHT + (1 - NIGHT_LIGHT) * sun);
+    this.light.uSkyLight.value.copy(MOONLIGHT).lerp(new THREE.Color(1, 1, 1), sun).lerp(DUSKLIGHT, glow * 0.6).multiplyScalar(day);
+    this.sea.material.color.copy(SEA_COLOR).multiplyScalar(day);
+    this.clouds.material.color.copy(CLOUD_NIGHT).lerp(new THREE.Color(1, 1, 1), sun).lerp(GLOW, glow * 0.25);
+    if (this.biomeCurrent) this.applyBiome();
+  }
+
+  // Helderheid voor een dier of het poppetje op deze plek (light = zon * 16 + lamp)
+  tint(light, out) {
+    const sky = LIGHT_LINEAR[light >> 4], lamp = LIGHT_LINEAR[light & 15];
+    const s = this.light.uSkyLight.value, l = this.light.uLampLight.value, min = this.light.uMinLight.value;
+    out.setRGB(Math.max(sky * s.r, lamp * l.r, min), Math.max(sky * s.g, lamp * l.g, min), Math.max(sky * s.b, lamp * l.b, min));
+    return out;
   }
 
   setBiome(biome, instant = false) {
@@ -152,19 +236,25 @@ export class GameScene {
   }
 
   applyBiome() {
-    const b = this.biomeCurrent;
-    this.scene.background.copy(b.mist);
-    this.scene.fog.color.copy(b.mist);
+    const b = this.biomeCurrent, night = 1 - (this.time?.sun ?? 1), glow = this.time?.glow ?? 0;
+    // Kleuren van het landschap, gemengd met de nacht en de gloed van de ondergaande zon
+    const mix = this.mixed || (this.mixed = { boven: new THREE.Color(), horizon: new THREE.Color(), mist: new THREE.Color(), zon: new THREE.Color() });
+    mix.boven.copy(b.boven).lerp(NIGHT.boven, night);
+    mix.horizon.copy(b.horizon).lerp(NIGHT.horizon, night).lerp(GLOW, glow * 0.6);
+    mix.mist.copy(b.mist).lerp(NIGHT.mist, night).lerp(GLOW, glow * 0.35);
+    mix.zon.copy(b.zon).lerp(SUN_LOW, glow);
+    this.scene.background.copy(mix.mist);
+    this.scene.fog.color.copy(mix.mist);
     // Mist van het landschap, maar nooit verder dan de geladen wereld
     this.scene.fog.far = Math.min(b.mistEind, this.viewFar);
     this.scene.fog.near = Math.min(b.mistBegin, this.scene.fog.far * 0.6);
-    this.sun.material.color.copy(b.zon);
+    this.sun.material.color.copy(mix.zon);
     this.clouds.count = Math.max(0, Math.min(this.cloudData.length, Math.round(b.wolken)));
     const positions = this.sky.geometry.attributes.position, colors = this.sky.geometry.attributes.color;
     const color = this.biomeColor || (this.biomeColor = new THREE.Color());
     for (let i = 0; i < positions.count; i++) {
       const h = Math.pow(Math.max(0, positions.getY(i) / 300), 0.6);
-      color.copy(b.horizon).lerp(b.boven, h);
+      color.copy(mix.horizon).lerp(mix.boven, h);
       colors.setXYZ(i, color.r, color.g, color.b);
     }
     colors.needsUpdate = true;
@@ -296,19 +386,27 @@ export class GameScene {
       world.dirtySections.delete(key);
       const c = world.chunks.get(key), e = this.chunks.get(key);
       if (!c || !e) continue;
-      const pad = buildPad(world, c.cx, c.cz);
-      for (let s = 0; s < SY / SECTION; s++) if (mask & (1 << s)) e.sections[s] = meshSection(pad, this.atlas.faceTiles, c.cx, c.cz, s);
+      const pad = buildPad(world, c.cx, c.cz), lpad = buildLightPad(world, c.cx, c.cz);
+      for (let s = 0; s < SY / SECTION; s++) if (mask & (1 << s)) e.sections[s] = meshSection(pad, lpad, this.atlas.faceTiles, c.cx, c.cz, s);
       this.rebuildMeshes(e);
       done++;
     }
   }
 
   // Alles wat klaar is meteen tekenen (bij het openen van een wereld, en in de tests)
+  // Het licht rekenen we in één keer uit voor het hele stuk (veel sneller dan per chunk).
   rebuildAll(world) {
-    for (const c of world.chunks.values()) {
-      if (c.meshed || !world.neighboursReady(c.cx, c.cz)) continue;
-      this.setChunkSections(c, meshChunk(buildPad(world, c.cx, c.cz), this.atlas.faceTiles, c.cx, c.cz));
-      c.meshed = true;
+    const todo = [...world.chunks.values()].filter((c) => !c.meshed && world.neighboursReady(c.cx, c.cz));
+    if (todo.length) {
+      let x0 = Infinity, z0 = Infinity, x1 = -Infinity, z1 = -Infinity;
+      for (const c of todo) { x0 = Math.min(x0, c.cx); z0 = Math.min(z0, c.cz); x1 = Math.max(x1, c.cx); z1 = Math.max(z1, c.cz); }
+      const big = (x1 - x0 + 3) * (z1 - z0 + 3) <= 144 ? regionFor(world, x0 - 1, z0 - 1, x1 - x0 + 3, z1 - z0 + 3) : null;
+      for (const c of todo) {
+        const region = big || regionFor(world, c.cx - 1, c.cz - 1, 3, 3);
+        c.light = region.chunkLight(c.cx, c.cz);
+        this.setChunkSections(c, meshChunk(buildPad(world, c.cx, c.cz), region.lightPad(c.cx, c.cz), this.atlas.faceTiles, c.cx, c.cz));
+        c.meshed = true;
+      }
     }
     this.updateChunks(world, Infinity);
   }

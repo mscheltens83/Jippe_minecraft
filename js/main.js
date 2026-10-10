@@ -2,7 +2,7 @@
 
 import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens het opstarten bewaard worden
 import * as THREE from '../lib/three.module.min.js';
-import { AIR, B, BLOCKS, OPAQUE, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial } from './blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial, torchId, bedId } from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World, CHUNK } from './world.js';
 import { WorkerPool } from './engine/pool.js';
@@ -28,6 +28,8 @@ import { Snowmen } from './snowman.js';
 import { PerfMeter } from './perf.js';
 import { Bench } from './bench.js';
 import { VERSION } from './version.js';
+import { DayNight, NOON, sunAmount, glowAmount, sunAngle } from './daynight.js';
+import { Animal } from './animals/core.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
@@ -38,6 +40,8 @@ const RIDE_BACK = 5;       // tijdens het rijden verder weg en hoger,
 const RIDE_UP = 1.5;
 const RIDE_TILT = -0.24;   // en iets meer naar beneden kijkend, zodat je het dier ziet
 const SLOTS = [1, 2, 3, 4, 5, 6];   // zes wereld-plekken, de oude sleutels blijven gelijk
+const MIN_LIGHT = 0.18, MIN_LIGHT_BRIGHT = 0.35; // zo donker wordt het hoogstens (ouderinstelling "Grotten lichter")
+const TIME_NAMES = { ochtend: 0.97, middag: NOON, avond: 0.66, nacht: 0.8 };
 
 class Game {
   constructor(root) {
@@ -81,7 +85,9 @@ class Game {
     this.metas = {};          // korte beschrijving van elke wereldplek (voor het menu)
     this.spawned = new Set(); // chunks die al eens dieren kregen
     this.worldReady = false;
-    this.home = null;         // thuis (startplek, later het bed)
+    this.home = null;         // thuis (startplek, of het bed)
+    this.daynight = new DayNight();
+    this.sleeping = false;    // in bed: het scherm wordt even donker
 
     this.ui = new UI(root, this.atlas, {
       onPlay: () => this.play(),
@@ -109,6 +115,10 @@ class Game {
         savedWorlds: () => this.slotInfo().filter((s) => !s.empty).length,
         fpsOn: () => this.perf.visible,
         onFps: () => this.toggleFps(),
+        alwaysDay: () => this.daynight.alwaysDay,
+        onAlwaysDay: () => this.setAlwaysDay(!this.daynight.alwaysDay),
+        brightCaves: () => !!this.settings.brightCaves,
+        onBrightCaves: () => this.setBrightCaves(!this.settings.brightCaves),
         onBench: () => { this.saveNow(); location.href = location.pathname + '?meet'; },
         onBackup: () => this.backup(),
         onRestore: (data) => this.restore(data),
@@ -134,6 +144,8 @@ class Game {
     this.ui.setMusic(this.music.on);
     this.ui.setPredators(this.settings.predators);
     this.ui.setThirdPerson(this.thirdPerson);
+    this.daynight.alwaysDay = !!this.settings.alwaysDay;
+    this.applyBrightCaves();
     this.perf = new PerfMeter(root);
     this.perf.show(/[?&]fps\b/.test(location.search) || !!this.settings.fps);
 
@@ -224,6 +236,7 @@ class Game {
     this.player.pitch = -0.25;
     this.player.flying = false;
     this.home = null;
+    this.daynight.set(0.02);
     this.undoStack = [];
     this.thumb = null;
     this.animals.clear();
@@ -243,6 +256,7 @@ class Game {
       classic: this.world.classic,
       player: { x: place.x, y: place.y, z: place.z, yaw: p.yaw, pitch: p.pitch, flying: p.flying },
       home: this.home,
+      time: this.daynight.time,
       hotbar: this.hotbar,
       sel: this.sel,
       mode: this.mode,
@@ -276,6 +290,7 @@ class Game {
       this.player.flying = !!p.flying;
       this.player.unstick(this.world);
       this.home = s.home && Number.isFinite(s.home.x) ? s.home : null;
+      this.daynight.set(s.time ?? 0.02);
       this.hotbar = Array.isArray(s.hotbar) && s.hotbar.length === DEFAULT_HOTBAR.length && s.hotbar.every((id) => PALETTE.includes(id))
         ? [...s.hotbar] : [...DEFAULT_HOTBAR];
       this.sel = Number.isInteger(s.sel) && s.sel >= 0 && s.sel < this.hotbar.length ? s.sel : 0;
@@ -602,6 +617,24 @@ class Game {
     this.sounds.pop();
   }
 
+  // Ouderinstelling: altijd middag, of de gewone dag en nacht
+  setAlwaysDay(on) {
+    this.daynight.alwaysDay = on;
+    this.settings.alwaysDay = on;
+    this.saveSettings();
+  }
+
+  // Ouderinstelling: grotten en de nacht iets lichter
+  setBrightCaves(on) {
+    this.settings.brightCaves = on;
+    this.applyBrightCaves();
+    this.saveSettings();
+  }
+
+  applyBrightCaves() {
+    this.scene.light.uMinLight.value = Math.pow(this.settings.brightCaves ? MIN_LIGHT_BRIGHT : MIN_LIGHT, 2.2);
+  }
+
   key(e) {
     if (e.code === 'Escape') {
       if (this.ui.paletteOpen) this.ui.closePalette();
@@ -661,6 +694,7 @@ class Game {
     if (BLOCKS[hit.id].shape === 'gate' && !forceBreak) { this.toggleGate(hit); return; }
     if (hit.id === B.TREASURE && !forceBreak) { this.openTreasure(hit); return; }
     if (hit.id === B.FIREWORK && !forceBreak) { this.launchFirework(hit); return; }
+    if (BLOCKS[hit.id].bed && !forceBreak) { this.useBed(hit); return; }
     if (mode === 'build') this.use(hit);
     else if (forceBreak) this.breakBlock(hit);
     else this.hintHold(hit);
@@ -692,6 +726,35 @@ class Game {
       if (!supported) return nope();
     } else if (nb.render === 'cross' && !OPAQUE[w.get(x, y - 1, z)]) return nope();
     const f = this.facing();
+    const inPlace = x === hit.x && y === hit.y && z === hit.z;
+
+    // Fakkel: op de grond, of tegen de muur die je aantikt
+    if (id === B.TORCH) {
+      let place = -1;
+      if (!inPlace && hit.ny === 0 && OPAQUE[hit.id]) place = torchId(DIRS.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz));
+      else if (BLOCKS[w.get(x, y - 1, z)].solid) place = torchId();
+      if (place < 0) return nope();
+      this.apply([{ x, y, z, from: existing, to: place }]);
+      return this.placed(x, y, z, nb);
+    }
+    // Lantaarn: staand, of hangend onder een blok
+    if (id === B.LANTERN) {
+      const hang = !inPlace && hit.ny === -1;
+      if (hang ? !BLOCKS[w.get(x, y + 1, z)].solid : !BLOCKS[w.get(x, y - 1, z)].solid) return nope();
+      this.apply([{ x, y, z, from: existing, to: hang ? B.LANTERN_HANGING : B.LANTERN }]);
+      return this.placed(x, y, z, nb);
+    }
+    // Bed: twee blokken lang, het hoofdeind van je af
+    if (nb.bed) {
+      const [dx, dz] = DIRS[f], hx = x + dx, hz = z + dz, there = w.get(hx, y, hz);
+      if (!w.inside(hx, y, hz) || !BLOCKS[there].replaceable || !BLOCKS[w.get(x, y - 1, z)].solid) return nope();
+      if (p.overlapsBlock(x, y, z) || p.overlapsBlock(hx, y, hz)) return nope();
+      this.apply([
+        { x, y, z, from: existing, to: bedId(nb.bed.color, false) },
+        { x: hx, y, z: hz, from: there, to: bedId(nb.bed.color, true) },
+      ]);
+      return this.placed(x, y, z, nb);
+    }
 
     if (nb.shape === 'door') {
       // een deur is twee blokken hoog en kijkt naar jou toe
@@ -730,9 +793,46 @@ class Game {
       }
       if (lift) p.liftTo(y + 1);
     }
+    this.placed(x, y, z, nb);
+  }
+
+  // Geluidje, wolkje en een randje om het nieuwe blok
+  placed(x, y, z, nb) {
     this.sounds.place(nb.sound);
     this.particles.burst(x, y, z, [[1, 1, 1], [0.92, 0.95, 1]], 7, true);
     this.flash = { x, y, z, until: performance.now() / 1000 + 0.35 };
+  }
+
+  // Het andere stuk van een bed (hoofdeind bij voeteneind, en andersom)
+  bedPartner(x, y, z) {
+    const b = BLOCKS[this.world.get(x, y, z)].bed;
+    for (const [dx, dz] of DIRS) {
+      const o = BLOCKS[this.world.get(x + dx, y, z + dz)].bed;
+      if (o && o.color === b.color && o.head !== b.head) return { x: x + dx, y, z: z + dz };
+    }
+    return null;
+  }
+
+  // Tik op een bed: dit is nu je thuis. Is het nacht, dan ga je slapen tot de ochtend.
+  useBed(hit) {
+    if (this.sleeping) return;
+    const head = BLOCKS[hit.id].bed.head ? hit : this.bedPartner(hit.x, hit.y, hit.z) || hit;
+    this.home = { x: head.x + 0.5, y: head.y + 0.6, z: head.z + 0.5 };
+    this.particles.sparkle(hit.x - 0.2, hit.y + 0.5, hit.z - 0.2, hit.x + 1.2, hit.y + 1.6, hit.z + 1.2, 40);
+    this.markDirty();
+    if (!this.daynight.night) { this.sounds.magic(); this.ui.say('Thuis!', 'goHome'); return; }
+    this.sleeping = true;
+    this.input.releaseAll();
+    this.sounds.sleep();
+    this.ui.fade(true);
+    setTimeout(() => {
+      this.daynight.morning();
+      for (const a of this.animals.list) if (a.sleep > 3) a.sleep = 1 + Math.random() * 3;
+      this.ui.fade(false);
+      this.sleeping = false;
+      this.ui.say('Goedemorgen!', 'sun');
+      this.markDirty();
+    }, 1600);
   }
 
   placeStamp(hit, kind) {
@@ -909,6 +1009,10 @@ class Game {
       const other = w.get(x, oy, z);
       if (BLOCKS[other].shape === 'door') changes.push({ x, y: oy, z, from: other, to: AIR });
     }
+    if (b.bed) {
+      const o = this.bedPartner(x, y, z);
+      if (o) changes.push({ ...o, from: w.get(o.x, o.y, o.z), to: AIR });
+    }
     const above = w.get(x, y + 1, z);
     if (BLOCKS[above].render === 'cross' && !BLOCKS[above].climb) changes.push({ x, y: y + 1, z, from: above, to: AIR });
     this.apply(changes);
@@ -1037,7 +1141,7 @@ class Game {
       const [dx, dy] = this.input.takeLook();
       p.yaw -= dx;
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch - dy));
-      for (const tap of this.input.taps.splice(0)) this.act(tap);
+      for (const tap of this.input.taps.splice(0)) if (!this.sleeping) this.act(tap);
       const wasClimbing = p.climbing;
       p.update(dt, this.input, this.world, now);
       this.syncRide(dt);
@@ -1065,6 +1169,7 @@ class Game {
     this.weather.update(dt, this.world, this.player, this.scene.pixelRatio, this.playing && !document.hidden);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
+    this.updateTime(this.playing ? dt : 0, now);
     if ((this.world.type === 'adventure' || this.world.type === 'world') && now >= (this.nextBiome || 0)) {
       this.updateBiome(); this.nextBiome = now + 0.5;
     }
@@ -1089,6 +1194,42 @@ class Game {
         animals: this.animals.list.length, pixelRatio: this.scene.pixelRatio,
         width: this.canvas.width, height: this.canvas.height,
       });
+    }
+  }
+
+  // Dag en nacht, het licht op de dieren en het poppetje, nachtgeluiden en rook
+  updateTime(dt, now) {
+    const dn = this.daynight, w = this.world, p = this.player;
+    dn.update(dt);
+    const t = dn.now;
+    this.scene.setTime(sunAmount(t), glowAmount(t), sunAngle(t));
+    Animal.night = dn.night;
+    const sc = this.scene;
+    for (const a of this.animals.list) sc.tint(w.lightAt(a.x, a.y + 0.5, a.z), a.mat.color);
+    for (const s of this.snowmen.list) sc.tint(w.lightAt(s.x, s.y + 1, s.z), s.mat.color);
+    sc.tint(w.lightAt(p.x, p.y + 1, p.z), this.avatar.mat.color);
+    if (!this.playing || document.hidden) return;
+    // Krekels en uilen, alleen buiten
+    if (dn.night && (w.lightAt(p.x, p.y + 1, p.z) >> 4) > 7 && now >= (this.nextNightSound || 0)) {
+      if (Math.random() < 0.15) this.sounds.owl(); else this.sounds.cricket();
+      this.nextNightSound = now + 0.7 + Math.random() * 2.5;
+    }
+    // Rook boven fakkels en kampvuren in de buurt
+    if (now >= (this.nextSmoke || 0)) {
+      this.nextSmoke = now + 0.35;
+      const px = Math.floor(p.x), py = Math.floor(p.y), pz = Math.floor(p.z);
+      let fires = 0;
+      for (let y = py - 5; y <= py + 6; y++) for (let x = px - 10; x <= px + 10; x++) for (let z = pz - 10; z <= pz + 10; z++) {
+        const id = w.get(x, y, z);
+        if (id === B.CAMPFIRE) {
+          this.particles.smokeAt(x + 0.5, y + 0.9, z + 0.5, true);
+          if (Math.abs(x - px) + Math.abs(z - pz) < 8) fires++;
+        } else if (id >= B.TORCH && id <= B.TORCH + 4 && Math.random() < 0.3) {
+          const bx = BLOCKS[id].boxes[0];
+          this.particles.smokeAt(x + (bx[0] + bx[3]) / 2, y + bx[4] + 0.1, z + (bx[2] + bx[5]) / 2);
+        }
+      }
+      if (fires && Math.random() < 0.7) this.sounds.crackle();
     }
   }
 
@@ -1122,9 +1263,18 @@ async function start() {
     const game = new Game(root);
     await game.init();
     window.__jippecraft = game;
+    // ?tijd=nacht (of ochtend, middag, avond, of een getal van 0 tot 1): voor tests en foto's
+    const tijd = location.search.match(/[?&]tijd=([a-z0-9.]+)/);
+    if (tijd) game.daynight.set(TIME_NAMES[tijd[1]] ?? Number(tijd[1]));
     // ?meet = meetrit (30 seconden), ?meet=10 = 10 seconden
     const meet = location.search.match(/[?&]meet(?:=(\d+))?(?:&|$)/);
-    if (meet) game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30);
+    if (meet) {
+      // Meten gebeurt altijd op het middaguur, dan zijn de metingen te vergelijken
+      game.daynight.set(NOON);
+      game.daynight.frozen = true;
+      game.bench = new Bench(game, meet[1] ? Number(meet[1]) : 30);
+      game.daynight.set(NOON);
+    }
   } catch (e) {
     console.error(e);
     logError(e, 'opstarten');

@@ -29,13 +29,24 @@ export const B = {
   DIAMOND_ORE: 107, EMERALD_ORE: 108, GRANITE: 109, DIORITE: 110, ANDESITE: 111, GRAVEL: 112, CLAY: 113,
   BIRCH_LOG: 114, BIRCH_LEAVES: 115, MUSHROOM_RED: 116, MUSHROOM_BROWN: 117, LILY_PAD: 118,
   CORNFLOWER: 119, TULIP: 120,
+  // Licht en slapen
+  TORCH: 121,        // 121: fakkel op de grond, 122..125: tegen een muur (muur aan kant 0..3)
+  LANTERN: 126, LANTERN_HANGING: 127, GLOWSTONE: 128, JACK_O_LANTERN: 129, CAMPFIRE: 130,
+  BED: 131,          // 131..150: bed in 10 kleuren, steeds voeteneind en hoofdeind
 };
+
+// Kleuren van de bedden (dezelfde als de wol)
+export const BED_COLORS = ['red', 'orange', 'yellow', 'green', 'lightblue', 'blue', 'purple', 'pink', 'white', 'black'];
+const BED_NAMES = ['Rood', 'Oranje', 'Geel', 'Groen', 'Lichtblauw', 'Blauw', 'Paars', 'Roze', 'Wit', 'Zwart'];
+export function bedId(color, head) { return B.BED + color * 2 + (head ? 1 : 0); }
+export function torchId(wall = -1) { return wall < 0 ? B.TORCH : B.TORCH + 1 + wall; }
 
 // Richtingen: 0 = -z (noord), 1 = +x (oost), 2 = +z (zuid), 3 = -x (west)
 export const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
 export const BLOCKS = [];
 export const OPAQUE = new Uint8Array(256);
+export const EMIT = new Uint8Array(256);   // hoeveel licht een blok zelf geeft (0..15)
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
@@ -61,8 +72,12 @@ function def(id, name, tex, opts = {}) {
     open: !!opts.open,
     climb: !!opts.climb,
     foliage: !!opts.foliage,
+    light: opts.light || 0,
+    bed: opts.bed ?? null,     // { color, head }
+    icon: opts.icon || null,   // plat plaatje in de kist in plaats van een blokje
   };
   OPAQUE[id] = render === 'solid' ? 1 : 0;
+  EMIT[id] = opts.light || 0;
 }
 
 BLOCKS[AIR] = {
@@ -84,11 +99,11 @@ def(B.WATER, 'Water', 'water', { render: 'water', sound: 'water' });
 def(B.SNOW, 'Sneeuw', 'snow', { sound: 'sand' });
 def(B.GOLD, 'Goud', 'gold', { sound: 'metal' });
 def(B.DIAMOND, 'Diamant', 'diamond', { sound: 'metal' });
-def(B.LAMP, 'Lamp', 'lamp', { glow: true, sound: 'glass' });
+def(B.LAMP, 'Lamp', 'lamp', { glow: true, light: 15, sound: 'glass' });
 def(B.BOOKSHELF, 'Boekenkast', { top: 'planks', side: 'bookshelf', bottom: 'planks' }, { sound: 'wood' });
 def(B.PUMPKIN, 'Pompoen', { top: 'pumpkin_top', side: 'pumpkin_face', bottom: 'pumpkin_top' }, { sound: 'wood' });
 def(B.MELON, 'Meloen', { top: 'melon_top', side: 'melon_side', bottom: 'melon_top' }, { sound: 'wood' });
-def(B.RAINBOW, 'Regenboog', { top: 'rainbow_top', side: 'rainbow', bottom: 'rainbow_top' }, { glow: true, sound: 'glass' });
+def(B.RAINBOW, 'Regenboog', { top: 'rainbow_top', side: 'rainbow', bottom: 'rainbow_top' }, { glow: true, light: 10, sound: 'glass' });
 def(B.WOOL_RED, 'Rood', 'wool_red', { sound: 'wool' });
 def(B.WOOL_ORANGE, 'Oranje', 'wool_orange', { sound: 'wool' });
 def(B.WOOL_YELLOW, 'Geel', 'wool_yellow', { sound: 'wool' });
@@ -236,10 +251,48 @@ def(B.LILY_PAD, 'Waterlelie', 'lily_pad', {
 def(B.CORNFLOWER, 'Korenbloem', 'cornflower', { render: 'cross', sound: 'grass' });
 def(B.TULIP, 'Tulp', 'tulip', { render: 'cross', sound: 'grass' });
 
+// Licht en slapen. Fakkels en lantaarns zijn klein: je loopt er doorheen.
+const TORCH_WALL = [
+  [7 / 16, 3 / 16, 0, 9 / 16, 13 / 16, 2 / 16], [14 / 16, 3 / 16, 7 / 16, 1, 13 / 16, 9 / 16],
+  [7 / 16, 3 / 16, 14 / 16, 9 / 16, 13 / 16, 1], [0, 3 / 16, 7 / 16, 2 / 16, 13 / 16, 9 / 16],
+];
+def(B.TORCH, 'Fakkel', { top: 'torch_top', side: 'torch_side', bottom: 'torch_top' }, {
+  render: 'shape', solid: false, replaceable: false, light: 14, sound: 'wood', icon: 'torch_side',
+  boxes: [[7 / 16, 0, 7 / 16, 9 / 16, 10 / 16, 9 / 16]],
+});
+for (let d = 0; d < 4; d++) {
+  def(B.TORCH + 1 + d, 'Fakkel', { top: 'torch_top', side: 'torch_wall', bottom: 'torch_top' }, {
+    render: 'shape', solid: false, replaceable: false, light: 14, sound: 'wood', family: B.TORCH, dir: d,
+    boxes: [TORCH_WALL[d]],
+  });
+}
+def(B.LANTERN, 'Lantaarn', { top: 'lantern_top', side: 'lantern_side', bottom: 'lantern_top' }, {
+  render: 'shape', solid: false, replaceable: false, light: 15, sound: 'metal', icon: 'lantern_side',
+  boxes: [[5 / 16, 0, 5 / 16, 11 / 16, 7 / 16, 11 / 16], [6 / 16, 7 / 16, 6 / 16, 10 / 16, 9 / 16, 10 / 16]],
+});
+def(B.LANTERN_HANGING, 'Lantaarn', { top: 'lantern_top', side: 'lantern_side', bottom: 'lantern_top' }, {
+  render: 'shape', solid: false, replaceable: false, light: 15, sound: 'metal', family: B.LANTERN,
+  boxes: [[5 / 16, 1 / 16, 5 / 16, 11 / 16, 8 / 16, 11 / 16], [6 / 16, 8 / 16, 6 / 16, 10 / 16, 10 / 16, 10 / 16],
+    [7.5 / 16, 10 / 16, 7.5 / 16, 8.5 / 16, 1, 8.5 / 16]],
+});
+def(B.GLOWSTONE, 'Gloeisteen', 'glowstone', { glow: true, light: 15, sound: 'glass' });
+def(B.JACK_O_LANTERN, 'Pompoenlantaarn', { top: 'pumpkin_top', side: 'jack_o_lantern', bottom: 'pumpkin_top' }, {
+  glow: true, light: 15, sound: 'wood',
+});
+def(B.CAMPFIRE, 'Kampvuur', 'campfire', { render: 'cross', light: 15, replaceable: false, sound: 'wood' });
+BED_COLORS.forEach((color, c) => {
+  for (const head of [false, true]) {
+    def(bedId(c, head), BED_NAMES[c] + ' bed', { top: head ? 'bed_pillow' : 'wool_' + color, side: 'bed_' + color, bottom: 'planks' }, {
+      render: 'shape', boxes: [[0, 0, 0, 1, 9 / 16, 1]], family: bedId(c, false), bed: { color: c, head }, sound: 'wool',
+    });
+  }
+});
+
 // Dezelfde vormen dienen voor tekenen én botsen. Een hek groeit vast aan buren.
 export function blockBoxes(world, x, y, z, collision = false) {
   const id = world.get(x, y, z), b = BLOCKS[id];
-  if (!b?.solid) return NO_BOXES;
+  // Fakkels en lantaarns teken je wel, maar je botst er niet tegenaan
+  if (!b?.solid) return collision || !b?.boxes ? NO_BOXES : b.boxes;
   if (id === B.FENCE) {
     const boxes = [FENCE_POST];
     for (let d = 0; d < 4; d++) {
@@ -340,6 +393,10 @@ export const PALETTE_GROUPS = [
     ],
     items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90,
       114, 115, 116, 117, 118, 119, 120, 113, 109, 110, 111, 112, 101, 102, 103, 104, 105, 106, 107, 108],
+  },
+  {
+    title: 'Licht',
+    items: [B.TORCH, B.LANTERN, B.GLOWSTONE, B.JACK_O_LANTERN, B.CAMPFIRE, ...BED_COLORS.map((_, c) => bedId(c, false))],
   },
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
   { title: 'Dieren', sections: [

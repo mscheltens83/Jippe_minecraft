@@ -17,6 +17,8 @@ export class ParentPanel {
       <h3>Metingen</h3><ul class="parent-measure"></ul>
       <h3>Fouten</h3><ul class="parent-errors"></ul>
       <div class="parent-buttons">
+        <button type="button" class="parent-btn parent-day"></button>
+        <button type="button" class="parent-btn parent-caves"></button>
         <button type="button" class="parent-btn parent-fps"></button>
         <button type="button" class="parent-btn parent-bench">Meetrit (30 s)</button>
         <button type="button" class="parent-btn parent-copy">Kopieer alles</button>
@@ -29,6 +31,8 @@ export class ParentPanel {
       <input type="file" class="parent-file" accept=".json,application/json" hidden>`;
     const on = (cls, fn) => this.el.querySelector(cls).addEventListener('click', fn);
     on('.parent-fps', () => { h.onFps(); this.refresh(); });
+    on('.parent-day', () => { h.onAlwaysDay(); this.refresh(); });
+    on('.parent-caves', () => { h.onBrightCaves(); this.refresh(); });
     on('.parent-bench', () => h.onBench());
     on('.parent-copy', (e) => copyText(this.text(), e.currentTarget));
     on('.parent-clear', () => { clearErrors(); this.refresh(); });
@@ -76,6 +80,8 @@ export class ParentPanel {
       ? errors.map((e) => `<li><time>${new Date(e.t).toLocaleString('nl-NL')}</time>${e.n > 1 ? ` (${e.n}×)` : ''}<br>${esc(e.msg.split('\n')[0])}</li>`).join('')
       : '<li class="parent-none">Geen fouten.</li>';
     this.el.querySelector('.parent-fps').textContent = this.h.fpsOn() ? 'Meetscherm uit' : 'Meetscherm aan';
+    this.el.querySelector('.parent-day').textContent = this.h.alwaysDay() ? 'Dag en nacht: altijd dag' : 'Dag en nacht: aan';
+    this.el.querySelector('.parent-caves').textContent = this.h.brightCaves() ? 'Grotten lichter: aan' : 'Grotten lichter: uit';
     if (!this.storage && navigator.storage?.estimate) {
       navigator.storage.estimate().then((s) => {
         this.storage = `${(s.usage / 1048576).toFixed(1)} MB gebruikt`;

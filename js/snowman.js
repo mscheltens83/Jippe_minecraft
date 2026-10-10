@@ -1,7 +1,7 @@
 // Twee sneeuwblokken met een pompoen worden een vriendelijk wandelend sneeuwpopje.
 import * as THREE from '../lib/three.module.min.js';
 import { B, BLOCKS } from './blocks.js';
-import { box, part, cachedModel } from './models.js';
+import { box, part, cachedModel, ownMaterial } from './models.js';
 
 function buildSnowman() {
   const body = part([
@@ -30,6 +30,7 @@ class Snowman {
     const m = cachedModel('snowman', buildSnowman);
     this.body = m.body; this.head = m.head; this.arms = m.arms;
     this.group = new THREE.Group(); this.group.add(...m.parts);
+    this.mat = ownMaterial(this.group);
     this.x = x; this.y = y; this.z = z; this.yaw = yaw; this.targetYaw = yaw;
     this.homeX = x; this.homeZ = z; this.time = 0; this.timer = 1 + Math.random() * 2;
     this.walking = false; this.sync();
@@ -71,9 +72,9 @@ export class Snowmen {
   }
   remove(snowman) {
     const i = this.list.indexOf(snowman);
-    if (i >= 0) { this.scene.remove(snowman.group); this.list.splice(i, 1); }
+    if (i >= 0) { this.scene.remove(snowman.group); snowman.mat.dispose(); this.list.splice(i, 1); }
   }
-  clear() { for (const snowman of this.list) this.scene.remove(snowman.group); this.list = []; }
+  clear() { for (const snowman of this.list) { this.scene.remove(snowman.group); snowman.mat.dispose(); } this.list = []; }
   update(dt, world) { for (const snowman of this.list) snowman.update(dt, world); }
   serialize() { return this.list.map((s) => ({ x: s.x, y: s.y, z: s.z, yaw: s.yaw })); }
   load(data) {

@@ -26,6 +26,14 @@ export function box(w, h, d, color, x = 0, y = 0, z = 0) {
   return g;
 }
 
+// Een eigen kopie van het materiaal voor één figuur, zodat hij zijn eigen licht kan krijgen
+// (donkerder 's nachts en in grotten, lichter bij een fakkel). Geeft het materiaal terug.
+export function ownMaterial(group) {
+  const mat = MODEL_MAT.clone();
+  group.traverse((o) => { if (o.isMesh) o.material = mat; });
+  return mat;
+}
+
 // Meerdere blokjes samenvoegen tot één vorm (minder werk voor de iPad)
 export function merge(geos) {
   let nv = 0, ni = 0;

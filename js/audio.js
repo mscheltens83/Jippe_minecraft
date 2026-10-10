@@ -167,6 +167,19 @@ export class Sounds {
     [523, 659, 784, 1047, 1319].forEach((f, i) => this.tone('sine', f, f, 0.18, 0.12, i * 0.06));
   }
 
+  // 's Nachts: krekels en af en toe een uil; een knisperend kampvuur
+  cricket() {
+    if (!this.ok()) return;
+    const f = 4300 + Math.random() * 500;
+    for (let i = 0; i < 3; i++) this.tone('sine', f, f * 0.97, 0.035, 0.02, i * 0.065);
+  }
+  owl() {
+    if (!this.ok()) return;
+    this.tone('sine', 430, 390, 0.32, 0.05); this.tone('sine', 410, 360, 0.5, 0.05, 0.42);
+  }
+  crackle() { if (this.ok()) this.hiss('bandpass', 2600 + Math.random() * 1500, 2.5, 0.025, 0.07); }
+  sleep() { if (this.ok()) [784, 659, 523, 392].forEach((f, i) => this.tone('sine', f, f, 0.4, 0.08, i * 0.22)); }
+
   pop() { if (this.ok()) this.tone('sine', 520, 880, 0.08, 0.22); }
   jump() { if (this.ok()) this.tone('sine', 260, 420, 0.1, 0.1); }
   undo() { if (this.ok()) { this.tone('sine', 700, 400, 0.12, 0.2); } }

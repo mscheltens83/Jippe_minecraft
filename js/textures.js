@@ -637,6 +637,94 @@ function stem(t) {
   t.set(10, 12, g); t.set(9, 12, g); t.set(9, 13, g);
 }
 
+// Licht en slapen. Fakkels en lantaarns zijn kleine vormen: alleen de kolommen en rijen waar
+// het vormpje staat, zie je in de wereld. De rest is voor het plaatje in de kist.
+const FLAME = [[255, 246, 170], [255, 214, 80], [250, 150, 40]];
+function flame(t, x0, x1, y0, y1) {
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const edge = x === x0 || x === x1 || y === y0;
+    t.set(x, y, FLAME[edge ? 2 : y === y1 ? 1 : 0]);
+  }
+}
+function stick(t, x, y0, y1) {
+  for (let y = y0; y <= y1; y++) { t.set(x, y, [138, 102, 58]); t.set(x + 1, y, [104, 74, 40]); }
+}
+function bedSide(t, color) {
+  for (let y = 7; y < 16; y++) for (let x = 0; x < 16; x++) {
+    let c;
+    if (y <= 11) c = shade(color, (y === 7 ? 1.12 : 1) * (1 + (t.r() - 0.5) * 0.08));
+    else if (y <= 13) c = shade([150, 110, 66], 1 + (t.r() - 0.5) * 0.1);
+    else c = x <= 1 || x >= 14 ? [110, 80, 46] : [60, 45, 30];
+    t.set(x, y, c);
+  }
+  for (let y = 0; y < 7; y++) for (let x = 0; x < 16; x++) t.set(x, y, color);
+}
+
+Object.assign(GEN, {
+  torch_side(t) {
+    t.clear();
+    stick(t, 7, 8, 15);
+    flame(t, 6, 9, 4, 7);
+    t.set(7, 3, FLAME[2]); t.set(8, 3, FLAME[1]);
+  },
+  torch_wall(t) {
+    t.clear();
+    for (const x of [0, 7, 14]) { stick(t, x, 6, 12); flame(t, x, x + 1, 3, 5); }
+  },
+  torch_top(t) { t.noise([255, 206, 70], 0.12); },
+  lantern_side(t) {
+    t.clear();
+    const metal = [52, 54, 64], glow = [255, 212, 96];
+    for (let y = 0; y <= 5; y++) { t.set(7, y, y % 2 ? [92, 94, 104] : metal); t.set(8, y, y % 2 ? metal : [92, 94, 104]); }
+    for (let y = 6; y <= 8; y++) for (let x = 6; x <= 9; x++) t.set(x, y, metal);
+    for (let y = 9; y <= 15; y++) for (let x = 5; x <= 10; x++) {
+      const frame = x === 5 || x === 10 || y === 9 || y === 15;
+      t.set(x, y, frame ? metal : (x === 7 || x === 8) && y >= 11 && y <= 13 ? [255, 248, 200] : glow);
+    }
+  },
+  lantern_top(t) { t.noise([52, 54, 64], 0.08); for (let i = 6; i <= 9; i++) t.set(i, 7, [92, 94, 104]); },
+  glowstone(t) {
+    t.noise([214, 168, 84], 0.14);
+    for (let i = 0; i < 14; i++) {
+      const x = Math.floor(t.r() * 15), y = Math.floor(t.r() * 15);
+      const c = t.r() < 0.6 ? [255, 238, 168] : [255, 214, 120];
+      t.set(x, y, c); t.set(x + 1, y, c); t.set(x, y + 1, c);
+    }
+    t.specks([150, 102, 48], 0.07);
+  },
+  jack_o_lantern(t) {
+    pumpkinBase(t);
+    const lit = [255, 224, 96], hot = [255, 248, 190];
+    for (const ex of [4, 11]) { t.set(ex, 4, lit); for (let x = ex - 1; x <= ex + 1; x++) t.set(x, 5, lit); t.set(ex, 5, hot); }
+    t.set(3, 9, lit); t.set(12, 9, lit);
+    for (let x = 3; x <= 12; x++) t.set(x, 10, x > 4 && x < 11 ? hot : lit);
+    for (let x = 5; x <= 10; x++) t.set(x, 11, lit);
+  },
+  campfire(t) {
+    t.clear();
+    for (let y = 2; y <= 11; y++) {
+      const w = Math.round((y - 1) * 0.55 + (t.r() - 0.5));
+      for (let x = 8 - w; x < 8 + w; x++) {
+        const d = Math.abs(x - 7.5) / Math.max(1, w);
+        t.set(x, y, FLAME[d > 0.7 || y < 4 ? 2 : d > 0.35 ? 1 : 0]);
+      }
+    }
+    for (let y = 12; y <= 15; y++) for (let x = 1; x <= 14; x++) {
+      const log = y === 12 || y === 15 ? [92, 66, 40] : [128, 92, 54];
+      t.set(x, y, (x + y) % 5 === 0 ? [60, 42, 26] : log);
+    }
+    t.set(5, 13, [255, 150, 40]); t.set(10, 14, [255, 150, 40]);
+  },
+  bed_pillow(t) {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+      const rim = x === 0 || y === 0 || x === 15 || y === 15;
+      const seam = x === 1 || y === 1 || x === 14 || y === 14;
+      t.set(x, y, rim ? [150, 110, 66] : seam ? [200, 200, 204] : shade([244, 244, 240], 1 + (t.r() - 0.5) * 0.05));
+    }
+  },
+});
+for (const [name, color] of Object.entries(WOOL)) GEN['bed_' + name] = (t) => bedSide(t, color);
+
 // Namen van alle tegels (ook voor de tests: bestaat elke textuur die een blok noemt?)
 export const TEXTURE_NAMES = Object.keys(GEN);
 
@@ -689,8 +777,8 @@ export function drawBlockIcon(atlas, id, size = 96) {
   const k = size / 64;
   const src = (tile) => [(tile % ATLAS_COLS) * TILE, Math.floor(tile / ATLAS_COLS) * TILE];
 
-  if (b.render === 'cross') {
-    const [sx, sy] = src(atlas.faceTiles[id][2]);
+  if (b.render === 'cross' || b.icon) {
+    const [sx, sy] = src(b.icon ? atlas.index[b.icon] : atlas.faceTiles[id][2]);
     ctx.drawImage(atlas.canvas, sx, sy, TILE, TILE, 6 * k, 6 * k, 52 * k, 52 * k);
     return c;
   }

@@ -1,11 +1,23 @@
 // Zet de blokken van één sectie (16 x 16 x 16) om in 3D-vlakken. Alleen vlakken die je kunt
 // zien worden gemaakt. In hoekjes komt een zachte schaduw (ambient occlusion).
 // De blokken komen uit een "pad": de chunk plus één rij blokken van de buren eromheen, zodat
-// dit ook in een worker kan (zonder de hele wereld).
+// dit ook in een worker kan (zonder de hele wereld). Het licht komt uit een even groot "lichtpad".
+//
+// Per hoekpunt gaan drie getallen naar de beeldkaart (in het kleurkanaal):
+//   rood  = schaduw (kant van het blok en hoekjes), groen = zonlicht, blauw = lamplicht.
+// De shader (scene.js) maakt daar met het daglicht van dat moment de echte helderheid van.
+// Groen 2 betekent: dit blok gloeit zelf (lamp, gloeisteen) en is altijd helemaal licht.
 
 import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from '../blocks.js';
 import { CHUNK, SY, SECTION } from './constants.js';
 import { local } from './chunk.js';
+
+// Helderheid (sRGB) bij lichtwaarde 0..15: een zachte kromme, zodat een fakkel een mooie cirkel geeft
+export const LIGHT_CURVE = Array.from({ length: 16 }, (_, l) => Math.pow(l / 15, 1.25));
+// Hetzelfde, maar lineair (zoals de shader rekent)
+export const LIGHT_LINEAR = new Float32Array(LIGHT_CURVE.map((v) => Math.pow(v, 2.2)));
+const LT = LIGHT_LINEAR;
+export const GLOW = 2;
 
 const ATLAS_COLS = 16;
 const AO = [0.5, 0.68, 0.84, 1.0];
@@ -30,12 +42,13 @@ const toLinear = (v) => Math.pow(v, 2.2);
 
 class Buf {
   constructor() { this.pos = []; this.uv = []; this.col = []; this.idx = []; this.n = 0; }
-  quad(verts, uvs, cols, flip) {
+  // cols = schaduw, skys = zonlicht, lamps = lamplicht (per hoekpunt)
+  quad(verts, uvs, cols, flip, skys, lamps) {
     const n = this.n;
     for (let i = 0; i < 4; i++) {
       this.pos.push(verts[i][0], verts[i][1], verts[i][2]);
       this.uv.push(uvs[i][0], uvs[i][1]);
-      this.col.push(cols[i], cols[i], cols[i]);
+      this.col.push(cols[i], skys[i], lamps[i]);
     }
     if (flip) this.idx.push(n, n + 1, n + 3, n + 1, n + 2, n + 3);
     else this.idx.push(n, n + 1, n + 2, n, n + 2, n + 3);
@@ -104,7 +117,7 @@ export function filledSections(pad) {
   return mask;
 }
 
-export function meshSection(pad, faceTiles, cx, cz, s) {
+export function meshSection(pad, lpad, faceTiles, cx, cz, s) {
   const bufs = { solid: new Buf(), cutout: new Buf(), glass: new Buf(), water: new Buf() };
   const X0 = cx * CHUNK, Z0 = cz * CHUNK;
   const get = (x, y, z) => {
@@ -113,12 +126,22 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
     if (y === SY) return AIR;
     return pad[padIndex(lx, y, lz)];
   };
+  const light = (x, y, z) => {
+    const lx = x - X0, lz = z - Z0;
+    if (y < -1 || y > SY || lx < -1 || lx > CHUNK || lz < -1 || lz > CHUNK) return 0xf0;
+    return lpad[padIndex(lx, y, lz)];
+  };
   const padWorld = { get };
   const q = [0, 0, 0], L = [0, 0, 0];
   const verts = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
   const uvs = [[0, 0], [0, 0], [0, 0], [0, 0]];
   const cols = [0, 0, 0, 0];
+  const skys = [0, 0, 0, 0], lamps = [0, 0, 0, 0];
   const aos = [0, 0, 0, 0];
+  // Hetzelfde licht op alle 4 hoeken
+  const flat = (l) => { const a = LT[l >> 4], b = LT[l & 15]; skys[0] = skys[1] = skys[2] = skys[3] = a; lamps[0] = lamps[1] = lamps[2] = lamps[3] = b; };
+  // Gloeit zelf: altijd helemaal licht
+  const glow = () => { skys[0] = skys[1] = skys[2] = skys[3] = GLOW; lamps[0] = lamps[1] = lamps[2] = lamps[3] = 0; };
   const y0 = s * SECTION;
 
   for (let y = y0; y < y0 + SECTION; y++) {
@@ -136,17 +159,19 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
           const t = tiles[2];
           const lo = 0.15, hi = 0.85;
           const c = toLinear(0.95);
+          if (b.light) glow(); else flat(light(x, y, z));
           for (const [ax, az, bx, bz] of [[lo, lo, hi, hi], [hi, lo, lo, hi]]) {
             verts[0] = [x + ax, y, z + az]; verts[1] = [x + bx, y, z + bz];
             verts[2] = [x + bx, y + 1, z + bz]; verts[3] = [x + ax, y + 1, z + az];
             uvs[0] = tileUV(t, 0, 0); uvs[1] = tileUV(t, 1, 0); uvs[2] = tileUV(t, 1, 1); uvs[3] = tileUV(t, 0, 1);
-            bufs.cutout.quad(verts, uvs, [c, c, c, c], false);
+            bufs.cutout.quad(verts, uvs, [c, c, c, c], false, skys, lamps);
           }
           continue;
         }
 
-        // Bijzondere vormen (trap, deur, hek): losse kleine blokjes
+        // Bijzondere vormen (trap, deur, hek): losse kleine blokjes, met het licht van hun eigen vakje
         if (b.boxes) {
+          if (b.light) glow(); else flat(light(x, y, z));
           for (const box of blockBoxes(padWorld, x, y, z)) {
             for (let f = 0; f < 6; f++) {
               const F = FACES[f];
@@ -169,7 +194,7 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
                 uvs[i] = tileUV(tile, st[0], st[1]);
                 cols[i] = c;
               }
-              bufs.solid.quad(verts, uvs, cols, false);
+              bufs.solid.quad(verts, uvs, cols, false, skys, lamps);
             }
           }
           continue;
@@ -189,6 +214,10 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
 
           const tile = a === 1 ? (F.s > 0 ? tiles[0] : tiles[1]) : tiles[2];
           const corners = F.s > 0 ? CORNERS_POS : CORNERS_NEG;
+          // Licht van het vakje voor dit vlak
+          const fx = q[0], fy = q[1], fz = q[2];
+          const fl = light(fx, fy, fz);
+          if (b.glow) glow(); else flat(fl);
 
           for (let i = 0; i < 4; i++) {
             const du = corners[i][0], dv = corners[i][1];
@@ -198,21 +227,31 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
             const st = faceST(a, F.s, L[0], L[1], L[2]);
             uvs[i] = tileUV(tile, st[0], st[1]);
 
-            // Ambient occlusion: kijk naar de 3 buren rond deze hoek
+            // Ambient occlusion: kijk naar de 3 buren rond deze hoek. Het licht van die buren
+            // (als ze niet dicht zijn) middelen we met het vakje voor het vlak: zacht licht.
             let ao = 3;
             if (doAO) {
               const su = du ? 1 : -1, sv = dv ? 1 : -1;
-              q[0] = x; q[1] = y; q[2] = z; q[a] += F.s;
+              q[0] = fx; q[1] = fy; q[2] = fz;
               q[u] += su; const s1 = OPAQUE[get(q[0], q[1], q[2])];
+              const l1 = s1 ? 0 : light(q[0], q[1], q[2]);
               q[u] -= su; q[v] += sv; const s2 = OPAQUE[get(q[0], q[1], q[2])];
+              const l2 = s2 ? 0 : light(q[0], q[1], q[2]);
               q[u] += su; const c = OPAQUE[get(q[0], q[1], q[2])];
+              const useC = !c && !(s1 && s2);
+              const l3 = useC ? light(q[0], q[1], q[2]) : 0;
               ao = s1 && s2 ? 0 : 3 - (s1 + s2 + c);
+              let sk = LT[fl >> 4], lp = LT[fl & 15], n = 1;
+              if (!s1) { sk += LT[l1 >> 4]; lp += LT[l1 & 15]; n++; }
+              if (!s2) { sk += LT[l2 >> 4]; lp += LT[l2 & 15]; n++; }
+              if (useC) { sk += LT[l3 >> 4]; lp += LT[l3 & 15]; n++; }
+              skys[i] = sk / n; lamps[i] = lp / n;
             }
             aos[i] = ao;
             cols[i] = toLinear(b.glow ? 0.9 + 0.1 * F.shade : F.shade * AO[ao]);
           }
           const flip = aos[0] + aos[2] < aos[1] + aos[3];
-          buf.quad(verts, uvs, cols, flip);
+          buf.quad(verts, uvs, cols, flip, skys, lamps);
         }
       }
     }
@@ -223,9 +262,9 @@ export function meshSection(pad, faceTiles, cx, cz, s) {
 }
 
 // Alle secties van een chunk (lege secties slaan we over)
-export function meshChunk(pad, faceTiles, cx, cz, mask = filledSections(pad)) {
+export function meshChunk(pad, lpad, faceTiles, cx, cz, mask = filledSections(pad)) {
   const sections = [];
-  for (let s = 0; s < SY / SECTION; s++) sections.push(mask & (1 << s) ? meshSection(pad, faceTiles, cx, cz, s) : null);
+  for (let s = 0; s < SY / SECTION; s++) sections.push(mask & (1 << s) ? meshSection(pad, lpad, faceTiles, cx, cz, s) : null);
   return sections;
 }
 

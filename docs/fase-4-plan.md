@@ -53,7 +53,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4A** | Fundament: meten, automatische tests op GitHub, kleine fouten | Klein (1 PR) | – | ✅ Klaar (10 oktober 2026); nulmeting op de iPad nog doen |
 | **4B** | Nieuwe wereldmotor: eindeloze chunks, workers, opslag in IndexedDB, oude werelden omzetten | Zeer groot (2–3 PR's) | 4A | ✅ Klaar (versie 4.1.0); iPad-meting nog doen |
 | **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | ✅ Klaar (versie 4.2.0) |
-| **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | Gepland |
+| **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | ✅ Klaar (versie 4.3.0) |
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | Gepland |
 | **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | Gepland |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
@@ -266,6 +266,13 @@ Fakkel (op de grond en tegen een muur, met vlammetje en rook), lantaarn (staand 
 - Een volle dag-en-nachtcyclus loopt (test met versnelde tijd), en een bed slaat de nacht over.
 - Met "altijd dag" blijft het middag.
 - Op de iPad kost het licht hoogstens 10% beelden per seconde ten opzichte van 4C.
+
+### 7.6 Zo is het gebouwd (versie 4.3.0)
+- `js/engine/light.js`: licht per chunk (`Chunk.light`, zon × 16 + lamp). Een nieuwe chunk krijgt zijn licht in de worker, uitgerekend over 3 × 3 chunks (licht komt niet verder dan 15 blokken, dus dat klopt precies). Bouwen en slopen werkt het licht bij met de twee-wachtrijen-methode, ook over chunkgrenzen; een unit-test vergelijkt na honderden willekeurige veranderingen met alles opnieuw uitrekenen.
+- De mesher stopt schaduw, zonlicht en lamplicht in het kleurkanaal (rood, groen, blauw); de shader rekent met het daglicht van dat moment. Geen extra geheugen per hoekpunt.
+- Kleine afwijkingen van het plan: bladeren en water houden geen zonlicht tegen (anders wordt elk bos donker); 's nachts is het buiten 0,3 licht in plaats van 0,2; de lichtkromme is zachter dan in Minecraft, zodat een fakkel voor een kind duidelijk licht geeft; bedden zijn er in de 10 wolkleuren in plaats van 16.
+- Extra: `?tijd=nacht` (of `ochtend`, `middag`, `avond`, een getal van 0 tot 1) achter het adres zet de tijd, handig voor foto's en tests. De meetrit meet altijd op het middaguur.
+- Licht uitrekenen kost op de testcomputer ±3,7 ms per chunk (in de worker), naast ±7 ms voor de vlakken.
 
 ---
 

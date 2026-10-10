@@ -19,14 +19,14 @@ export class Animals {
   get full() { return this.list.length >= MAX_ANIMALS; }
   clear() {
     for (const a of this.list) if (a.hunt?.phase === 'stalk') this.effects?.warnAt?.(a.hunt.target, false);
-    for (const a of this.list) this.scene.remove(a.group);
+    for (const a of this.list) { this.scene.remove(a.group); a.mat.dispose(); }
     this.list = []; // Gedeelde geometrie blijft in de cache voor de volgende wereld.
   }
   remove(a) {
     const index = this.list.indexOf(a);
     if (index < 0) return;
     if (a.hunt) this.stopHunt(a);
-    this.scene.remove(a.group); this.list.splice(index, 1);
+    this.scene.remove(a.group); a.mat.dispose(); this.list.splice(index, 1);
   }
   stopHunt(a, seconds = 0) {
     if (a.hunt) {
