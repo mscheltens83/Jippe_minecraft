@@ -13,6 +13,7 @@ export const QUEST_GROUPS = [
   { key: 'werelden', title: 'Werelden', icon: 'portal' },
   { key: 'dinos', title: "Dino's", icon: 'dino' },
   { key: 'schatten', title: 'Schatten', icon: 'chest' },
+  { key: 'rijden', title: 'Rails en water', icon: 'minecart' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -56,6 +57,10 @@ export const QUESTS = [
   { id: 'schat', groep: 'schatten', icon: 'chest', tekst: 'Open een schatkist. Die staan in tempels, piramides, schipwrakken en dorpen.', on: 'treasure' },
   { id: 'drieSchatten', groep: 'schatten', icon: 'gold', tekst: 'Open drie schatkisten.', on: 'treasure', doel: 3 },
   { id: 'verkleden', groep: 'schatten', icon: 'hatCrown', tekst: 'Trek iets anders aan in je boek.', on: 'dress' },
+  // Rails en water (fase 5D)
+  { id: 'rails', groep: 'rijden', icon: 'rail', tekst: 'Leg tien rails neer.', on: 'place', doel: 10, match: (d) => d.rail },
+  { id: 'karretje', groep: 'rijden', icon: 'minecart', tekst: 'Rijd een stuk met het karretje over de rails.', on: 'cartRide' },
+  { id: 'bootje', groep: 'rijden', icon: 'boat', tekst: 'Vaar een stuk met het bootje.', on: 'boatRide' },
   { id: 'vulkaan', groep: 'dinos', icon: 'pteranodon', tekst: 'Ga naar een vulkaan in de Dinowereld.', on: 'biome', match: (d) => d.biome === 'volcano' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));

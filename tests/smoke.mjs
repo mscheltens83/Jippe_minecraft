@@ -25,6 +25,7 @@ import { testPhase4H } from './phase-4h.mjs';
 import { testPhase5A } from './phase-5a.mjs';
 import { testPhase5B } from './phase-5b.mjs';
 import { testPhase5C } from './phase-5c.mjs';
+import { testPhase5D } from './phase-5d.mjs';
 import { VERSION } from '../js/version.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -162,7 +163,7 @@ check(await until((n) => window.__jippecraft.undoStack.length === n - 1, undoLen
 // --- de kist met groepen
 await page.locator('.slot.chest').tap();
 check(await page.locator('.palette').isVisible(), 'kist gaat open');
-check((await page.locator('.pal-tab').count()) === 8, 'kist heeft tabbladen: bouwen, kleuren, natuur, licht en huis, planten, stempels, portalen en dieren');
+check((await page.locator('.pal-tab').count()) === 9, 'kist heeft tabbladen: bouwen, kleuren, natuur, licht en huis, planten, stempels, rijden, portalen en dieren');
 await shot('03-kist');
 await page.locator('.pal-tab[aria-label="Stempels"]').tap();
 check(await page.locator('.pal-item[aria-label="Toren"]').isVisible(), 'stempels-tabblad laat de stempels zien');
@@ -414,6 +415,7 @@ if (want('4h')) await testPhase4H({ newPage, check, out });
 if (want('5a')) await testPhase5A({ newPage, check, out });
 if (want('5b')) await testPhase5B({ newPage, check, out });
 if (want('5c')) await testPhase5C({ newPage, check, out });
+if (want('5d')) await testPhase5D({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

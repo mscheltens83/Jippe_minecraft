@@ -43,5 +43,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 5A | Dinowereld: landschappen, 7 dino's, dino-eieren, fossielen, rode portaalsteen ([plan](fase-5-plan.md)) | Klaar (versie 5.0.0) |
 | 5B | Opdrachtjes en stickers, met voorlezen | Klaar (versie 5.1.0) |
 | 5C | Schatkisten en verkleden | Klaar (versie 5.2.0) |
-| 5D | Rails met karretje, bootje | Bezig |
-| 5E | Knoppen, hendels, drukplaten en lampen | Gepland |
+| 5D | Rails met karretje, bootje | Klaar (versie 5.3.0) |
+| 5E | Knoppen, hendels, drukplaten en lampen | Bezig |

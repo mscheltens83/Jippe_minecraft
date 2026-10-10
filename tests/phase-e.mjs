@@ -3,11 +3,11 @@ export async function testPhaseE({ newPage, check, out }) {
   const { context, page } = await newPage();
   const run = (fn, arg) => page.evaluate(fn, arg);
   const results = await run(async () => {
-    const { SPECIES } = await import('./js/animals/species.js');
+    const { SPECIES, ANIMAL_TYPES } = await import('./js/animals/species.js');
     const { BIOMES, biomeAt } = await import('./js/biomes.js');
     const { SPECIALS, PALETTE_GROUPS } = await import('./js/blocks.js');
     const j = window.__jippecraft;
-    const expected = Object.keys(SPECIES);
+    const expected = ANIMAL_TYPES;
     const missing = [], wrongBiome = [], worlds = {};
     j.playing = false;
     for (const type of ['jungle', 'desert', 'tundra', 'adventure']) {

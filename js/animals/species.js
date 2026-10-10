@@ -4,6 +4,7 @@ import { buildCat } from './cats.js';
 import { buildElephant, buildGiraffe, buildZebra, buildHippo, buildMeerkat } from './savanna.js';
 import { buildExtra } from './extras.js';
 import { buildMc, VARIANTS } from './minecraft.js';
+import { buildMinecart, buildBoat } from './vehicles.js';
 import { buildTrex, buildBrachio, buildTriceratops, buildStegosaurus, buildParasaur, buildPteranodon, buildRaptor } from './dinos.js';
 import { B, ITEM } from '../blocks.js';
 
@@ -84,8 +85,15 @@ SPECIES.raptor = { ...dino, naam: 'Velociraptor', w: .5, h: 1.25, d: 1.3, speed:
 SPECIES.brachio.bladeren = [B.ARAUCARIA_LEAVES, B.TREE_FERN_LEAVES, B.ACACIA_LEAVES, B.LEAVES, B.JUNGLE_LEAVES];
 export const DINOS = ['trex', 'brachio', 'triceratops', 'stegosaurus', 'parasaur', 'pteranodon', 'raptor'];
 
+// Karretje en bootje (fase 5D): geen dieren, maar je kunt erin zitten. voertuig = hoe het rijdt
+SPECIES.minecart = { naam: 'Karretje', w: .9, h: .8, d: 1.1, speed: 0, bouw: buildMinecart, geluid: 'cart', voertuig: 'rails', rijdbaar: true, zadel: 0.3, slaapkans: 0 };
+SPECIES.boat = { naam: 'Bootje', w: 1.1, h: .6, d: 2.0, speed: 0, bouw: buildBoat, geluid: 'cart', voertuig: 'water', rijdbaar: true, zadel: 0.25, slaapkans: 0, kunstjes: ['zwemmen'], floatDepth: 0.15 };
+
 // Alle soorten hebben deze velden (ook als ze in het recept ontbreken)
 for (const def of Object.values(SPECIES)) { def.kunstjes ||= []; def.werelden ||= []; def.rensnelheid ||= def.speed * 2; }
+
+// De echte dieren (zonder karretje en bootje): voor het album en de kist
+export const ANIMAL_TYPES = Object.keys(SPECIES).filter((t) => !SPECIES[t].voertuig);
 
 export const STATES = ['rust', 'lopen', 'grazen', 'slapen', 'sluipen', 'jagen', 'vluchten', 'eten', 'blij', 'volgen', 'bereden'];
 export const MAX_ANIMALS = 60;

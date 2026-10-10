@@ -1,7 +1,7 @@
 // Eén album voor alle werelden. Stickers komen uit de echte 3D-modellen.
 import * as THREE from '../lib/three.module.min.js';
 import { Animal } from './animals/core.js';
-import { SPECIES } from './animals/species.js';
+import { SPECIES, ANIMAL_TYPES } from './animals/species.js';
 import { ICONS, iconURL } from './icons.js';
 import { QUESTS, QUEST_GROUPS, QUEST_BY_ID } from './quests.js';
 import { speech } from './speech.js';
@@ -253,7 +253,7 @@ export class Album {
     this.clearLabel.textContent = this.tab === 'stickers' ? 'Stickers leegmaken' : 'Album leegmaken';
     if (this.tab === 'stickers') { this.renderStickers(); return; }
     const scroll = this.grid.scrollTop;
-    this.count.textContent = `${this.known.size} van ${Object.keys(SPECIES).length} dieren gevonden`;
+    this.count.textContent = `${this.known.size} van ${ANIMAL_TYPES.length} dieren gevonden`;
     this.grid.textContent = '';
     for (const group of GROUPS) {
       const section = document.createElement('section'); section.className = 'album-section';
@@ -290,7 +290,7 @@ export class Album {
       renderer.setPixelRatio(1); renderer.setSize(128, 128, false);
       const scene = new THREE.Scene();
       const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 50);
-      for (const type of Object.keys(SPECIES)) {
+      for (const type of ANIMAL_TYPES) {
         const a = new Animal(type, 0, 0, 0, Math.PI / 6);
         const def = SPECIES[type], span = Math.max(1.55, def.h * 1.3, def.w * 1.9, def.d * .9);
         camera.left = -span / 2; camera.right = span / 2;

@@ -67,6 +67,7 @@ export const B = {
   HORSETAIL: 599, FOSSIL: 600, AMBER: 601,
   DINO_EGG: 602,     // 602..604: dino-ei in 3 kleuren
   PORTAL_STONE_RED: 605, PORTAL_RED: 606, // rode portaalsteen en het licht (606 langs x, 607 langs z)
+  RAIL: 610,         // 610..619: rails (fase 5D): recht, bocht en helling, zie rails.js
 };
 
 // Portalen (fase 4H): elke kleur portaalsteen gaat naar een andere themawereld
@@ -132,7 +133,7 @@ export const EMIT = new Uint8Array(MAX_ID);   // hoeveel licht een blok zelf gee
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
-const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal', 'egg'];
+const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf', 'portalColor', 'portal', 'egg', 'rail'];
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const render = opts.render || 'solid';
@@ -419,6 +420,22 @@ def(B.GIANT_FERN + 1, 'Reuzenvaren', 'giant_fern_top', { render: 'cross', sound:
 def(B.HORSETAIL, 'Paardenstaart', 'horsetail', { render: 'cross', sound: 'grass' });
 def(B.FOSSIL, 'Fossiel', 'fossil');
 def(B.AMBER, 'Barnsteen', 'amber', { render: 'glass', sound: 'glass', light: 3 });
+// Rails (fase 5D): plat op de grond, of een helling van vier treetjes. Je loopt erdoorheen.
+const RAIL_TEX = ['rail_ns', 'rail_ew', 'rail_c0', 'rail_c1', 'rail_c2', 'rail_c3'];
+for (let s = 0; s < 10; s++) {
+  const up = s >= 6 ? s - 6 : -1, tex = up < 0 ? RAIL_TEX[s] : RAIL_TEX[up % 2 === 0 ? 0 : 1];
+  let boxes = [[0, 0, 0, 1, 1 / 16, 1]];
+  if (up >= 0) {
+    boxes = [0, 1, 2, 3].map((k) => {
+      const lo = k / 4, hi = (k + 1) / 4, h = (k + 1) / 4; // treetje k, hoger naar de kant `up`
+      return [[0, 0, 1 - hi, 1, h, 1 - lo], [lo, 0, 0, hi, h, 1], [0, 0, lo, 1, h, hi], [1 - hi, 0, 0, 1 - lo, h, 1]][up];
+    });
+  }
+  def(B.RAIL + s, 'Rails', { top: tex, side: 'rail_side', bottom: tex }, {
+    render: 'shape', solid: false, replaceable: false, boxBuf: 'cutout', sound: 'metal', family: B.RAIL, rail: s, boxes, icon: 'rail_ns',
+  });
+}
+
 // Planten van twee blokken hoog (het bovenste blok is één verder)
 export const TALL_PLANTS = new Set([B.SUNFLOWER, B.GIANT_FERN]);
 export const EGG_COLORS = [{ key: 'green', name: 'Groen' }, { key: 'blue', name: 'Blauw' }, { key: 'red', name: 'Rood' }];
@@ -587,6 +604,7 @@ export const ITEM = {
   PORTAL_STAMP: 60053, // 60053..60057: portaal-stempel in 5 kleuren (fase 4H, rood in 5A)
   // Dino's (fase 5A)
   TREX: 60058, BRACHIO: 60059, TRICERATOPS: 60060, STEGOSAURUS: 60061, PARASAUR: 60062, PTERANODON: 60063, RAPTOR: 60064,
+  MINECART: 60065, BOAT: 60066, // fase 5D
   WAND: 60104,         // toverstaf: steekt een portaal aan
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
@@ -649,6 +667,8 @@ export const SPECIALS = {
   [ITEM.FISH]: { name: 'Vis', kind: 'animal', animal: 'fish' },
   [ITEM.DOLPHIN]: { name: 'Dolfijn', kind: 'animal', animal: 'dolphin' },
   [ITEM.SQUID]: { name: 'Inktvis', kind: 'animal', animal: 'squid' },
+  [ITEM.MINECART]: { name: 'Karretje', kind: 'vehicle', animal: 'minecart' },
+  [ITEM.BOAT]: { name: 'Bootje', kind: 'vehicle', animal: 'boat' },
   [ITEM.TREX]: { name: 'T-rex', kind: 'animal', animal: 'trex' },
   [ITEM.BRACHIO]: { name: 'Brachiosaurus', kind: 'animal', animal: 'brachio' },
   [ITEM.TRICERATOPS]: { name: 'Triceratops', kind: 'animal', animal: 'triceratops' },
@@ -724,6 +744,10 @@ export const PALETTE_GROUPS = [
     { title: 'Moestuin', icon: 'flower', items: [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO] },
   ]),
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK, ITEM.VILLAGE_HOUSE, ITEM.WELL] },
+  group('Rijden', [
+    { title: 'Rails en karretje', icon: 'minecart', items: [B.RAIL, ITEM.MINECART] },
+    { title: 'Op het water', icon: 'boat', items: [ITEM.BOAT] },
+  ]),
   group('Portalen', [
     { title: 'Portaalsteen', icon: 'portal', items: PORTAL_COLORS.map((c) => c.stone) },
     { title: 'Toverstaf en stempel', icon: 'wand', items: [ITEM.WAND, ITEM.PORTAL_STAMP] },

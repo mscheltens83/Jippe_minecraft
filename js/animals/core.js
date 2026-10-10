@@ -193,6 +193,13 @@ export class Animal {
 
   update(dt, world, effects, all = [], animate = true, clockDt = dt) {
     this.time += dt;
+    // Karretje en bootje lopen niet zelf: ze vallen of drijven alleen (fase 5D)
+    if (this.def.voertuig) {
+      this.walking = false; this.sleep = 0; this.happy = 0;
+      for (let left = dt; left > 0.00001;) { const step = Math.min(0.025, left); left -= step; this.gravity(step, world); }
+      this.sync(); if (animate) this.show(dt);
+      return;
+    }
     this.happy = Math.max(0, this.happy - dt);
     this.sleep = Math.max(0, this.sleep - clockDt);
     this.eatTime = Math.max(0, this.eatTime - dt);

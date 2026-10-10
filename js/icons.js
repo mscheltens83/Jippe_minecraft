@@ -117,6 +117,10 @@ export const ICONS = {
   heart: svg(`<path d="M24 42 C 10 32, 4 24, 4 16 C 4 9, 10 5, 15 5 C 19 5, 22 7, 24 11 C 26 7, 29 5, 33 5 C 38 5, 44 9, 44 16 C 44 24, 38 32, 24 42 Z" fill="#ff5a7a" ${S}/><path d="M12 14 Q14 10 18 10" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/>`),
   speak: svg(`<path d="M6 18 H14 L26 8 V40 L14 30 H6 Z" fill="#ffd84a" ${S}/><path d="M32 16 Q37 24 32 32 M37 11 Q45 24 37 37" fill="none" stroke="#1c2a33" stroke-width="3.5" stroke-linecap="round"/>`),
   star: svg(`<path d="M24 3 L30 17 L45 18 L33 28 L37 43 L24 35 L11 43 L15 28 L3 18 L18 17 Z" fill="#ffd84a" ${S}/>`),
+  // Rails en water (fase 5D)
+  minecart: svg(`<path d="M6 14 H42 L38 34 H10 Z" fill="#8c929a" ${S}/><path d="M6 14 H42" stroke="#b9bec6" stroke-width="4"/><circle cx="16" cy="38" r="5" fill="#26221f" ${S}/><circle cx="32" cy="38" r="5" fill="#26221f" ${S}/><path d="M2 44 H46" stroke="#7a5530" stroke-width="3"/>`),
+  boat: svg(`<path d="M4 24 H44 L38 38 H10 Z" fill="#b8874e" ${S}/><path d="M10 30 H38" stroke="#7a5530" stroke-width="2.5"/><path d="M14 24 L6 12 M34 24 L42 12" stroke="#7a5530" stroke-width="3.5" stroke-linecap="round"/><path d="M2 42 Q8 38 14 42 T26 42 T38 42 T48 42" fill="none" stroke="#4f93e0" stroke-width="3"/>`),
+  rail: svg(`<path d="M8 46 L16 2 M40 46 L32 2" stroke="#9aa0a8" stroke-width="4"/><path d="M8 40 H40 M10 30 H38 M12 20 H36 M14 10 H34" stroke="#7a5530" stroke-width="4"/>`),
   // Verkleden (fase 5C)
   hatCap: svg(`<path d="M8 30 Q8 12 24 12 Q40 12 40 30 Z" fill="#e8503d" ${S}/><path d="M6 30 H44 Q44 36 34 36 H6 Z" fill="#c23b2f" ${S}/><circle cx="24" cy="12" r="3" fill="#c23b2f"/>`),
   hatCrown: svg(`<path d="M6 36 L8 14 L17 24 L24 10 L31 24 L40 14 L42 36 Z" fill="#f2c230" ${S}/><circle cx="24" cy="29" r="3.5" fill="#d83b3b" ${S}/><circle cx="14" cy="30" r="2.5" fill="#3f7fd0"/><circle cx="34" cy="30" r="2.5" fill="#5cb84a"/>`),

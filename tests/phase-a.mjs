@@ -50,8 +50,9 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   });
   check(grid, 'zes wereldplekken staan in drie kolommen en twee rijen');
   await page.locator('.slot-card[aria-label="Wereld 6"]').tap();
-  check(await page.locator('.choice').count() === 7 && await page.locator('.choice[aria-label="Grote wereld"]').isVisible() &&
-    !(await page.locator('.choice[aria-label="Avontuur"]').count()), 'zeven wereldsoorten om uit te kiezen, met de Grote wereld en zonder Avontuur');
+  check(await page.locator('.choice').count() === 8 && await page.locator('.choice[aria-label="Grote wereld"]').isVisible() &&
+    await page.locator('.choice[aria-label="Dinowereld"]').isVisible() &&
+    !(await page.locator('.choice[aria-label="Avontuur"]').count()), 'acht wereldsoorten om uit te kiezen, met de Grote wereld en de Dinowereld, zonder Avontuur');
   const touchTargets = await run(() => [...document.querySelectorAll('.choice')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && !!e.querySelector('svg');
   }));
@@ -64,7 +65,7 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   check(await run(async () => (await window.__jippecraft.store.loadChunks('slot3')).size === 36), 'een zesde wereld maken behoudt de oude derde wereld');
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Natuur"]').tap();
-  check(await page.locator('.pal-items:not([hidden]) .pal-section').count() === 6 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat zes groepen met de nieuwe bouwblokken');
+  check(await page.locator('.pal-items:not([hidden]) .pal-section').count() === 7 && await page.locator('.pal-item[aria-label="Liaan"]').isVisible(), 'Natuur bevat zeven groepen met de nieuwe bouwblokken (ook de Dinowereld)');
   await page.locator('.pal-item[aria-label="Liaan"]').tap();
   check(await run(() => window.__jippecraft.hotbar[window.__jippecraft.sel] === 63), 'een liaan kiezen uit de kist werkt met aanraken');
 

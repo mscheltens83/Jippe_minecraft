@@ -11,7 +11,7 @@ Zoals altijd: alles in het Nederlands, groot en duidelijk voor een kind van 6, n
 | **5A** | Dinowereld: eigen landschappen, dino's, dino-eieren, rode portaalsteen | 5.0.0 ✅ |
 | **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 ✅ |
 | **5C** | Schatkisten en verkleden | 5.2.0 ✅ |
-| **5D** | Rails en karretje, bootje | 5.3.0 |
+| **5D** | Rails en karretje, bootje | 5.3.0 ✅ |
 | **5E** | Knoppen, hendels, drukplaten en lampen | 5.4.0 |
 
 Elk deel krijgt tests (unit en browser), docs, een eigen versie en een push, net als in fase 4.
@@ -115,6 +115,11 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 ### Klaar als
 - Een rondje rails met bochten en een helling werkt met het karretje.
 - Varen met het bootje werkt; uitstappen met de knop (zoals bij een dier).
+
+### Zo is het gebouwd (versie 5.3.0)
+- `rails.js`: tien standen per rail (recht, vier bochten, vier hellingen). Een nieuwe rail kiest zijn stand naar de rails ernaast; rails met een vrije kant draaien mee. Het karretje volgt een pad per vak (van het midden van de ene kant via het midden naar de andere kant) en gaat zo vanzelf de bocht om; hellingen omhoog en omlaag gaan langzamer en sneller.
+- Karretje en bootje zijn soorten met `voertuig` in `species.js`: ze lopen niet zelf rond, bewaren mee met de wereld en je gaat erin zitten met een tik (zonder temmen). Tijdens het rijden bestuurt `driveVehicle` (main.js) de speler in plaats van de gewone beweging. Vooruit in het karretje betekent doorrijden (ook in de bochten), achteruit remmen; stilstaand rijdt hij de kant op waar je kijkt. Het bootje vaart alleen waar water is.
+- Nieuw tabblad in de kist: **Rijden**. Drie nieuwe stickers: tien rails leggen, een stuk met het karretje, een stuk met het bootje.
 
 ## 6. Fase 5E: knoppen, hendels, drukplaten en lampen
 

@@ -16,7 +16,7 @@ export async function testPhase4A({ newPage, check, out, version, browser, base,
     const early = await parentOpen();
     check(!early && await waitTrue(page, () => !document.querySelector('.parent').hidden, null, 8000),
       'pas na 3 seconden vasthouden gaat het ouderscherm open');
-    check(/Versie\s*4/.test(await page.locator('.parent-info').textContent()), 'ouderscherm toont de versie');
+    check(/Versie\s*[45]/.test(await page.locator('.parent-info').textContent()), 'ouderscherm toont de versie');
     check(/Opstarten\s*\d+,\d s/.test(await page.locator('.parent-info').textContent()), 'ouderscherm toont hoe lang het opstarten duurde');
     check(await page.locator('.parent-none').isVisible(), 'ouderscherm: nog geen fouten');
 

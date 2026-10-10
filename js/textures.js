@@ -1022,6 +1022,21 @@ for (const [name, c] of Object.entries(WOODS4)) {
 }
 for (const log of ['log_side', 'birch_log_side', 'spruce_log_side', 'jungle_log_side', 'acacia_log_side']) GEN[log + '_r'] = rotated(GEN[log]);
 
+// Rails: twee ijzeren staven op houten bielzen. corner: [x, y] van de hoek waar een bocht omheen loopt
+function railTile(t, corner) {
+  t.clear();
+  const wood = [124, 88, 52], woodDark = [96, 66, 38], iron = [168, 170, 178], ironDark = [110, 112, 120];
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    let along, across; // positie langs het spoor (0..) en dwars erop (0 = midden)
+    if (corner === null) { along = y; across = x - 7.5; }
+    else if (corner === 'ew') { along = x; across = y - 7.5; }
+    else { const r = Math.hypot(x + 0.5 - corner[0], y + 0.5 - corner[1]); along = Math.atan2(y + 0.5 - corner[1], x + 0.5 - corner[0]) * 8 * 1.3; across = r - 8; }
+    const a = Math.abs(across);
+    if (a >= 4 && a < 5.6) t.set(x, y, a < 4.8 ? iron : ironDark);            // de staven
+    else if (a < 7 && ((Math.floor(along) % 4) + 4) % 4 < 2) t.set(x, y, a > 6 ? woodDark : wood); // bielzen
+  }
+}
+
 // ---------- Dinowereld (fase 5A) ----------
 function egg(t, base, spots) {
   t.clear();
@@ -1104,6 +1119,14 @@ Object.assign(GEN, {
     }
     t.set(7, 7, [60, 40, 20]); t.set(8, 7, [60, 40, 20]); t.set(6, 6, [90, 70, 50]); t.set(9, 6, [90, 70, 50]); // een muggetje
   },
+  // Rails (fase 5D): bovenaan is noord (-z), rechts is oost (+x)
+  rail_ns: (t) => railTile(t, null),
+  rail_ew: (t) => railTile(t, 'ew'),
+  rail_c0: (t) => railTile(t, [16, 0]),
+  rail_c1: (t) => railTile(t, [16, 16]),
+  rail_c2: (t) => railTile(t, [0, 16]),
+  rail_c3: (t) => railTile(t, [0, 0]),
+  rail_side: (t) => t.clear(), // de zijkant van de dunne rails zie je niet
   dino_egg_green: (t) => egg(t, [176, 214, 140], [76, 130, 60]),
   dino_egg_blue: (t) => egg(t, [168, 206, 236], [60, 104, 170]),
   dino_egg_red: (t) => egg(t, [240, 214, 186], [196, 70, 52]),

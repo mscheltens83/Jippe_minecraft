@@ -28,6 +28,7 @@ import { buildStamp } from './stamps.js';
 import { Quests, hasRoof } from './quests.js';
 import { Wardrobe, STICKER_PRIZES } from './wardrobe.js';
 import { iconURL } from './icons.js';
+import { placeState, neighbourChanges, startCart, stepCart, cartPose, isRail } from './rails.js';
 import { speech } from './speech.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
@@ -896,6 +897,7 @@ class Game {
     else if (sp.kind === 'bucket') this.useBucket(hit);
     else if (sp.kind === 'seed') this.plantSeed(hit, sp.crop);
     else if (sp.kind === 'wand') this.lightPortal(hit);
+    else if (sp.kind === 'vehicle') this.placeVehicle(hit, sp.animal);
     else this.placeAnimal(hit, sp.animal);
   }
 
@@ -922,6 +924,16 @@ class Game {
       }
     }
     if (!w.inside(x, y, z) || !BLOCKS[existing].replaceable || existing === id) return nope();
+    // Rails: sluiten vanzelf aan op de rails ernaast (fase 5D)
+    if (nb.family === B.RAIL) {
+      if (!OPAQUE[w.get(x, y - 1, z)]) return nope();
+      const rail = B.RAIL + placeState(w, x, y, z, f);
+      w.set(x, y, z, rail);
+      const more = neighbourChanges(w, x, y, z);
+      w.set(x, y, z, existing);
+      this.apply([{ x, y, z, from: existing, to: rail }, ...more]);
+      return this.placed(x, y, z, nb);
+    }
     // Ladder: tegen de muur die je aantikt
     if (nb.family === B.LADDER) {
       if (inPlace || hit.ny !== 0 || !OPAQUE[hit.id]) return nope();
@@ -1033,7 +1045,7 @@ class Game {
 
   // Geluidje, wolkje en een randje om het nieuwe blok
   placed(x, y, z, nb) {
-    this.note('place', { id: nb.id, bed: !!nb.bed, roof: !!nb.bed && hasRoof(this.world, x, y, z), dark: (this.world.lightAt(x, y, z) >> 4) < 4 });
+    this.note('place', { id: nb.id, rail: nb.family === B.RAIL, bed: !!nb.bed, roof: !!nb.bed && hasRoof(this.world, x, y, z), dark: (this.world.lightAt(x, y, z) >> 4) < 4 });
     this.sounds.place(nb.sound);
     this.particles.burst(x, y, z, [[1, 1, 1], [0.92, 0.95, 1]], 7, true);
     this.flash = { x, y, z, until: performance.now() / 1000 + 0.35 };
@@ -1118,7 +1130,7 @@ class Game {
     try {
       const riding = p.riding;
       if (riding) this.dismount();
-      const friends = this.animals.list.filter((a) => a === riding || (a.tame && !a.sitting && Math.hypot(a.x - p.x, a.z - p.z) < 10));
+      const friends = this.animals.list.filter((a) => a === riding || (a.tame && !a.sitting && !a.def.voertuig && Math.hypot(a.x - p.x, a.z - p.z) < 10));
       const carry = friends.map((a) => ({ data: this.animals.serializeOne(a), riding: a === riding }));
       for (const a of friends) this.animals.remove(a);
       this.portalPos = { x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) };
@@ -1168,6 +1180,79 @@ class Game {
     return theme ? (main ^ Math.imul(PORTAL_THEMES.indexOf(theme) + 1, 0x9e3779b1)) | 0 : main;
   }
 
+  // ---------- karretje en bootje (fase 5D) ----------
+
+  // Het karretje op de rails, het bootje op het water
+  placeVehicle(hit, type) {
+    const w = this.world, p = this.player;
+    let [x, y, z] = this.targetCell(hit, -1);
+    if (type === 'minecart') {
+      if (isRail(hit.id)) [x, y, z] = [hit.x, hit.y, hit.z];
+      if (!isRail(w.get(x, y, z))) { this.ui.say('Zet het karretje op de rails', 'minecart'); this.sounds.nope(); return; }
+    } else {
+      if (!WATERY[w.get(x, y, z)] && WATERY[w.get(x, y - 1, z)]) y--;
+      if (!WATERY[w.get(x, y, z)]) { this.ui.say('Zet het bootje op het water', 'boat'); this.sounds.nope(); return; }
+      while (WATERY[w.get(x, y + 1, z)]) y++;
+      y -= SPECIES.boat.floatDepth; // het water houdt op bij y + 1: daar drijft het bootje op
+    }
+    const yaw = Math.round(p.yaw / (Math.PI / 2)) * (Math.PI / 2);
+    const v = this.animals.spawn(type, x + 0.5, type === 'minecart' ? y : y + 1, z + 0.5, yaw);
+    if (!v) { this.sounds.nope(); return; }
+    this.sounds.place('metal');
+    this.particles.sparkle(x - 0.2, y, z - 0.2, x + 1.2, y + 1.2, z + 1.2, 25);
+    this.markDirty();
+  }
+
+  // Rijden in het karretje of varen met het bootje: de stuurknop vooruit of achteruit
+  driveVehicle(dt) {
+    const p = this.player, v = p.riding, w = this.world;
+    const mx = this.input.move.x, mz = this.input.move.y;
+    p.vx = p.vy = p.vz = 0;
+    if (v.def.voertuig === 'rails') {
+      if (!this.cart) this.cart = startCart(w, Math.floor(v.x), Math.floor(v.y + 0.3), Math.floor(v.z), this.facing());
+      if (!this.cart) return;
+      const now = cartPose(this.cart), [dx, dz] = DIRS[now.dir];
+      // Rijdt het karretje al? Dan is vooruit: doorrijden, en achteruit: remmen (ook in de bochten).
+      // Staat het stil, dan rijdt vooruit de kant op waar je kijkt.
+      const along = dx * -Math.sin(p.yaw) + dz * -Math.cos(p.yaw);
+      const dir = this.cart.speed > 0.3 ? 1 : along >= 0 ? 1 : -1;
+      const moving = stepCart(w, this.cart, Math.abs(mz) > 0.15 ? mz * dir : 0, dt);
+      const pose = cartPose(this.cart);
+      p.setPos({ x: pose.x, y: pose.y, z: pose.z }); p.onGround = true;
+      this.vehicleYaw = pose.yaw;
+      if (moving) {
+        this.cartDist = (this.cartDist || 0) + Math.abs(this.cart.speed) * dt;
+        if (this.cartDist > 16) { this.cartDist = 0; this.note('cartRide'); }
+        if ((this.cartSound = (this.cartSound || 0) - dt) <= 0) { this.sounds.step('metal'); this.cartSound = 0.5 / Math.max(1, Math.abs(this.cart.speed)); }
+      }
+      return;
+    }
+    // Bootje: varen over het water, niet het land op
+    const speed = 4.5, sin = Math.sin(p.yaw), cos = Math.cos(p.yaw);
+    const tx = (-sin * mz + cos * mx) * speed, tz = (-cos * mz - sin * mx) * speed, k = Math.min(1, dt * 2.5);
+    this.boatV.x += (tx - this.boatV.x) * k; this.boatV.z += (tz - this.boatV.z) * k;
+    const water = (x, z) => { // hoogte van het water hier, of null als het geen water is
+      const ix = Math.floor(x), iz = Math.floor(z), iy = Math.floor(p.y + 0.5);
+      for (let y = iy + 1; y >= iy - 1; y--) if (WATERY[w.get(ix, y, iz)] && !WATERY[w.get(ix, y + 1, iz)] && !BLOCKS[w.get(ix, y + 1, iz)].solid) return y + 1;
+      return null;
+    };
+    const r = 0.55;
+    const nx = p.x + this.boatV.x * dt, nz = p.z + this.boatV.z * dt;
+    const okX = water(nx + Math.sign(this.boatV.x) * r, p.z) !== null && w.isLoaded(nx, p.z);
+    if (okX) p.x = nx; else this.boatV.x = 0;
+    const okZ = water(p.x, nz + Math.sign(this.boatV.z) * r) !== null && w.isLoaded(p.x, nz);
+    if (okZ) p.z = nz; else this.boatV.z = 0;
+    const top = water(p.x, p.z);
+    if (top !== null) p.y += (top - v.def.floatDepth - p.y) * Math.min(1, dt * 6);
+    const sp = Math.hypot(this.boatV.x, this.boatV.z);
+    if (sp > 0.3) {
+      this.vehicleYaw = Math.atan2(-this.boatV.x, -this.boatV.z);
+      this.boatDist = (this.boatDist || 0) + sp * dt;
+      if (this.boatDist > 20) { this.boatDist = 0; this.note('boatRide'); }
+      if (Math.random() < dt * sp) this.particles.burst(p.x - 0.5, p.y - 0.1, p.z - 0.5, [[0.8, 0.9, 1], [1, 1, 1]], 3, true);
+    }
+  }
+
   placeAnimal(hit, type) {
     const w = this.world, p = this.player;
     const [x, y, z] = this.targetCell(hit, -1);
@@ -1211,7 +1296,7 @@ class Game {
   }
 
   petAnimal(a) {
-    if (a.tame && a.def.rijdbaar && !a.baby) { this.mountAnimal(a); return; }
+    if ((a.tame || a.def.voertuig) && a.def.rijdbaar && !a.baby) { this.mountAnimal(a); return; }
     // De ijzergolem geeft je soms een bloem
     if (a.type === 'golem') {
       const now = performance.now() / 1000;
@@ -1257,7 +1342,8 @@ class Game {
 
   mountAnimal(a) {
     const p = this.player;
-    if (p.riding || !a.tame || !a.def.rijdbaar) return false;
+    if (p.riding || (!a.tame && !a.def.voertuig) || !a.def.rijdbaar) return false;
+    this.cart = null; this.vehicleYaw = null; this.boatV = { x: 0, z: 0 };
     p.riding = a;
     if (p.collides(this.world, a.x, a.y, a.z)) { p.riding = null; this.sounds.nope(); return false; }
     this.animals.stopHunt(a);
@@ -1290,7 +1376,8 @@ class Game {
     const p = this.player, a = p.riding;
     if (!a) return false;
     const next = this.dismountSpot();
-    p.riding = null; a.riding = false; a.walking = false; a.sleep = 2; a.state = 'slapen';
+    p.riding = null; a.riding = false; a.walking = false; a.sleep = a.def.voertuig ? 0 : 2; a.state = a.def.voertuig ? 'rust' : 'slapen';
+    if (a.def.voertuig) { a.yaw = a.targetYaw = this.vehicleYaw ?? a.yaw; this.cart = null; this.vehicleYaw = null; }
     p.setPos(next); p.onGround = true;
     this.thirdPerson = this.rideCamera; this.ui.setThirdPerson(this.thirdPerson);
     this.ui.setRiding(false); this.ui.setFlying(false);
@@ -1301,7 +1388,8 @@ class Game {
   syncRide(dt) {
     const p = this.player, a = p.riding;
     if (!a) return;
-    a.x = p.x; a.y = p.y; a.z = p.z; a.yaw = p.yaw; a.targetYaw = p.yaw;
+    const yaw = a.def.voertuig ? this.vehicleYaw ?? a.yaw : p.yaw; // een karretje kijkt langs de rails
+    a.x = p.x; a.y = p.y; a.z = p.z; a.yaw = yaw; a.targetYaw = yaw;
     a.state = 'bereden'; a.walking = false; a.phase += Math.hypot(p.vx, p.vz) * dt * 2.7;
     a.swing = Math.min(1, Math.hypot(p.vx, p.vz) / 4);
     a.sync(); a.show(dt);
@@ -1594,7 +1682,7 @@ class Game {
       p.pitch = Math.max(-1.55, Math.min(1.55, p.pitch - dy));
       for (const tap of this.input.taps.splice(0)) if (!this.sleeping) this.act(tap);
       const wasClimbing = p.climbing;
-      p.update(dt, this.input, this.world, now);
+      if (p.riding?.def.voertuig) this.driveVehicle(dt); else p.update(dt, this.input, this.world, now);
       this.syncRide(dt);
       // In een portaal gestapt? Dan op reis (pas weer als je er eerst uit bent gestapt)
       const inPortal = portalAt(this.world, p.x, p.y, p.z);
