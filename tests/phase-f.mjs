@@ -4,10 +4,10 @@ export async function testPhaseF({ newPage, check, out }) {
   const run = (fn, arg) => page.evaluate(fn, arg);
   await page.locator('.album-btn').tap();
   check(await page.locator('.album').isVisible(), 'album opent met de boekknop in het menu');
-  check(await run(() => document.querySelectorAll('.album-section').length === 9 &&
-    document.querySelectorAll('.album-sticker').length === 41 &&
-    document.querySelectorAll('.album-sticker.unknown').length === 41),
-  'album groepeert 41 nog onbekende dieren per wereld');
+  check(await run(() => document.querySelectorAll('.album-section').length === 10 &&
+    document.querySelectorAll('.album-sticker').length === 48 &&
+    document.querySelectorAll('.album-sticker.unknown').length === 48),
+  'album groepeert 48 nog onbekende dieren per wereld (ook de dino\'s)');
   await page.locator('.album-head .close-btn').tap();
   await page.locator('.play-btn').tap();
   const spot = await run(async () => {
@@ -31,7 +31,7 @@ export async function testPhaseF({ newPage, check, out }) {
   await page.screenshot({ path: out + '/25-nieuwe-sticker.png' });
   await page.locator('.album-hud-btn').tap();
   check(await page.locator('.album').isVisible(), 'boekknop in het spel opent het album');
-  await page.waitForFunction(() => window.__jippecraft.album.stickers.size === 41, null, { timeout: 30000 });
+  await page.waitForFunction(() => window.__jippecraft.album.stickers.size === 48, null, { timeout: 30000 });
   check(await run(() => {
     const a = window.__jippecraft.album;
     return a.known.size === 1 && a.stickers.get('pig').startsWith('data:image/png') &&

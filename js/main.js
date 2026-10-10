@@ -25,6 +25,8 @@ import { Animals, SPECIES } from './animals.js';
 import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
+import { Quests, hasRoof } from './quests.js';
+import { speech } from './speech.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
@@ -144,12 +146,16 @@ class Game {
     const settings = this.storage.loadLocal('settings') || {};
     this.sounds.muted = !!settings.muted;
     this.settings = { ...settings, predators: settings.predators !== false, album: Array.isArray(settings.album) ? settings.album : [] };
+    // Opdrachtjes en stickers (fase 5B): van Jippe, in alle werelden samen
+    this.quests = new Quests(settings.stickers || {}, (q) => this.questDone(q));
+    speech.enabled = !this.sounds.muted;
     this.album = new Album(root, this.settings.album,
       (type) => { this.sounds.unlock(); this.sounds.animal(type); },
-      () => { this.settings.album = []; this.saveSettings(); });
+      () => { this.settings.album = []; this.saveSettings(); },
+      this.quests, () => { this.settings.stickers = this.quests.save(); this.saveSettings(); });
     this.animals.setPredators(this.settings.predators);
     this.animals.onCatch = () => { this.sounds.nom(); this.markDirty(); };
-    this.animals.onBreed = (baby) => { this.sounds.magic(); this.sounds.animal(baby.type); this.markDirty(); };
+    this.animals.onBreed = (baby) => { this.sounds.magic(); this.sounds.animal(baby.type); this.markDirty(); this.note('breed', { type: baby.type }); };
     this.music.on = settings.music !== false;
     this.thirdPerson = !!settings.third;
     this.ui.setMuted(this.sounds.muted);
@@ -662,6 +668,7 @@ class Game {
   toggleSound() {
     this.sounds.unlock();
     this.sounds.muted = !this.sounds.muted;
+    speech.enabled = !this.sounds.muted; // zonder geluid ook niet voorlezen
     this.saveSettings();
     this.ui.setMuted(this.sounds.muted);
     this.sounds.pop();
@@ -867,6 +874,7 @@ class Game {
     this.apply([{ x, y, z, from: hit.id, to: B.FARMLAND }, { x, y: y + 1, z, from: above, to: crop }]);
     this.sounds.place('grass');
     this.particles.burst(x, y + 0.5, z, [[0.45, 0.32, 0.2], [0.6, 0.8, 0.3]], 8, true);
+    this.note('plant', { crop });
   }
 
   // Staat het dier vóór het blok? (gras, bloemetjes en water staan niet in de weg)
@@ -1019,6 +1027,7 @@ class Game {
 
   // Geluidje, wolkje en een randje om het nieuwe blok
   placed(x, y, z, nb) {
+    this.note('place', { id: nb.id, bed: !!nb.bed, roof: !!nb.bed && hasRoof(this.world, x, y, z), dark: (this.world.lightAt(x, y, z) >> 4) < 4 });
     this.sounds.place(nb.sound);
     this.particles.burst(x, y, z, [[1, 1, 1], [0.92, 0.95, 1]], 7, true);
     this.flash = { x, y, z, until: performance.now() / 1000 + 0.35 };
@@ -1052,6 +1061,7 @@ class Game {
       this.ui.fade(false);
       this.sleeping = false;
       this.ui.say('Goedemorgen!', 'sun');
+      this.note('sleep');
       this.markDirty();
     }, 1600);
   }
@@ -1069,6 +1079,7 @@ class Game {
     }
     this.particles.sparkle(lo[0], lo[1], lo[2], hi[0], hi[1], hi[2], 80);
     this.sounds.magic();
+    this.note('stamp', { kind });
   }
 
   // ---------- portalen (fase 4H) ----------
@@ -1085,6 +1096,7 @@ class Game {
     const [x0, y0, z0] = found.cells[0];
     this.particles.sparkle(x0 - 2, y0 - 1, z0 - 2, x0 + 3, y0 + 4, z0 + 3, 90);
     this.sounds.magic();
+    this.note('portalLit', { color: found.color });
     return true;
   }
 
@@ -1134,6 +1146,7 @@ class Game {
       this.inPortal = true; // eerst uit het portaal stappen voordat je weer terug kunt
       await this.saveNow();
       this.ui.say(target ? `Welkom in de ${BIOMES[target]?.naam || target}!` : 'Weer thuis!', target ? BIOMES[target]?.icon : 'goHome');
+      this.note('portal', { theme: target });
     } catch (e) {
       logError(e, 'portaal');
       this.sounds.nope();
@@ -1187,6 +1200,7 @@ class Game {
       this.settings.album = [...this.album.known];
       this.saveSettings();
       this.sounds.magic();
+      this.note('album', { type: a.type, count: this.album.known.size });
     }
   }
 
@@ -1199,11 +1213,13 @@ class Game {
         a.flowerAt = now + 20; a.holdFlower = false;
         this.pick(B.FLOWER_RED);
         this.ui.say('De ijzergolem geeft je een bloem!', 'flower');
+        this.note('golemFlower');
       }
     }
     // Een tamme hond gaat zitten of staat weer op als je erop tikt
     if (a.tame && a.type === 'dog') {
       a.sitting = !a.sitting; a.walking = false;
+      if (a.sitting) this.note('sit');
       this.sounds.animal(a.type); this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, 0.8);
       a.show(0); this.markDirty();
       return;
@@ -1212,6 +1228,7 @@ class Game {
     this.animals.stopHunt(a, 30);
     a.pet(this.player.x, this.player.z);
     this.sounds.animal(a.type);
+    this.note('pet', { type: a.type });
     this.discoverAnimal(a);
     let heartSize = 1;
     // Temmen: drie keer snel aaien (leeuw, paard, hond, kat, kameel, olifant, cheetah, tijger)
@@ -1226,6 +1243,7 @@ class Game {
         this.particles.sparkle(a.x - 0.7, a.y, a.z - 0.7, a.x + 0.7, a.y + 1.8, a.z + 0.7, 70);
         this.sounds.magic();
         this.markDirty();
+        this.note('tame', { type: a.type });
       }
     }
     this.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, heartSize);
@@ -1243,6 +1261,7 @@ class Game {
     this.thirdPerson = true; this.ui.setThirdPerson(true);
     this.ui.setFlying(false); this.ui.setRiding(true);
     this.input.releaseAll(); this.sounds.magic(); this.markDirty();
+    this.note('ride', { type: a.type });
     return true;
   }
 
@@ -1332,8 +1351,39 @@ class Game {
     this.particles.heartsAt(a.x, a.y + 1, a.z, 1.2);
     this.sounds.pop(); this.sounds.animal(type);
     this.discoverAnimal(a);
-    this.onHatch?.(a);
+    this.note('hatch', { type });
     this.markDirty();
+  }
+
+  // ---------- opdrachtjes en stickers (fase 5B) ----------
+
+  // Het spel meldt wat Jippe doet; de opdrachtjes kijken of er een sticker bij komt
+  note(event, data) {
+    if (this.readOnly || this.bench) return;
+    this.quests.note(event, data);
+  }
+
+  questDone(q) {
+    this.settings.stickers = this.quests.save();
+    this.saveSettings();
+    this.album.stickerEarned(q);
+    this.sounds.magic();
+    const p = this.player;
+    this.particles.burst(p.x - 0.5, p.y + 1.6, p.z - 0.5, [[1, 0.85, 0.2], [1, 0.5, 0.7], [0.5, 0.8, 1]], 40, true);
+  }
+
+  // Elke seconde: waar is Jippe en wat ziet hij? (voor de opdrachtjes)
+  questTick(now) {
+    if (now < (this.nextQuestTick || 0) || !this.playing) return;
+    this.nextQuestTick = now + 1;
+    const p = this.player, w = this.world;
+    this.note('height', { y: p.y });
+    this.note('world', { type: w.type });
+    this.note('biome', { biome: this.biomeNow });
+    if (WATERY[w.get(Math.floor(p.x), Math.floor(p.y + EYE), Math.floor(p.z))]) this.note('dive');
+    for (const s of w.gen?.structuresNear?.(Math.floor(p.x) - 20, Math.floor(p.z) - 20, Math.floor(p.x) + 20, Math.floor(p.z) + 20) || []) {
+      this.note('near', { kind: s.kind });
+    }
   }
 
   openTreasure(hit) {
@@ -1366,6 +1416,7 @@ class Game {
     const to = b.waterlogged ? B.WATER : AIR;
     if (WATERY[hit.id] && b.render === 'water') { this.sounds.nope(); return; } // water sloop je niet, daar is de emmer voor
     const changes = [{ x, y, z, from: hit.id, to }];
+    this.note('break', { id: hit.id });
     if (b.shape === 'door' || TALL_PLANTS.has(b.family)) {
       const oy = b.upper ? y - 1 : y + 1;
       const other = w.get(x, oy, z);
@@ -1518,6 +1569,7 @@ class Game {
       const inPortal = portalAt(this.world, p.x, p.y, p.z);
       if (inPortal !== null && !this.inPortal && !this.readOnly) this.travel(inPortal);
       this.inPortal = inPortal !== null;
+      this.questTick(now);
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();

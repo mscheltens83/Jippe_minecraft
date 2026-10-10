@@ -9,7 +9,7 @@ Zoals altijd: alles in het Nederlands, groot en duidelijk voor een kind van 6, n
 | Deel | Wat | Versie |
 |---|---|---|
 | **5A** | Dinowereld: eigen landschappen, dino's, dino-eieren, rode portaalsteen | 5.0.0 ✅ |
-| **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 |
+| **5B** | Opdrachtjes en stickers, met voorlezen | 5.1.0 ✅ |
 | **5C** | Schatkisten en verkleden | 5.2.0 |
 | **5D** | Rails en karretje, bootje | 5.3.0 |
 | **5E** | Knoppen, hendels, drukplaten en lampen | 5.4.0 |
@@ -78,6 +78,12 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 ### Klaar als
 - Opdrachtjes worden vanzelf afgevinkt als Jippe het doet.
 - De stickers staan in het boek; voorlezen werkt; "Wat zal ik doen?" kiest een opdrachtje.
+
+### Zo is het gebouwd (versie 5.1.0)
+- `quests.js`: de lijst met opdrachtjes. Elk opdrachtje luistert naar één melding van het spel (`place`, `ride`, `near`, `hatch`, ...) en telt hoe vaak, of hoeveel verschillende (`soorten`). `main.js` meldt het met `note()`; elke seconde kijkt het spel ook waar Jippe is (hoogte, onder water, welk landschap, welk bouwwerk in de buurt).
+- De stickers bewaren we in de instellingen (`settings.stickers`), dus ze gelden voor alle wereldplekken samen.
+- `speech.js`: voorlezen met de Nederlandse stem van de iPad (`speechSynthesis`). Staat het geluid uit, dan leest hij niet voor.
+- Het boek (`album.js`) heeft tabbladen Dieren en Stickers; leegmaken kan per tabblad. Komen een sticker en een nieuw dier tegelijk, dan verschijnen ze na elkaar.
 
 ## 4. Fase 5C: schatkisten en verkleden
 

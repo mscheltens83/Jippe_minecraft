@@ -648,3 +648,23 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
   0% { transform: none; filter: none; }
   100% { transform: rotate(25deg) scale(1.6); filter: blur(10px) hue-rotate(90deg) brightness(1.6); opacity: 0.2; }
 }
+
+/* Het boek (fase 5B): tabbladen Dieren en Stickers, opdrachtjes met voorlezen */
+.album-tabs { display: flex; gap: 8px; margin-right: auto; }
+.album-tab { display: flex; align-items: center; gap: 6px; min-height: 52px; padding: 4px 14px 4px 6px; border: 3px solid #7a4f2a; border-radius: 14px;
+  background: #c99766; color: #fff; font: 700 18px/1 inherit; font-family: inherit; }
+.album-tab svg { width: 40px; height: 40px; }
+.album-tab.active { background: #fff4d6; color: var(--ink); border-color: #fff; }
+.quest-tip-row { display: flex; align-items: center; gap: 12px; margin: 4px 16px 6px; }
+.quest-tip-row[hidden] { display: none; }
+.quest-tip { display: flex; align-items: center; gap: 8px; width: auto; height: 60px; padding: 0 16px 0 8px; background: #4f93e0; color: #fff; font-size: 18px; font-weight: 700; flex-shrink: 0; }
+.quest-tip svg { width: 44px; height: 44px; }
+.quest-bubble { flex: 1; margin: 0; padding: 10px 14px; border: 3px solid var(--ink); border-radius: 16px; background: #fff; color: var(--ink); font-size: 18px; font-weight: 700; }
+.quest-bubble.pop { animation: sticker-bounce .45s ease-out; }
+.album-sticker.quest svg { width: 76px; height: 76px; pointer-events: none; }
+.album-sticker.quest.found { background: radial-gradient(circle, #fffbe8 55%, #ffe08a); border-color: #e2a72e; }
+.album-sticker.quest.unknown svg { filter: grayscale(1) brightness(.8); opacity: .55; }
+.album-sticker.quest.unknown span { inset: 22px 0 auto; }
+.quest-bar { position: absolute; left: 12px; right: 12px; bottom: 8px; height: 8px; border-radius: 4px; background: #8c9498; overflow: hidden; }
+.quest-bar b { display: block; height: 100%; background: #6cc24a; }
+@media (max-width: 700px) { .album-tab span { display: none; } .album-head h2 span { display: none; } }

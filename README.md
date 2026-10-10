@@ -52,6 +52,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Menu** | Huisje linksboven: geluid, muziek en de zes wereldplekken |
 | **Grote wereld** | De echte Minecraft-wereld: vlaktes, bossen, berkenbossen, bloemenvelden, sparrenbossen, sneeuw, hoge bergen, woestijn, mesa, savanne, jungle, moeras, stranden, zee en slingerende rivieren. Onder de grond liggen grotten met kolen, ijzer, goud, redstone, lapis en diamant |
 | **Themawerelden** | Jungle, Woestijn, Toendra en Savanne zijn eindeloos en hebben elk hun eigen landschappen: jungle met bamboebos en moeras; woestijn met mesa; toendra met sparrenbos, bergen en een bevroren zee; savanne met vlaktes. Werelden die je al eerder bewaard had, blijven zoals ze waren |
+| **Opdrachtjes en stickers** | In het boek (linksboven) staat naast de dieren het tabblad **Stickers**: 30 opdrachtjes, zoals een bed in een huis zetten, op een paard rijden, een dorp vinden of een dino-ei laten uitkomen. Lukt het, dan vliegt er een sticker in beeld. Tik op een sticker en de iPad leest het opdrachtje voor; **Wat zal ik doen?** kiest er een. Als het geluid uit staat, wordt er niet voorgelezen |
 | **Dinowereld** | Een eindeloze wereld met een varenvlakte, een oerbos met boomvarens en apenbomen, en vulkanen (rook en gloeiende magmasteen, maar geen lava). Zeven vriendelijke dino's: T-rex, Brachiosaurus en Triceratops kun je temmen (drie keer aaien) en berijden, de Velociraptor volgt je als hij tam is, de Pteranodon vliegt. Tik op een **dino-ei** en er komt een jonge dino uit. Onder de grond liggen fossielen en barnsteen. Je komt er met **rode portaalsteen**, of kies hem als nieuwe wereld |
 | **Portalen** | In de kist onder **Portalen**: portaalsteen in 4 kleuren en de toverstaf. Bouw een frame van portaalsteen (4 breed en 5 hoog, of groter), tik erop met de toverstaf en het portaal gaat aan. Groen gaat naar de Jungle, geel naar de Woestijn, wit naar de Toendra, oranje naar de Savanne en rood naar de Dinowereld. Loop erdoorheen: daar staat een portaal terug. Je dier (waar je op rijdt, of een tam dier dat je volgt) gaat mee. Te moeilijk? De portaal-stempel zet er in één tik een neer |
 | **Eindeloze wereld** | De wereld houdt nergens op: loop, zwem of vlieg zo ver je wilt. Verderop liggen nieuwe stukken land, bomen, dieren en soms een tempel, piramide, iglo of leeuwenrots |
@@ -189,6 +190,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/avatar.js`, `js/models.js` | Het poppetje en de blokkige figuurtjes |
 | `js/stamps.js` | De stempels: huisje, boom, toren en brug |
 | `js/animals/dinos.js` | De zeven dino's van de Dinowereld |
+| `js/quests.js`, `js/speech.js` | De opdrachtjes met stickers, en het voorlezen |
 | `js/portal.js` | Portalen: een frame van portaalsteen herkennen, een kant-en-klaar portaal bouwen, zien of je in een portaal staat |
 | `js/particles.js` | Brokjes, vuurwerk, hartjes, glitters, Zzz, stof, waterdruppels en rook |
 | `js/version.js` | Het versienummer (hoort bij `CACHE` in `sw.js`) |
