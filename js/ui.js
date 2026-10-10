@@ -15,9 +15,10 @@ const SPECIAL_ICONS = {
   [ITEM.MONKEY]: 'monkey', [ITEM.PARROT]: 'parrot', [ITEM.PANDA]: 'panda', [ITEM.FROG]: 'frog', [ITEM.SLOTH]: 'sloth',
   [ITEM.CAMEL]: 'camel', [ITEM.FENNEC]: 'fennec', [ITEM.LIZARD]: 'lizard', [ITEM.TURTLE]: 'turtle',
   [ITEM.POLAR_BEAR]: 'polarBear', [ITEM.PENGUIN]: 'penguin', [ITEM.REINDEER]: 'reindeer', [ITEM.ARCTIC_FOX]: 'arcticFox', [ITEM.SEAL]: 'seal', [ITEM.SNOWY_OWL]: 'snowyOwl',
+  [ITEM.BUCKET]: 'bucket', [ITEM.WHEAT_SEEDS]: 'seeds', [ITEM.CARROT]: 'carrot', [ITEM.POTATO]: 'potato',
   [ITEM.IGLOO]: 'igloo', [ITEM.PYRAMID]: 'pyramid', [ITEM.TEMPLE]: 'temple', [ITEM.LION_ROCK]: 'lionRock',
 };
-const GROUP_ICONS = { Blokken: 'build', Natuur: 'tree', Licht: 'torch', Stempels: 'house', Dieren: 'pig' };
+const GROUP_ICONS = { Bouwen: 'build', Kleuren: 'palette', Natuur: 'tree', 'Licht en huis': 'torch', Planten: 'flower', Stempels: 'house', Dieren: 'pig' };
 
 function el(tag, cls, html) {
   const e = document.createElement(tag);

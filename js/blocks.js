@@ -33,7 +33,66 @@ export const B = {
   TORCH: 121,        // 121: fakkel op de grond, 122..125: tegen een muur (muur aan kant 0..3)
   LANTERN: 126, LANTERN_HANGING: 127, GLOWSTONE: 128, JACK_O_LANTERN: 129, CAMPFIRE: 130,
   BED: 131,          // 131..150: bed in 10 kleuren, steeds voeteneind en hoofdeind
+  // Blokken en bouwen (fase 4F). De nummers liggen vast: ze staan in bewaarde werelden.
+  WOOL_MAGENTA: 151, WOOL_GRAY: 152, WOOL_LIGHTGRAY: 153, WOOL_CYAN: 154, WOOL_BROWN: 155, WOOL_DARKGREEN: 156,
+  CARPET: 160,       // 160..175: tapijt in 16 kleuren (volgorde van COLORS)
+  CONCRETE: 176,     // 176..191: beton
+  TERRACOTTA: 192,   // 192..207: gekleurde terracotta
+  GLASS2: 208,       // 208..218: de 11 glaskleuren die er nog niet waren
+  PANE: 220,         // 220: glazen paneel, 221..236: gekleurde panelen
+  POLISHED_GRANITE: 240, POLISHED_DIORITE: 241, POLISHED_ANDESITE: 242, STONE_BRICKS: 243, MOSSY_STONE_BRICKS: 244,
+  CRACKED_STONE_BRICKS: 245, SMOOTH_STONE: 246, QUARTZ: 247, OBSIDIAN: 248, IRON_BLOCK: 249, COPPER_BLOCK: 250,
+  EMERALD_BLOCK: 251, LAPIS_BLOCK: 252, SEA_LANTERN: 253,
+  BIRCH_PLANKS: 260, SPRUCE_PLANKS: 261, JUNGLE_PLANKS: 262, ACACIA_PLANKS: 263,
+  LOG_AXIS: 264,     // 264..273: liggende stammen, per houtsoort langs x en langs z
+  STAIRS_UP: 280,    // 280..283: eikenhouten trap ondersteboven
+  STAIRS2: 284,      // 284..363: trappen van de andere 10 materialen (8 standen elk)
+  SLAB: 370,         // 370..391: platen (onder, boven) van 11 materialen
+  FENCE2: 392,       // 392..395: hekken van berk, spar, jungle en acacia
+  GATE2: 400,        // 400..431: hekdeuren van de andere houtsoorten
+  DOOR2: 440,        // 440..503: deuren van de andere houtsoorten
+  CRAFTING_TABLE: 510, FURNACE: 511, // 511..518: oven (richting x aan/uit)
+  CHEST: 519,        // 519..526: kist (richting x dicht/open)
+  LADDER: 527,       // 527..530: ladder tegen een muur
+  FLOWER_POT: 531, JUKEBOX: 533, CAKE: 534, // 534..537: taart met 0..3 happen eruit
+  SUNFLOWER: 540,    // 540 onder, 541 boven
+  SUGAR_CANE: 542, SEAWEED: 543, CORAL_RED: 544, CORAL_YELLOW: 545, CORAL_BLUE: 546, FARMLAND: 547,
+  WHEAT: 548, CARROTS: 552, POTATOES: 556, // elk 4 groeistappen
+  WATER_FLOW: 560,   // 560..566: stromend water (1 = vlak bij de bron, 7 = het verst); 567: vallend water
 };
+
+// De 16 kleuren (zelfde volgorde als in Minecraft) met het id van de wol in die kleur
+export const COLORS = [
+  ['white', 'Wit', 28], ['orange', 'Oranje', 21], ['magenta', 'Magenta', 151], ['lightblue', 'Lichtblauw', 24],
+  ['yellow', 'Geel', 22], ['lime', 'Groen', 23], ['pink', 'Roze', 27], ['gray', 'Grijs', 152],
+  ['lightgray', 'Lichtgrijs', 153], ['cyan', 'Cyaan', 154], ['purple', 'Paars', 26], ['blue', 'Blauw', 25],
+  ['brown', 'Bruin', 155], ['green', 'Donkergroen', 156], ['red', 'Rood', 20], ['black', 'Zwart', 29],
+];
+// Glas per kleur: de 5 oude glaskleuren hebben hun eigen id gehouden
+const OLD_GLASS = { red: 36, yellow: 37, lime: 38, blue: 39, purple: 40 };
+const NEW_GLASS = ['white', 'orange', 'magenta', 'lightblue', 'pink', 'gray', 'lightgray', 'cyan', 'brown', 'green', 'black'];
+export function glassId(color) { return OLD_GLASS[color] ?? B.GLASS2 + NEW_GLASS.indexOf(color); }
+
+// Houtsoorten: stam, planken en het tegelvoorvoegsel
+export const WOODS = [
+  { key: 'oak', name: 'Eiken', log: B.LOG, planks: B.PLANKS, tex: 'log', planksTex: 'planks' },
+  { key: 'birch', name: 'Berken', log: B.BIRCH_LOG, planks: B.BIRCH_PLANKS, tex: 'birch_log', planksTex: 'birch_planks' },
+  { key: 'spruce', name: 'Sparren', log: B.SPRUCE_LOG, planks: B.SPRUCE_PLANKS, tex: 'spruce_log', planksTex: 'spruce_planks' },
+  { key: 'jungle', name: 'Jungle', log: B.JUNGLE_LOG, planks: B.JUNGLE_PLANKS, tex: 'jungle_log', planksTex: 'jungle_planks' },
+  { key: 'acacia', name: 'Acacia', log: B.ACACIA_LOG, planks: B.ACACIA_PLANKS, tex: 'acacia_log', planksTex: 'acacia_planks' },
+];
+// Materialen voor trappen en platen (0..4 zijn de houtsoorten). block = het volle blok (twee platen op elkaar).
+export const MATERIALS = [
+  ...WOODS.map((w) => ({ name: w.name, block: w.planks, sound: 'wood' })),
+  { name: 'Keien', block: B.COBBLE, sound: 'stone' }, { name: 'Stenen', block: B.STONE, sound: 'stone' },
+  { name: 'Stenen bakstenen', block: B.STONE_BRICKS, sound: 'stone' }, { name: 'Bakstenen', block: B.BRICK, sound: 'stone' },
+  { name: 'Zandstenen', block: B.SANDSTONE, sound: 'sand' }, { name: 'Kwarts', block: B.QUARTZ, sound: 'stone' },
+];
+export function stairsId(mat, dir, upside = false) {
+  if (mat === 0) return upside ? B.STAIRS_UP + dir : B.STAIRS + dir;
+  return B.STAIRS2 + (mat - 1) * 8 + dir + (upside ? 4 : 0);
+}
+export function slabId(mat, top = false) { return B.SLAB + mat * 2 + (top ? 1 : 0); }
 
 // Kleuren van de bedden (dezelfde als de wol)
 export const BED_COLORS = ['red', 'orange', 'yellow', 'green', 'lightblue', 'blue', 'purple', 'pink', 'white', 'black'];
@@ -44,12 +103,16 @@ export function torchId(wall = -1) { return wall < 0 ? B.TORCH : B.TORCH + 1 + w
 // Richtingen: 0 = -z (noord), 1 = +x (oost), 2 = +z (zuid), 3 = -x (west)
 export const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
+// Blokken hebben een id onder MAX_ID; stempels, dieren en gereedschap uit de kist vanaf ITEM_BASE
+export const MAX_ID = 1024;
+export const ITEM_BASE = 60000;
 export const BLOCKS = [];
-export const OPAQUE = new Uint8Array(256);
-export const EMIT = new Uint8Array(256);   // hoeveel licht een blok zelf geeft (0..15)
+export const OPAQUE = new Uint8Array(MAX_ID);
+export const EMIT = new Uint8Array(MAX_ID);   // hoeveel licht een blok zelf geeft (0..15)
 const FULL_BOX = [[0, 0, 0, 1, 1, 1]];
 const NO_BOXES = Object.freeze([]); // lucht en plantjes: steeds dezelfde lege lijst, geen nieuw werk voor de iPad
 
+const EXTRA = ['axis', 'mat', 'upside', 'slabTop', 'wood', 'lit', 'bites', 'crop', 'stage', 'level', 'waterlogged', 'boxBuf'];
 function def(id, name, tex, opts = {}) {
   const t = typeof tex === 'string' ? { top: tex, side: tex, bottom: tex } : tex;
   const render = opts.render || 'solid';
@@ -76,6 +139,8 @@ function def(id, name, tex, opts = {}) {
     bed: opts.bed ?? null,     // { color, head }
     icon: opts.icon || null,   // plat plaatje in de kist in plaats van een blokje
   };
+  // Extra eigenschappen van sommige blokken (fase 4F): stand, materiaal, groeistap, ...
+  for (const k of EXTRA) if (k in opts) BLOCKS[id][k] = opts[k];
   OPAQUE[id] = render === 'solid' ? 1 : 0;
   EMIT[id] = opts.light || 0;
 }
@@ -138,7 +203,9 @@ for (let d = 0; d < 4; d++) {
 // Deur: een dun plankje aan de rand van het vakje. Open = plankje draait naar de zijkant.
 const T = 3 / 16;
 const PANEL = [[0, 0, 0, 1, 1, T], [1 - T, 0, 0, 1, 1, 1], [0, 0, 1 - T, 1, 1, 1], [0, 0, 0, T, 1, 1]];
-export function doorId(dir, upper, open) { return B.DOOR + dir * 4 + (upper ? 2 : 0) + (open ? 1 : 0); }
+export function doorId(dir, upper, open, wood = 0) {
+  return (wood ? B.DOOR2 + (wood - 1) * 16 : B.DOOR) + dir * 4 + (upper ? 2 : 0) + (open ? 1 : 0);
+}
 for (let d = 0; d < 4; d++) {
   for (const upper of [false, true]) {
     for (const open of [false, true]) {
@@ -206,7 +273,7 @@ const FENCE_BARRIERS = [
   [7 / 16, 0, 8 / 16, 9 / 16, 1.5, 1], [0, 0, 7 / 16, 8 / 16, 1.5, 9 / 16],
 ];
 def(B.FENCE, 'Hek', 'planks', { render: 'shape', shape: 'fence', boxes: [FENCE_POST], sound: 'wood' });
-export function gateId(dir, open) { return B.GATE + dir * 2 + (open ? 1 : 0); }
+export function gateId(dir, open, wood = 0) { return (wood ? B.GATE2 + (wood - 1) * 8 : B.GATE) + dir * 2 + (open ? 1 : 0); }
 for (let d = 0; d < 4; d++) for (const open of [false, true]) {
   // Open staat het hekblad langs de zijkant; de doorgang blijft breed genoeg.
   const alongX = d % 2 === 0;
@@ -221,10 +288,13 @@ for (let d = 0; d < 4; d++) for (const open of [false, true]) {
   ];
   const folded = alongX ? (d === 0 ? [0, 0, 1 / 16, 1 / 16, 1.5, 15 / 16] : [15 / 16, 0, 1 / 16, 1, 1.5, 15 / 16])
     : (d === 1 ? [1 / 16, 0, 15 / 16, 15 / 16, 1.5, 1] : [1 / 16, 0, 0, 15 / 16, 1.5, 1 / 16]);
-  def(gateId(d, open), 'Hekdeur', 'planks', {
-    render: 'shape', shape: 'gate', dir: d, open, family: B.GATE, boxes: open ? [folded] : panel, sound: 'wood',
+  WOODS.forEach((w, wood) => {
+    def(gateId(d, open, wood), wood ? w.name + ' hekdeur' : 'Hekdeur', w.planksTex, {
+      render: 'shape', shape: 'gate', dir: d, open, wood, family: gateId(0, false, wood), boxes: open ? [folded] : panel, sound: 'wood',
+    });
   });
 }
+WOODS.forEach((w, wood) => { if (wood) def(B.FENCE2 + wood - 1, w.name + ' hek', w.planksTex, { render: 'shape', shape: 'fence', wood, boxes: [FENCE_POST], sound: 'wood' }); });
 def(B.HAY, 'Hooibaal', { top: 'hay_top', side: 'hay_side', bottom: 'hay_top' }, { sound: 'grass' });
 
 // Grote wereld: ertsen en steensoorten onder de grond, berkenbos, moeras en bloemenvelden
@@ -288,12 +358,148 @@ BED_COLORS.forEach((color, c) => {
   }
 });
 
+// ---------- Blokken en bouwen (fase 4F) ----------
+
+// Steen en mooie blokken
+def(B.POLISHED_GRANITE, 'Gepolijst graniet', 'polished_granite');
+def(B.POLISHED_DIORITE, 'Gepolijst dioriet', 'polished_diorite');
+def(B.POLISHED_ANDESITE, 'Gepolijst andesiet', 'polished_andesite');
+def(B.STONE_BRICKS, 'Stenen bakstenen', 'stone_bricks');
+def(B.MOSSY_STONE_BRICKS, 'Mossige stenen bakstenen', 'mossy_stone_bricks');
+def(B.CRACKED_STONE_BRICKS, 'Gebarsten stenen bakstenen', 'cracked_stone_bricks');
+def(B.SMOOTH_STONE, 'Gladde steen', 'smooth_stone');
+def(B.QUARTZ, 'Kwarts', 'quartz');
+def(B.OBSIDIAN, 'Obsidiaan', 'obsidian');
+def(B.IRON_BLOCK, 'IJzerblok', 'iron_block', { sound: 'metal' });
+def(B.COPPER_BLOCK, 'Koperblok', 'copper_block', { sound: 'metal' });
+def(B.EMERALD_BLOCK, 'Smaragdblok', 'emerald_block', { sound: 'metal' });
+def(B.LAPIS_BLOCK, 'Lapisblok', 'lapis_block', { sound: 'metal' });
+def(B.SEA_LANTERN, 'Zeelantaarn', 'sea_lantern', { glow: true, light: 15, sound: 'glass' });
+
+// Hout: planken van de andere soorten en liggende stammen
+WOODS.forEach((w, i) => {
+  if (i) def(w.planks, w.name + ' planken', w.planksTex, { sound: 'wood' });
+  const side = w.tex + '_side', top = w.tex + '_top', rot = side + '_r';
+  // langs x: de jaarringen aan de kanten +x en -x, de schors liggend
+  def(B.LOG_AXIS + i * 2, BLOCKS[w.log].name, { top: rot, bottom: rot, side: rot, px: top, nx: top }, { sound: 'wood', family: w.log, axis: 'x' });
+  // langs z: jaarringen aan de kanten +z en -z
+  def(B.LOG_AXIS + i * 2 + 1, BLOCKS[w.log].name, { top: side, bottom: side, side: rot, pz: top, nz: top }, { sound: 'wood', family: w.log, axis: 'z' });
+});
+
+// Trappen (ook ondersteboven) en platen van 11 materialen
+const STAIR_LOW = STAIR_TOP.map((b) => [b[0], 0, b[2], b[3], 0.5, b[5]]);
+const texOf = (id) => BLOCKS[id].tex;
+MATERIALS.forEach((m, mat) => {
+  for (let d = 0; d < 4; d++) for (const upside of [false, true]) {
+    const id = stairsId(mat, d, upside);
+    if (BLOCKS[id]) continue; // de gewone eikenhouten trap bestond al
+    def(id, mat ? m.name + ' trap' : 'Trap', texOf(m.block), {
+      render: 'shape', shape: 'stairs', dir: d, upside, mat, family: stairsId(mat, 0), sound: m.sound,
+      boxes: upside ? [[0, 0.5, 0, 1, 1, 1], STAIR_LOW[d]] : [[0, 0, 0, 1, 0.5, 1], STAIR_TOP[d]],
+    });
+  }
+  def(slabId(mat), m.name + ' plaat', texOf(m.block), { render: 'shape', shape: 'slab', mat, slabTop: false, family: slabId(mat), sound: m.sound, boxes: [[0, 0, 0, 1, 0.5, 1]] });
+  def(slabId(mat, true), m.name + ' plaat', texOf(m.block), { render: 'shape', shape: 'slab', mat, slabTop: true, family: slabId(mat), sound: m.sound, boxes: [[0, 0.5, 0, 1, 1, 1]] });
+});
+for (let d = 0; d < 4; d++) BLOCKS[B.STAIRS + d].mat = 0;
+
+// Deuren van de andere houtsoorten
+WOODS.forEach((w, wood) => {
+  if (!wood) return;
+  for (let d = 0; d < 4; d++) for (const upper of [false, true]) for (const open of [false, true]) {
+    def(doorId(d, upper, open, wood), w.name + ' deur', { top: w.planksTex, side: (upper ? 'door_upper_' : 'door_lower_') + w.key, bottom: w.planksTex }, {
+      render: 'shape', shape: 'door', dir: d, upper, open, wood, family: doorId(0, false, false, wood), sound: 'wood',
+      boxes: [PANEL[open ? (d + 3) % 4 : d]],
+    });
+  }
+});
+for (let k = 0; k < 16; k++) BLOCKS[B.DOOR + k].wood = 0;
+
+// Een glazen paneel groeit vast aan buren (panelen, glas en volle blokken), net als een hek
+const PANE_POST = [7 / 16, 0, 7 / 16, 9 / 16, 1, 9 / 16];
+const PANE_ARMS = [[7 / 16, 0, 0, 9 / 16, 1, 7 / 16], [9 / 16, 0, 7 / 16, 1, 1, 9 / 16], [7 / 16, 0, 9 / 16, 9 / 16, 1, 1], [0, 0, 7 / 16, 7 / 16, 1, 9 / 16]];
+function paneBoxes(world, x, y, z) {
+  const boxes = [PANE_POST];
+  for (let d = 0; d < 4; d++) {
+    const [dx, dz] = DIRS[d], n = BLOCKS[world.get(x + dx, y, z + dz)];
+    if (n && (n.shape === 'pane' || n.render === 'glass' || n.id === B.GLASS || (n.solid && !n.boxes))) boxes.push(PANE_ARMS[d]);
+  }
+  return boxes;
+}
+
+// 16 kleuren: wol, tapijt, beton, terracotta, glas en glazen panelen
+const COLOR_TEX = (name) => (name === 'lime' ? 'green' : name === 'green' ? 'darkgreen' : name);
+const NEW_WOOL_IDS = { magenta: B.WOOL_MAGENTA, gray: B.WOOL_GRAY, lightgray: B.WOOL_LIGHTGRAY, cyan: B.WOOL_CYAN, brown: B.WOOL_BROWN, green: B.WOOL_DARKGREEN };
+COLORS.forEach(([color, name, woolId], i) => {
+  if (NEW_WOOL_IDS[color]) def(woolId, name, 'wool_' + COLOR_TEX(color), { sound: 'wool' });
+  def(B.CARPET + i, name + ' tapijt', 'wool_' + COLOR_TEX(color), { render: 'shape', boxes: [[0, 0, 0, 1, 1 / 16, 1]], sound: 'wool' });
+  def(B.CONCRETE + i, name + ' beton', 'concrete_' + color);
+  def(B.TERRACOTTA + i, name + ' terracotta', 'terracotta_' + color);
+  if (NEW_GLASS.includes(color)) def(glassId(color), name + ' glas', 'glass_' + color, { render: 'glass', sound: 'glass' });
+  const g = glassId(color);
+  def(B.PANE + 1 + i, name + ' glazen paneel', BLOCKS[g].tex, { render: 'shape', shape: 'pane', boxBuf: 'glass', boxes: [PANE_POST], sound: 'glass' });
+});
+def(B.PANE, 'Glazen paneel', 'glass', { render: 'shape', shape: 'pane', boxBuf: 'cutout', boxes: [PANE_POST], sound: 'glass' });
+
+// In huis
+def(B.CRAFTING_TABLE, 'Werkbank', { top: 'crafting_table_top', side: 'crafting_table_side', bottom: 'planks' }, { sound: 'wood' });
+const CHEST_LID = [[1 / 16, 10 / 16, 13 / 16, 15 / 16, 1, 15 / 16], [1 / 16, 10 / 16, 1 / 16, 3 / 16, 1, 15 / 16],
+  [1 / 16, 10 / 16, 1 / 16, 15 / 16, 1, 3 / 16], [13 / 16, 10 / 16, 1 / 16, 15 / 16, 1, 15 / 16]];
+const front = (d, tex, rest) => ({ ...rest, [['nz', 'px', 'pz', 'nx'][d]]: tex });
+for (let d = 0; d < 4; d++) for (const lit of [false, true]) {
+  def(B.FURNACE + d * 2 + (lit ? 1 : 0), 'Oven', front(d, lit ? 'furnace_front_lit' : 'furnace_front', { top: 'furnace_top', side: 'furnace_side', bottom: 'furnace_top' }), {
+    dir: d, lit, family: B.FURNACE, light: lit ? 13 : 0, sound: 'stone',
+  });
+  def(B.CHEST + d * 2 + (lit ? 1 : 0), 'Kist', front(d, 'chest_front', { top: 'chest_top', side: 'chest_side', bottom: 'chest_top' }), {
+    render: 'shape', dir: d, open: lit, family: B.CHEST, sound: 'wood',
+    // open: het deksel staat rechtop aan de achterkant
+    boxes: lit ? [[1 / 16, 0, 1 / 16, 15 / 16, 10 / 16, 15 / 16], CHEST_LID[d]] : [[1 / 16, 0, 1 / 16, 15 / 16, 14 / 16, 15 / 16]],
+  });
+  def(B.LADDER + d, 'Ladder', 'ladder', {
+    render: 'shape', solid: false, replaceable: false, climb: true, dir: d, family: B.LADDER, boxBuf: 'cutout', sound: 'wood', icon: 'ladder',
+    boxes: [[[0, 0, 0, 1, 1, 1 / 16], [15 / 16, 0, 0, 1, 1, 1], [0, 0, 15 / 16, 1, 1, 1], [0, 0, 0, 1 / 16, 1, 1]][d]],
+  });
+}
+def(B.FLOWER_POT, 'Bloempot', 'flower_pot', { render: 'shape', boxes: [[5 / 16, 0, 5 / 16, 11 / 16, 6 / 16, 11 / 16]], sound: 'stone' });
+def(B.JUKEBOX, 'Jukebox', { top: 'jukebox_top', side: 'jukebox_side', bottom: 'jukebox_side' }, { sound: 'wood' });
+for (let bites = 0; bites < 4; bites++) {
+  def(B.CAKE + bites, 'Taart', { top: 'cake_top', side: 'cake_side', bottom: 'cake_side', nx: bites ? 'cake_inner' : 'cake_side' }, {
+    render: 'shape', bites, family: B.CAKE, sound: 'wool', boxes: [[(1 + bites * 3.5) / 16, 0, 1 / 16, 15 / 16, 0.5, 15 / 16]],
+  });
+}
+
+// Planten
+def(B.SUNFLOWER, 'Zonnebloem', 'sunflower_bottom', { render: 'cross', sound: 'grass', family: B.SUNFLOWER, icon: 'sunflower_top' });
+def(B.SUNFLOWER + 1, 'Zonnebloem', 'sunflower_top', { render: 'cross', sound: 'grass', family: B.SUNFLOWER, upper: true });
+def(B.SUGAR_CANE, 'Suikerriet', 'sugar_cane', { render: 'cross', sound: 'grass' });
+def(B.SEAWEED, 'Zeewier', 'seaweed', { render: 'cross', waterlogged: true, sound: 'grass' });
+def(B.CORAL_RED, 'Rood koraal', 'coral_red', { render: 'cross', waterlogged: true, sound: 'grass' });
+def(B.CORAL_YELLOW, 'Geel koraal', 'coral_yellow', { render: 'cross', waterlogged: true, sound: 'grass' });
+def(B.CORAL_BLUE, 'Blauw koraal', 'coral_blue', { render: 'cross', waterlogged: true, sound: 'grass' });
+def(B.FARMLAND, 'Akker', { top: 'farmland', side: 'dirt', bottom: 'dirt' }, { render: 'shape', boxes: [[0, 0, 0, 1, 15 / 16, 1]], sound: 'grass' });
+for (let st = 0; st < 4; st++) {
+  def(B.WHEAT + st, 'Tarwe', 'wheat_' + st, { render: 'cross', crop: 'wheat', stage: st, family: B.WHEAT, sound: 'grass' });
+  def(B.CARROTS + st, 'Wortels', 'carrots_' + st, { render: 'cross', crop: 'carrots', stage: st, family: B.CARROTS, sound: 'grass' });
+  def(B.POTATOES + st, 'Aardappels', 'potatoes_' + st, { render: 'cross', crop: 'potatoes', stage: st, family: B.POTATOES, sound: 'grass' });
+}
+
+// Stromend water: level 1 (vlak bij de bron) tot 7, en 8 = vallend water
+for (let level = 1; level <= 8; level++) {
+  def(B.WATER_FLOW + level - 1, 'Water', 'water', { render: 'water', sound: 'water', family: B.WATER, level });
+}
+BLOCKS[B.WATER].level = 0;
+
+// Vakjes met water erin: bron, stromend water en planten die onder water staan
+export const WATERY = new Uint8Array(MAX_ID);
+for (const b of BLOCKS) if (b && (b.render === 'water' || b.waterlogged)) WATERY[b.id] = 1;
+
 // Dezelfde vormen dienen voor tekenen én botsen. Een hek groeit vast aan buren.
 export function blockBoxes(world, x, y, z, collision = false) {
   const id = world.get(x, y, z), b = BLOCKS[id];
   // Fakkels en lantaarns teken je wel, maar je botst er niet tegenaan
   if (!b?.solid) return collision || !b?.boxes ? NO_BOXES : b.boxes;
-  if (id === B.FENCE) {
+  if (b.shape === 'pane') return paneBoxes(world, x, y, z);
+  if (b.shape === 'fence') {
     const boxes = [FENCE_POST];
     for (let d = 0; d < 4; d++) {
       const [dx, dz] = DIRS[d], neighbour = BLOCKS[world.get(x + dx, y, z + dz)];
@@ -315,16 +521,22 @@ export function blockBoxes(world, x, y, z, collision = false) {
 // ---------- speciale dingen uit de kist (geen blokken) ----------
 
 export const ITEM = {
-  HOUSE: 200, TREE: 201, TOWER: 202, BRIDGE: 203, IGLOO: 204, PYRAMID: 205, TEMPLE: 206, LION_ROCK: 207,
-  PIG: 210, CHICKEN: 211, SHEEP: 212,
-  LION: 213, LIONESS: 214, CHEETAH: 215, TIGER: 216, ELEPHANT: 217,
-  GIRAFFE: 218, ZEBRA: 219, HIPPO: 220, MEERKAT: 221,
-  MONKEY: 222, PARROT: 223, PANDA: 224, FROG: 225, SLOTH: 226,
-  CAMEL: 227, FENNEC: 228, LIZARD: 229, TURTLE: 230,
-  POLAR_BEAR: 231, PENGUIN: 232, REINDEER: 233, ARCTIC_FOX: 234, SEAL: 235, SNOWY_OWL: 236,
+  HOUSE: 60000, TREE: 60001, TOWER: 60002, BRIDGE: 60003, IGLOO: 60004, PYRAMID: 60005, TEMPLE: 60006, LION_ROCK: 60007,
+  PIG: 60010, CHICKEN: 60011, SHEEP: 60012,
+  LION: 60013, LIONESS: 60014, CHEETAH: 60015, TIGER: 60016, ELEPHANT: 60017,
+  GIRAFFE: 60018, ZEBRA: 60019, HIPPO: 60020, MEERKAT: 60021,
+  MONKEY: 60022, PARROT: 60023, PANDA: 60024, FROG: 60025, SLOTH: 60026,
+  CAMEL: 60027, FENNEC: 60028, LIZARD: 60029, TURTLE: 60030,
+  POLAR_BEAR: 60031, PENGUIN: 60032, REINDEER: 60033, ARCTIC_FOX: 60034, SEAL: 60035, SNOWY_OWL: 60036,
+  // Gereedschap en zaden (fase 4F)
+  BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
 };
 export const SPECIALS = {
   [ITEM.HOUSE]: { name: 'Huisje', kind: 'stamp', stamp: 'house' },
+  [ITEM.BUCKET]: { name: 'Emmer water', kind: 'bucket' },
+  [ITEM.WHEAT_SEEDS]: { name: 'Tarwezaadjes', kind: 'seed', crop: B.WHEAT },
+  [ITEM.CARROT]: { name: 'Wortel', kind: 'seed', crop: B.CARROTS },
+  [ITEM.POTATO]: { name: 'Aardappel', kind: 'seed', crop: B.POTATOES },
   [ITEM.TREE]: { name: 'Boom', kind: 'stamp', stamp: 'tree' },
   [ITEM.TOWER]: { name: 'Toren', kind: 'stamp', stamp: 'tower' },
   [ITEM.BRIDGE]: { name: 'Brug', kind: 'stamp', stamp: 'bridge' },
@@ -362,54 +574,65 @@ export const SPECIALS = {
 };
 
 export function itemName(id) { return SPECIALS[id]?.name ?? BLOCKS[id]?.name ?? ''; }
-export function isSpecial(id) { return id >= 200; }
+export function isSpecial(id) { return id >= ITEM_BASE; }
+
+// Tot versie 4.5 hadden stempels en dieren id 200 en hoger. Oude onderbalken zetten we om.
+export function upgradeItemId(id) { return id >= 200 && id < 300 ? id - 200 + ITEM_BASE : id; }
 
 // Volgorde in de kist, per groep
+// Volgorde in de kist: tabbladen met secties (een sectie heeft een kopje met een plaatje)
+const group = (title, sections) => ({ title, sections, items: sections.flatMap((x) => x.items) });
+const range = (from, n) => Array.from({ length: n }, (_, i) => from + i);
 export const PALETTE_GROUPS = [
-  {
-    title: 'Blokken',
-    items: [
-      B.GRASS, B.DIRT, B.SAND, B.STONE, B.COBBLE, B.BRICK, B.LOG, B.PLANKS, B.LEAVES,
-      B.GLASS, B.WATER, B.SNOW, B.GOLD, B.DIAMOND, B.LAMP, B.RAINBOW, B.BOOKSHELF,
-      B.PUMPKIN, B.MELON, B.STAIRS, B.DOOR, B.FENCE, B.GATE, B.HAY, B.BOUNCE, B.FIREWORK,
-      B.WOOL_RED, B.WOOL_ORANGE, B.WOOL_YELLOW, B.WOOL_GREEN, B.WOOL_LIGHTBLUE,
-      B.WOOL_BLUE, B.WOOL_PURPLE, B.WOOL_PINK, B.WOOL_WHITE, B.WOOL_BLACK,
-      B.GLASS_RED, B.GLASS_YELLOW, B.GLASS_GREEN, B.GLASS_BLUE, B.GLASS_PURPLE,
-      B.FLOWER_RED, B.FLOWER_YELLOW, B.TALLGRASS,
-      B.MOSSY_COBBLE, B.SANDSTONE, B.CARVED_SANDSTONE, B.RED_SAND,
-      B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN, B.TREASURE, B.RED_DIRT,
-    ],
-  },
-  {
-    title: 'Natuur',
-    sections: [
-      { title: 'Jungle', icon: 'jungle', items: [B.JUNGLE_LOG, B.JUNGLE_LEAVES, B.VINE, B.BAMBOO, B.FERN, B.JUNGLE_FLOWER] },
-      { title: 'Woestijn', icon: 'desert', items: [B.CACTUS, B.DEAD_BUSH, B.PALM_LOG, B.PALM_LEAVES] },
-      { title: 'Toendra', icon: 'tundra', items: [B.ICE, B.PACKED_ICE, B.SPRUCE_LOG, B.SPRUCE_LEAVES, B.SNOWY_LEAVES] },
-      { title: 'Savanne', icon: 'savanna', items: [B.DRY_GRASS, B.ACACIA_LOG, B.ACACIA_LEAVES, B.TALL_DRY_GRASS, B.TERMITE, B.MUD] },
-      { title: 'Bos en moeras', icon: 'bigWorld', items: [B.BIRCH_LOG, B.BIRCH_LEAVES, B.MUSHROOM_RED, B.MUSHROOM_BROWN, B.LILY_PAD, B.CORNFLOWER, B.TULIP, B.CLAY] },
-      { title: 'Onder de grond', icon: 'pick', items: [B.GRANITE, B.DIORITE, B.ANDESITE, B.GRAVEL, B.COAL_ORE, B.IRON_ORE, B.COPPER_ORE,
-        B.GOLD_ORE, B.LAPIS_ORE, B.REDSTONE_ORE, B.DIAMOND_ORE, B.EMERALD_ORE] },
-    ],
-    items: [61, 62, 63, 64, 65, 66, 70, 71, 72, 73, 79, 80, 81, 82, 83, 84, 86, 87, 88, 89, 90,
-      114, 115, 116, 117, 118, 119, 120, 113, 109, 110, 111, 112, 101, 102, 103, 104, 105, 106, 107, 108],
-  },
-  {
-    title: 'Licht',
-    items: [B.TORCH, B.LANTERN, B.GLOWSTONE, B.JACK_O_LANTERN, B.CAMPFIRE, ...BED_COLORS.map((_, c) => bedId(c, false))],
-  },
+  group('Bouwen', [
+    { title: 'Aarde en steen', icon: 'build', items: [
+      B.GRASS, B.DIRT, B.SAND, B.RED_SAND, B.GRAVEL, B.CLAY, B.RED_DIRT, B.SNOW, B.STONE, B.COBBLE, B.MOSSY_COBBLE, B.SMOOTH_STONE,
+      B.STONE_BRICKS, B.MOSSY_STONE_BRICKS, B.CRACKED_STONE_BRICKS, B.BRICK, B.SANDSTONE, B.CARVED_SANDSTONE,
+      B.GRANITE, B.POLISHED_GRANITE, B.DIORITE, B.POLISHED_DIORITE, B.ANDESITE, B.POLISHED_ANDESITE, B.QUARTZ, B.OBSIDIAN,
+      B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN] },
+    { title: 'Hout', icon: 'tree', items: [...WOODS.map((w) => w.log), ...WOODS.map((w) => w.planks), B.LEAVES, B.BOOKSHELF] },
+    { title: 'Trappen en platen', icon: 'jump', items: [...MATERIALS.map((_, m) => stairsId(m, 0)), ...MATERIALS.map((_, m) => slabId(m))] },
+    { title: 'Hekken en deuren', icon: 'home', items: [
+      B.FENCE, ...range(B.FENCE2, 4), ...WOODS.map((_, w) => gateId(0, false, w)), ...WOODS.map((_, w) => doorId(0, false, false, w))] },
+    { title: 'Glas en water', icon: 'worlds', items: [B.GLASS, B.PANE, B.WATER, B.ICE, B.PACKED_ICE] },
+    { title: 'Bijzonder', icon: 'chest', items: [
+      B.GOLD, B.DIAMOND, B.IRON_BLOCK, B.COPPER_BLOCK, B.EMERALD_BLOCK, B.LAPIS_BLOCK, B.RAINBOW, B.BOUNCE, B.FIREWORK,
+      B.HAY, B.PUMPKIN, B.MELON, B.TREASURE] },
+  ]),
+  group('Kleuren', [
+    { title: 'Wol', icon: 'build', items: COLORS.map((c) => c[2]) },
+    { title: 'Tapijt', icon: 'build', items: range(B.CARPET, 16) },
+    { title: 'Beton', icon: 'build', items: range(B.CONCRETE, 16) },
+    { title: 'Terracotta', icon: 'build', items: range(B.TERRACOTTA, 16) },
+    { title: 'Glas', icon: 'worlds', items: COLORS.map((c) => glassId(c[0])) },
+    { title: 'Glazen panelen', icon: 'worlds', items: range(B.PANE + 1, 16) },
+  ]),
+  group('Natuur', [
+    { title: 'Jungle', icon: 'jungle', items: [B.JUNGLE_LEAVES, B.VINE, B.BAMBOO, B.JUNGLE_FLOWER] },
+    { title: 'Woestijn', icon: 'desert', items: [B.CACTUS, B.DEAD_BUSH, B.PALM_LOG, B.PALM_LEAVES] },
+    { title: 'Toendra', icon: 'tundra', items: [B.SPRUCE_LEAVES, B.SNOWY_LEAVES] },
+    { title: 'Savanne', icon: 'savanna', items: [B.DRY_GRASS, B.ACACIA_LEAVES, B.TALL_DRY_GRASS, B.TERMITE, B.MUD] },
+    { title: 'Bos en moeras', icon: 'bigWorld', items: [B.BIRCH_LEAVES] },
+    { title: 'Onder de grond', icon: 'pick', items: [B.COAL_ORE, B.IRON_ORE, B.COPPER_ORE, B.GOLD_ORE, B.LAPIS_ORE, B.REDSTONE_ORE, B.DIAMOND_ORE, B.EMERALD_ORE] },
+  ]),
+  group('Licht en huis', [
+    { title: 'Licht', icon: 'torch', items: [B.TORCH, B.LANTERN, B.GLOWSTONE, B.JACK_O_LANTERN, B.CAMPFIRE, B.LAMP, B.SEA_LANTERN] },
+    { title: 'In huis', icon: 'house', items: [B.CRAFTING_TABLE, B.FURNACE, B.CHEST, B.LADDER, B.FLOWER_POT, B.JUKEBOX, B.CAKE] },
+    { title: 'Bedden', icon: 'home', items: BED_COLORS.map((_, c) => bedId(c, false)) },
+  ]),
+  group('Planten', [
+    { title: 'Bloemen', icon: 'flower', items: [B.FLOWER_RED, B.FLOWER_YELLOW, B.CORNFLOWER, B.TULIP, B.SUNFLOWER, B.TALLGRASS, B.FERN, B.MUSHROOM_RED, B.MUSHROOM_BROWN] },
+    { title: 'Water', icon: 'worlds', items: [B.SUGAR_CANE, B.LILY_PAD, B.SEAWEED, B.CORAL_RED, B.CORAL_YELLOW, B.CORAL_BLUE, ITEM.BUCKET] },
+    { title: 'Moestuin', icon: 'flower', items: [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO] },
+  ]),
   { title: 'Stempels', items: [ITEM.HOUSE, ITEM.TREE, ITEM.TOWER, ITEM.BRIDGE, ITEM.IGLOO, ITEM.PYRAMID, ITEM.TEMPLE, ITEM.LION_ROCK] },
-  { title: 'Dieren', sections: [
+  group('Dieren', [
     { title: 'Boerderij', icon: 'island', items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP] },
     { title: 'Savanne', icon: 'savanna', items: [ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH, ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT] },
     { title: 'Jungle', icon: 'jungle', items: [ITEM.TIGER, ITEM.MONKEY, ITEM.PARROT, ITEM.PANDA, ITEM.FROG, ITEM.SLOTH] },
     { title: 'Woestijn', icon: 'desert', items: [ITEM.CAMEL, ITEM.FENNEC, ITEM.LIZARD, ITEM.TURTLE] },
     { title: 'Toendra', icon: 'tundra', items: [ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
-  ], items: [ITEM.PIG, ITEM.CHICKEN, ITEM.SHEEP, ITEM.LION, ITEM.LIONESS, ITEM.CHEETAH,
-    ITEM.ELEPHANT, ITEM.GIRAFFE, ITEM.ZEBRA, ITEM.HIPPO, ITEM.MEERKAT, ITEM.TIGER,
-    ITEM.MONKEY, ITEM.PARROT, ITEM.PANDA, ITEM.FROG, ITEM.SLOTH,
-    ITEM.CAMEL, ITEM.FENNEC, ITEM.LIZARD, ITEM.TURTLE,
-    ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
+  ]),
 ];
 export const PALETTE = PALETTE_GROUPS.flatMap((g) => g.items);
 

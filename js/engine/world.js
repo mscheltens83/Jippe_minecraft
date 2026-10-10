@@ -24,6 +24,7 @@ export class World {
     this.dirtySections = new Map(); // sleutel -> bitmasker van secties die opnieuw getekend moeten worden
     this.onChunkAdded = null;       // (chunk) => void
     this.onChunkRemoved = null;     // (chunk) => void
+    this.onBlockChanged = null;     // (x, y, z, oud, nieuw) => void
     this.lastKey = -1; this.lastChunk = null;
   }
 
@@ -165,6 +166,7 @@ export class World {
     }
     this.markDirty(cx, cz, lx, y, lz);
     for (const [key, mask] of relight(this, x, y, z, old, id, h0, c.height[col])) this.addDirty(key, mask);
+    this.onBlockChanged?.(x, y, z, old, id); // de natuurkunde kijkt of er iets moet vallen of stromen
     return true;
   }
 

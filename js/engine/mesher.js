@@ -8,7 +8,7 @@
 // De shader (scene.js) maakt daar met het daglicht van dat moment de echte helderheid van.
 // Groen 2 betekent: dit blok gloeit zelf (lamp, gloeisteen) en is altijd helemaal licht.
 
-import { AIR, B, BLOCKS, OPAQUE, blockBoxes } from '../blocks.js';
+import { AIR, B, BLOCKS, OPAQUE, WATERY, blockBoxes } from '../blocks.js';
 import { CHUNK, SY, SECTION } from './constants.js';
 import { local } from './chunk.js';
 import { TINT_KIND } from './tint.js';
@@ -33,6 +33,8 @@ const FACES = [
   { a: 1, s: 1, shade: 1.0 }, { a: 1, s: -1, shade: 0.55 },
   { a: 2, s: 1, shade: 0.68 }, { a: 2, s: -1, shade: 0.68 },
 ];
+// Welke tegel bij welk vlak: boven en onder, anders de tegel van die kant (+x, -x, +z, -z)
+const FACE_TILE = [3, 4, 0, 1, 5, 6];
 const CORNERS_POS = [[0, 0], [1, 0], [1, 1], [0, 1]];
 const CORNERS_NEG = [[0, 0], [0, 1], [1, 1], [1, 0]];
 
@@ -84,7 +86,7 @@ function faceVisible(b, id, nid) {
   if (OPAQUE[nid]) return false;
   // Binnen de grote boomkruinen hoeven we geen verborgen bladvlakken te tekenen.
   if (b.foliage && BLOCKS[nid].foliage) return false;
-  if (b.render === 'water') return nid !== B.WATER;
+  if (b.render === 'water') return !WATERY[nid];
   if (id === nid && (b.render === 'glass' || id === B.GLASS)) return false;
   return true;
 }
@@ -190,7 +192,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
                 q[0] = x; q[1] = y; q[2] = z; q[a] += F.s;
                 if (OPAQUE[get(q[0], q[1], q[2])]) continue;
               }
-              const tile = a === 1 ? (F.s > 0 ? tiles[0] : tiles[1]) : tiles[2];
+              const tile = tiles[FACE_TILE[f]];
               const corners = F.s > 0 ? CORNERS_POS : CORNERS_NEG;
               const c = toLinear(F.shade * 0.97);
               for (let i = 0; i < 4; i++) {
@@ -203,7 +205,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
                 uvs[i] = tileUV(tile, st[0], st[1]);
                 cols[i] = c;
               }
-              bufs.solid.quad(verts, uvs, cols, false, skys, lamps);
+              (bufs[b.boxBuf] || bufs.solid).quad(verts, uvs, cols, false, skys, lamps);
             }
           }
           continue;
@@ -211,7 +213,9 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
 
         const buf = b.render === 'water' ? bufs.water : b.render === 'glass' ? bufs.glass
           : b.render === 'cutout' ? bufs.cutout : bufs.solid;
-        const lowTop = b.render === 'water' && get(x, y + 1, z) !== B.WATER;
+        // Water: lager naarmate het verder van de bron stroomt (bron en vallend water bijna vol)
+        const lowTop = b.render === 'water' && !WATERY[get(x, y + 1, z)];
+        const waterTop = b.level > 0 && b.level < 8 ? WATER_TOP * (8 - b.level) / 8 : WATER_TOP;
         const doAO = b.render === 'solid' && !b.glow;
 
         for (let f = 0; f < 6; f++) {
@@ -221,7 +225,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
           if (q[1] < 0) continue; // de onderkant van de bodem zie je nooit
           if (!faceVisible(b, id, get(q[0], q[1], q[2]))) continue;
 
-          const tile = a === 1 ? (F.s > 0 ? tiles[0] : tiles[1]) : tiles[2];
+          const tile = tiles[FACE_TILE[f]];
           const corners = F.s > 0 ? CORNERS_POS : CORNERS_NEG;
           // Licht van het vakje voor dit vlak
           const fx = q[0], fy = q[1], fz = q[2];
@@ -232,7 +236,7 @@ export function meshSection(pad, lpad, faceTiles, cx, cz, s, tints = null) {
             const du = corners[i][0], dv = corners[i][1];
             L[a] = F.s > 0 ? 1 : 0; L[u] = du; L[v] = dv;
             const vt = verts[i] = [x + L[0], y + L[1], z + L[2]];
-            if (lowTop && L[1] === 1) vt[1] = y + WATER_TOP;
+            if (lowTop && L[1] === 1) vt[1] = y + waterTop;
             const st = faceST(a, F.s, L[0], L[1], L[2]);
             uvs[i] = tileUV(tile, st[0], st[1]);
 

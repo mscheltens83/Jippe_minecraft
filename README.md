@@ -17,7 +17,7 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Bouwen** | Groene knop bovenin aan, dan op een blok tikken. Het nieuwe blok komt tegen dat vlak aan |
 | **Toren bouwen** | Recht naar beneden kijken en op de grond onder je tikken: je wipt vanzelf op het nieuwe blok |
 | **Slopen** | Rode knop (houweel) bovenin aan, dan je vinger op een blok **vasthouden** tot het rondje vol is. Blijf je vasthouden, dan graaf je verder |
-| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft vijf tabbladen: Blokken, Natuur, Licht, Stempels en Dieren |
+| **Blok kiezen** | Tik op een blok in de onderbalk. De kist rechts heeft zeven tabbladen: Bouwen, Kleuren, Natuur, Licht en huis, Planten, Stempels en Dieren |
 | **Natuur** | Kies junglehout, lianen, bamboe, cactussen, palmen, ijs, savannegras, berkenhout, paddenstoelen, waterlelies, bloemen, klei, graniet, grind en alle ertsen uit de kist. De plaatjes staan per landschap bij elkaar |
 | **Stempels** | Kies een huisje, boom, toren, brug, iglo, piramide, tempel of leeuwenrots uit de kist en tik op de grond. Het staat er in één keer |
 | **Dieren** | Varkens, kippen, schapen en 24 wilde diersoorten lopen rond. De dierenkist groepeert hun plaatjes per wereld. Kies een dier en tik op de grond om het neer te zetten |
@@ -50,6 +50,11 @@ voor de volgende stappen staan in [`docs/`](docs/README.md).
 | **Mooie wereld** | Texturen in Minecraft-stijl, gras en bladeren in de kleur van het landschap (felgroen in de jungle, geelgroen op de savanne), golvend water, blokwolken en brokjes van het echte blok als je sloopt |
 | **Onder water** | Alles wordt blauw en klinkt gedempt |
 | **Geluid** | Voetstappen op gras, steen, hout, zand en sneeuw; vogels overdag, druppels in grotten en golven bij de zee |
+| **Bouwen** | Vijf houtsoorten (eik, berk, spar, jungle, acacia) met planken, trappen, platen, hekken, hekdeuren en deuren; stenen bakstenen, kwarts, obsidiaan en meer. Een stam ligt als je op een zijkant tikt; twee platen op elkaar worden één blok; tik je op de bovenhelft van een zijkant, dan komt een trap ondersteboven |
+| **Kleuren** | 16 kleuren wol, tapijt, beton, terracotta, glas en glazen panelen (panelen groeien aan elkaar vast) |
+| **In huis** | Werkbank, oven (tik: hij gaat aan en geeft licht), kist (gaat open en dicht), ladder (klimmen), bloempot, jukebox (speelt een liedje) en taart (tik: een hapje) |
+| **Water en zand** | Water stroomt vanuit een bron 7 blokken ver en valt naar beneden. Met de emmer zet je een bron neer of haal je hem weg. Zand en grind vallen als er niets onder zit; bloemetjes zonder grond vallen om |
+| **Moestuin** | Tarwezaadjes, wortels en aardappels op gras of aarde: de grond wordt een akker en in ±5 minuten groeit alles. Gras groeit langzaam over kale aarde |
 | **Naar huis** | Kompasje linksboven: met een wolkje glitters sta je weer op je bouwplek (rijd je op een dier, dan gaat het mee). Ben je ver weg, dan wijst een geel pijltje boven de onderbalk de weg naar huis |
 
 In het menu onder **Werelden** staan zes plekken in twee rijen, elk met een plaatje van je wereld.
@@ -152,7 +157,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/blocks.js` | Alle bloktypes (hier kun je blokken toevoegen) |
 | `js/textures.js` | De pixel-art texturen, getekend met code |
 | `js/world.js` | Doorgeefluik naar `js/engine/world.js` (de oude imports blijven werken) |
-| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `climate.js` (biomen, bergen en rivieren van de Grote wereld), `caves.js` (grotten en ertsen), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie, met licht), `light.js` (zonlicht en lamplicht per blok), `tint.js` (kleur van gras, blad en water per landschap), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
+| `js/engine/` | De eindeloze wereld: `world.js` (chunks), `gen.js` (landschap per chunk), `climate.js` (biomen, bergen en rivieren van de Grote wereld), `caves.js` (grotten en ertsen), `noise.js` (ruis), `trees.js` (boomvormen), `mesher.js` (3D-vlakken per sectie, met licht), `light.js` (zonlicht en lamplicht per blok), `tint.js` (kleur van gras, blad en water per landschap), `physics.js` (vallend zand, stromend water, groeiende gewassen), `worker.js` + `pool.js` (werk in de achtergrond), `loader.js` (laden en opruimen rond de speler), `save.js` (IndexedDB en reservekopie), `migrate.js` (oude werelden omzetten) |
 | `js/biomes.js` | Landschap, bomen, planten, lucht en mist per wereld |
 | `js/structures.js` | Tempels, piramides, iglo's, leeuwenrotsen, drinkplaatsen en oases |
 | `js/scene.js` | Lucht, zon, maan, sterren, wolken, de zee rondom en de licht-shader |

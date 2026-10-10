@@ -2,7 +2,7 @@
 // per kolom gekleurd. De kleur wordt gemengd over 5 x 5 kolommen, zodat de overgang tussen
 // twee landschappen zacht verloopt in plaats van met een rechte rand.
 
-import { B } from '../blocks.js';
+import { B, MAX_ID } from '../blocks.js';
 import { CHUNK } from './constants.js';
 
 // [gras, bladeren, water] per landschap (0xRRGGBB)
@@ -27,9 +27,10 @@ TINTS.island = TINTS.flat = TINTS.world = TINTS.adventure = TINTS.plains;
 export const DEFAULT_TINT = TINTS.plains;
 
 // Welke blokken meekleuren: 1 = graskleur, 2 = bladkleur, 3 = waterkleur
-export const TINT_KIND = new Uint8Array(256);
+export const TINT_KIND = new Uint8Array(MAX_ID);
 for (const id of [B.GRASS, B.TALLGRASS, B.FERN]) TINT_KIND[id] = 1;
 for (const id of [B.LEAVES, B.JUNGLE_LEAVES, B.VINE]) TINT_KIND[id] = 2;
+for (let id = B.WATER_FLOW; id < B.WATER_FLOW + 8; id++) TINT_KIND[id] = 3;
 TINT_KIND[B.WATER] = 3;
 
 // Kleuren voor de 16 x 16 kolommen van een chunk: per kolom 3 getallen (gras, blad, water).

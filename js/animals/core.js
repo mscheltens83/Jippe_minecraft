@@ -1,6 +1,6 @@
 // Gemeenschappelijke beweging, botsingen en houdingen voor alle dieren.
 import * as THREE from '../../lib/three.module.min.js';
-import { B, blockBoxes } from '../blocks.js';
+import { WATERY, blockBoxes } from '../blocks.js';
 import { SY } from '../world.js';
 import { cachedModel, MODEL_MAT, ownMaterial } from '../models.js';
 import { SPECIES } from './species.js';
@@ -65,8 +65,8 @@ export class Animal {
   waterSurface(world, x = this.x, z = this.z) {
     const ix = Math.floor(x), iz = Math.floor(z);
     for (let y = Math.min(SY - 1, Math.floor(this.y + 1)); y >= Math.floor(this.y) - 2; y--) {
-      if (world.get(ix, y, iz) !== B.WATER) continue;
-      while (y < SY - 1 && world.get(ix, y + 1, iz) === B.WATER) y++;
+      if (!WATERY[world.get(ix, y, iz)]) continue;
+      while (y < SY - 1 && WATERY[world.get(ix, y + 1, iz)]) y++;
       return y + 1;
     }
     return null;

@@ -192,6 +192,13 @@ export class Sounds {
     }
   }
 
+  // Jukebox: een vrolijk liedje van een paar seconden
+  jukebox() {
+    if (!this.ok()) return;
+    const tune = [523, 659, 784, 659, 698, 880, 784, 0, 659, 587, 523, 587, 659, 523];
+    tune.forEach((f, i) => { if (f) { this.tone('triangle', f, f, 0.22, 0.1, i * 0.2); this.tone('sine', f / 2, f / 2, 0.3, 0.05, i * 0.2); } });
+  }
+
   // 's Nachts: krekels en af en toe een uil; een knisperend kampvuur
   cricket() {
     if (!this.ok()) return;

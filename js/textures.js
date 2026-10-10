@@ -723,8 +723,6 @@ Object.assign(GEN, {
 });
 for (const [name, color] of Object.entries(WOOL)) GEN['bed_' + name] = (t) => bedSide(t, color);
 
-// Namen van alle tegels (ook voor de tests: bestaat elke textuur die een blok noemt?)
-export const TEXTURE_NAMES = Object.keys(GEN);
 
 // ---------- Minecraft-stijl (fase 4E) ----------
 // Elke tegel gebruikt een klein palet (3 tot 5 kleuren) en herkenbare vormen in plaats van ruis.
@@ -840,6 +838,166 @@ Object.assign(GEN, {
 });
 for (const [name, c] of Object.entries(WOOL)) GEN['wool_' + name] = (t) => mcWool(t, name === 'black' ? shade(c, 1.15) : c);
 
+// ---------- Blokken en bouwen (fase 4F) ----------
+
+// De 16 kleuren van Minecraft. De eerste 10 wolkleuren bestonden al (WOOL), deze 6 komen erbij.
+export const NEW_WOOL = { magenta: [190, 70, 190], gray: [72, 76, 82], lightgray: [156, 156, 150], cyan: [22, 150, 160], brown: [118, 76, 44], darkgreen: [84, 110, 28] };
+export const COLOR_RGB = {
+  white: WOOL.white, orange: WOOL.orange, magenta: NEW_WOOL.magenta, lightblue: WOOL.lightblue, yellow: WOOL.yellow,
+  lime: WOOL.green, pink: WOOL.pink, gray: NEW_WOOL.gray, lightgray: NEW_WOOL.lightgray, cyan: NEW_WOOL.cyan,
+  purple: WOOL.purple, blue: WOOL.blue, brown: NEW_WOOL.brown, green: NEW_WOOL.darkgreen, red: WOOL.red, black: WOOL.black,
+};
+const NEW_GLASS = ['white', 'orange', 'magenta', 'lightblue', 'pink', 'gray', 'lightgray', 'cyan', 'brown', 'green', 'black'];
+const mixRGB = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+
+function concrete(t, c) { paletteNoise(t, [c, shade(c, 0.96), shade(c, 1.04)], [0.7, 0.15, 0.15]); }
+function terracotta(t, c) {
+  const base = mixRGB(c, [150, 92, 66], 0.45);
+  paletteNoise(t, [base, shade(base, 0.94), shade(base, 1.05)], [0.7, 0.15, 0.15]);
+}
+function stained(t, c) {
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    const edge = x === 0 || y === 0 || x === 15 || y === 15;
+    t.set(x, y, edge ? shade(c, 0.8) : c, edge ? 235 : 120);
+  }
+  for (const [x, y] of [[3, 2], [2, 3], [4, 2], [2, 4], [3, 3]]) t.set(x, y, [255, 255, 255], 200);
+}
+function smoothBlock(t, base) {
+  paletteNoise(t, [base, shade(base, 0.97), shade(base, 1.03)], [0.7, 0.15, 0.15]);
+  for (let i = 0; i < 16; i++) { t.set(i, 0, shade(base, 1.08)); t.set(0, i, shade(base, 1.08)); t.set(i, 15, shade(base, 0.85)); t.set(15, i, shade(base, 0.85)); }
+}
+function stoneBricks(t, extra) {
+  mcStone(t);
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+    const row = Math.floor(y / 8), off = row ? 4 : 12;
+    if (y % 8 === 7 || (x + off) % 16 === 15 || (x + off) % 8 === 7 && row === 0 && x > 8) t.set(x, y, [88, 88, 90]);
+  }
+  if (extra) extra(t);
+}
+function metalBlock(t, c) {
+  bevel(t, c, shade(c, 1.25), shade(c, 0.7));
+  for (let i = 3; i <= 12; i++) { t.set(i, 4, shade(c, 0.85)); t.set(i, 11, shade(c, 1.12)); }
+}
+// Deur in een houtkleur
+function door(t, base, upper) {
+  const dark = shade(base, 0.68);
+  for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+    let c = shade(base, 0.95 * (1 + (t.r() - 0.5) * 0.08));
+    if (x % 5 === 0) c = shade(base, 0.8);
+    if (x === 0 || x === 15 || y === 0 || y === 15) c = shade(base, 0.6);
+    t.set(x, y, c);
+  }
+  if (upper) {
+    for (let y = 3; y <= 11; y++) for (let x = 3; x <= 12; x++) {
+      const bar = x === 3 || x === 12 || y === 3 || y === 11 || x === 7 || x === 8 || y === 7;
+      t.set(x, y, bar ? dark : [178, 224, 246]);
+    }
+  } else {
+    for (let x = 4; x <= 11; x++) { t.set(x, 3, dark); t.set(x, 12, dark); }
+    for (let y = 3; y <= 12; y++) { t.set(4, y, dark); t.set(11, y, dark); }
+    t.set(12, 1, [230, 200, 80]); t.set(13, 1, [200, 170, 60]);
+  }
+}
+// Tegel een kwartslag gedraaid (voor liggende stammen)
+function rotated(src) {
+  return (t) => {
+    src(t);
+    const d = new Uint8ClampedArray(t.d);
+    for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
+      const i = (y * TILE + x) * 4, j = ((15 - x) * TILE + y) * 4;
+      t.d[i] = d[j]; t.d[i + 1] = d[j + 1]; t.d[i + 2] = d[j + 2]; t.d[i + 3] = d[j + 3];
+    }
+  };
+}
+function crop(t, stage, top) {
+  t.clear();
+  const h = 4 + stage * 3, stem = [82, 150, 44];
+  for (const x of [2, 5, 9, 12]) for (let y = 15; y > 15 - h; y--) t.set(x + (y % 3 === 0 ? 1 : 0), y, y % 4 ? stem : shade(stem, 0.85));
+  if (stage === 3 && top) for (const x of [2, 5, 9, 12]) for (let y = 16 - h; y < 19 - h; y++) { t.set(x, y, top); t.set(x + 1, y, shade(top, 0.85)); }
+}
+
+const WOODS4 = { birch: [196, 178, 120], spruce: [116, 86, 52], jungle: [160, 116, 80], acacia: [168, 90, 50] };
+Object.assign(GEN, {
+  polished_granite: (t) => smoothBlock(t, [160, 108, 86]),
+  polished_diorite: (t) => smoothBlock(t, [200, 200, 202]),
+  polished_andesite: (t) => smoothBlock(t, [132, 136, 136]),
+  stone_bricks: (t) => stoneBricks(t),
+  mossy_stone_bricks: (t) => stoneBricks(t, (tt) => { for (let i = 0; i < 30; i++) blob(tt, Math.floor(tt.r() * 16), Math.floor(tt.r() * 16), [86, 116, 52], 2); }),
+  cracked_stone_bricks: (t) => stoneBricks(t, (tt) => { let x = 3, y = 1; for (let i = 0; i < 14; i++) { tt.set(x, y, [70, 70, 72]); x += tt.r() < 0.5 ? 1 : 0; y++; } }),
+  smooth_stone: (t) => smoothBlock(t, [160, 160, 160]),
+  quartz: (t) => { smoothBlock(t, [236, 230, 222]); for (let i = 2; i < 14; i += 4) for (let x = 2; x < 14; x++) t.set(x, i, [224, 218, 210]); },
+  obsidian: (t) => { paletteNoise(t, [[20, 16, 32], [32, 22, 52], [14, 10, 22], [56, 40, 86]], [0.5, 0.25, 0.17, 0.08]); },
+  iron_block: (t) => metalBlock(t, [216, 216, 216]),
+  copper_block: (t) => metalBlock(t, [196, 108, 72]),
+  emerald_block: (t) => metalBlock(t, [42, 196, 96]),
+  lapis_block: (t) => metalBlock(t, [38, 74, 168]),
+  sea_lantern: (t) => {
+    paletteNoise(t, [[186, 222, 214], [212, 236, 230], [160, 204, 196]], [0.5, 0.3, 0.2]);
+    for (let i = 0; i < 16; i++) { t.set(i, i, [240, 252, 248]); t.set(15 - i, i, [240, 252, 248]); }
+  },
+  crafting_table_top: (t) => { mcPlanks(t); for (let i = 1; i < 15; i++) { t.set(i, 1, [96, 66, 36]); t.set(i, 14, [96, 66, 36]); t.set(1, i, [96, 66, 36]); t.set(14, i, [96, 66, 36]); t.set(i, 7, [120, 86, 50]); t.set(7, i, [120, 86, 50]); } },
+  crafting_table_side: (t) => {
+    mcPlanks(t);
+    for (let y = 2; y < 9; y++) t.set(4, y, [92, 70, 44]);          // hamer
+    for (let x = 2; x < 7; x++) t.set(x, 2, [140, 140, 150]);
+    for (let y = 2; y < 9; y++) t.set(11, y, [92, 70, 44]);         // zaag
+    for (let y = 3; y < 8; y++) t.set(12, y, [170, 170, 180]);
+  },
+  furnace_side: (t) => { GEN.cobble(t); },
+  furnace_top: (t) => smoothBlock(t, [118, 118, 118]),
+  furnace_front: (t) => { GEN.cobble(t); for (let y = 8; y < 13; y++) for (let x = 4; x < 12; x++) t.set(x, y, [36, 36, 38]); for (let x = 4; x < 12; x++) t.set(x, 7, [90, 90, 92]); },
+  furnace_front_lit: (t) => { GEN.cobble(t); for (let y = 8; y < 13; y++) for (let x = 4; x < 12; x++) t.set(x, y, y > 10 ? [255, 160, 40] : [255, 214, 90]); for (let x = 4; x < 12; x++) t.set(x, 7, [90, 90, 92]); },
+  chest_side: (t) => { mcPlanks(t, [176, 126, 60]); for (let i = 0; i < 16; i++) { t.set(i, 5, [70, 46, 24]); t.set(0, i, [96, 66, 36]); t.set(15, i, [96, 66, 36]); } },
+  chest_front: (t) => { GEN.chest_side(t); for (let y = 4; y <= 7; y++) for (let x = 7; x <= 8; x++) t.set(x, y, [210, 210, 220]); },
+  chest_top: (t) => { mcPlanks(t, [176, 126, 60]); for (let i = 0; i < 16; i++) { t.set(i, 0, [96, 66, 36]); t.set(i, 15, [96, 66, 36]); t.set(0, i, [96, 66, 36]); t.set(15, i, [96, 66, 36]); } },
+  ladder: (t) => {
+    t.clear();
+    for (let y = 0; y < 16; y++) { t.set(2, y, [128, 94, 54]); t.set(3, y, [104, 76, 42]); t.set(12, y, [128, 94, 54]); t.set(13, y, [104, 76, 42]); }
+    for (const y of [2, 6, 10, 14]) for (let x = 4; x < 12; x++) t.set(x, y, x % 2 ? [140, 104, 60] : [120, 88, 50]);
+  },
+  flower_pot: (t) => { paletteNoise(t, [[150, 76, 54], [136, 66, 46], [164, 86, 62]], [0.6, 0.2, 0.2]); for (let i = 0; i < 16; i++) t.set(i, 9, [110, 54, 38]); },
+  jukebox_side: (t) => { mcPlanks(t, [120, 80, 56]); for (let i = 0; i < 16; i++) { t.set(i, 0, [80, 52, 36]); t.set(i, 15, [80, 52, 36]); } },
+  jukebox_top: (t) => { GEN.jukebox_side(t); for (let x = 3; x < 13; x++) for (let y = 6; y < 10; y++) t.set(x, y, [40, 30, 26]); },
+  cake_top: (t) => { paletteNoise(t, [[248, 244, 240], [236, 232, 228]], [0.8, 0.2]); for (const [x, y] of [[3, 4], [10, 3], [7, 8], [12, 11], [4, 12]]) t.set(x, y, [220, 40, 40]); },
+  cake_side: (t) => {
+    for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) t.set(x, y, y < 9 ? [250, 246, 242] : y < 10 ? [220, 40, 40] : [196, 140, 90]);
+    for (let x = 0; x < 16; x += 3) t.set(x, 9 - (x % 2), [250, 246, 242]);
+  },
+  cake_inner: (t) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) t.set(x, y, y < 9 ? [250, 246, 242] : (x + y) % 5 ? [230, 190, 140] : [220, 60, 60]); },
+  sunflower_bottom: (t) => { t.clear(); for (let y = 0; y < 16; y++) { t.set(7, y, [70, 140, 40]); t.set(8, y, [58, 120, 34]); } for (let x = 3; x < 7; x++) t.set(x, 8 + (6 - x), [80, 160, 50]); for (let x = 9; x < 13; x++) t.set(x, 4 + (x - 9), [80, 160, 50]); },
+  sunflower_top: (t) => {
+    t.clear();
+    for (let y = 8; y < 16; y++) { t.set(7, y, [70, 140, 40]); t.set(8, y, [58, 120, 34]); }
+    for (let y = 1; y < 10; y++) for (let x = 3; x < 13; x++) {
+      const d = Math.hypot(x - 7.5, y - 5);
+      if (d < 4.6) t.set(x, y, d < 2.2 ? [110, 70, 30] : [250, 210, 40]);
+    }
+  },
+  sugar_cane: (t) => { t.clear(); for (const x0 of [3, 8, 12]) for (let y = 0; y < 16; y++) { t.set(x0, y, y % 5 === 0 ? [150, 200, 110] : [120, 180, 80]); t.set(x0 + 1, y, [96, 156, 64]); } },
+  seaweed: (t) => { t.clear(); for (const x0 of [4, 10]) for (let y = 0; y < 16; y++) t.set(x0 + Math.round(Math.sin(y * 0.6 + x0) * 1.5), y, y % 3 ? [52, 140, 60] : [74, 170, 80]); },
+  coral_red: (t) => { t.clear(); for (const [x, h] of [[3, 9], [6, 13], [9, 11], [12, 8]]) for (let y = 16 - h; y < 16; y++) { t.set(x, y, [230, 70, 90]); if (y % 3 === 0) t.set(x + 1, y, [250, 110, 120]); } },
+  coral_yellow: (t) => { t.clear(); for (const [x, h] of [[3, 10], [7, 12], [11, 9]]) for (let y = 16 - h; y < 16; y++) { t.set(x, y, [240, 210, 60]); t.set(x + 1, y, y % 2 ? [250, 230, 100] : [220, 190, 40]); } },
+  coral_blue: (t) => { t.clear(); for (const [x, h] of [[2, 8], [5, 12], [9, 13], [13, 9]]) for (let y = 16 - h; y < 16; y++) { t.set(x, y, [60, 110, 230]); if (y % 4 === 1) { t.set(x - 1, y, [90, 140, 250]); t.set(x + 1, y, [90, 140, 250]); } } },
+  farmland: (t) => { paletteNoise(t, [[96, 62, 38], [82, 52, 32], [110, 72, 44]], [0.6, 0.2, 0.2]); for (let y = 1; y < 16; y += 4) for (let x = 0; x < 16; x++) t.set(x, y, [66, 42, 26]); },
+});
+for (let s = 0; s < 4; s++) {
+  GEN['wheat_' + s] = (t) => crop(t, s, [222, 190, 90]);
+  GEN['carrots_' + s] = (t) => crop(t, s, [240, 130, 30]);
+  GEN['potatoes_' + s] = (t) => crop(t, s, [200, 170, 100]);
+}
+for (const [name, c] of Object.entries(NEW_WOOL)) GEN['wool_' + name] = (t) => mcWool(t, c);
+for (const [name, c] of Object.entries(COLOR_RGB)) {
+  GEN['concrete_' + name] = (t) => concrete(t, c);
+  GEN['terracotta_' + name] = (t) => terracotta(t, c);
+}
+for (const name of NEW_GLASS) GEN['glass_' + name] = (t) => stained(t, COLOR_RGB[name]);
+for (const [name, c] of Object.entries(WOODS4)) {
+  GEN[name + '_planks'] = (t) => mcPlanks(t, c);
+  GEN['door_lower_' + name] = (t) => door(t, c, false);
+  GEN['door_upper_' + name] = (t) => door(t, c, true);
+}
+for (const log of ['log_side', 'birch_log_side', 'spruce_log_side', 'jungle_log_side', 'acacia_log_side']) GEN[log + '_r'] = rotated(GEN[log]);
+
 // Tegels die meekleuren met het landschap (0 = gras, 1 = blad, 2 = water). In de wereld worden ze
 // grijs getekend en kleurt de shader ze; in de kist en de onderbalk krijgen ze de kleur van de vlakte.
 const TINT_TILES = { grass_top: 0, grass_side: 0, tallgrass: 0, fern: 0, leaves: 1, jungle_leaves: 1, vine: 1, water: 2 };
@@ -862,12 +1020,15 @@ function makeTintable(t, name) {
   }
 }
 
+// Namen van alle tegels (ook voor de tests: bestaat elke textuur die een blok noemt?)
+export const TEXTURE_NAMES = Object.keys(GEN);
+
 // Maak de atlas: een canvas met alle tegels, plus handige opzoektabellen
 export function createAtlas() {
   const names = TEXTURE_NAMES;
-  if (names.length > ATLAS_COLS * ATLAS_COLS) throw new Error('De textuuratlas is vol');
   const canvas = document.createElement('canvas');
-  canvas.width = canvas.height = ATLAS_SIZE;
+  canvas.width = ATLAS_SIZE;
+  canvas.height = Math.ceil(names.length / ATLAS_COLS) * TILE; // groeit mee met het aantal tegels
   const ctx = canvas.getContext('2d');
   const index = {};
   const tiles = {};
@@ -904,7 +1065,9 @@ export function createAtlas() {
   const particleColors = [];
   for (const b of BLOCKS) {
     if (!b || !b.tex) continue;
-    faceTiles[b.id] = [index[b.tex.top], index[b.tex.bottom], index[b.tex.side]];
+    // [boven, onder, zijkant, +x, -x, +z, -z]: een blok kan per kant een andere tegel hebben (oven, liggende stam)
+    const side = index[b.tex.side], at = (k) => (b.tex[k] ? index[b.tex[k]] : side);
+    faceTiles[b.id] = [index[b.tex.top], index[b.tex.bottom], side, at('px'), at('nx'), at('pz'), at('nz')];
     const t = tiles[b.tex.side];
     const cols = [];
     let tries = 0;

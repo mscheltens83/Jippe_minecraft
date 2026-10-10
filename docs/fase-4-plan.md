@@ -55,7 +55,7 @@ Het grootste gat zit in de **wereld zelf**: grootte, terrein en licht. Daarom ko
 | **4C** | Minecraft-terrein: biomen, bergen, rivieren, grotten, ertsen, bomen | Groot | 4B | ✅ Klaar (versie 4.2.0) |
 | **4D** | Licht, dag en nacht, fakkels, bed | Groot | 4B | ✅ Klaar (versie 4.3.0) |
 | **4E** | Mooier beeld: nieuwe texturen, mipmaps, biome-kleuren, water, wolken, voetstappen | Middel | 4D | ✅ Klaar (versie 4.4.0) |
-| **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | Gepland |
+| **4F** | Blokken en bouwen: ±150 nieuwe blokken, standen, vallend zand, stromend water, kist en hand | Groot (2 PR's) | 4B (licht-blokken: 4D) | F1 ✅ klaar (versie 4.5.0), F2 gepland |
 | **4G** | Dieren en dorpen: Minecraft-dieren, fokken, dorpen met dorpelingen, leven in zee | Groot | 4C | Gepland |
 | **4H** | Extra werelden en portalen | Middel | 4C, 4G | Gepland |
 
@@ -375,6 +375,13 @@ Deze varianten krijgen elk een eigen id (zoals nu bij trap, deur en hekdeur), me
 - Zand valt.
 - Sluipen houdt je op een rand van 10 hoog.
 - De oude blokken en id's werken nog in bewaarde werelden (§10).
+
+### 9.7 Zo is deel 1 gebouwd (versie 4.5.0)
+- Stempels, dieren en gereedschap uit de kist hebben nu id **60000+** (`ITEM_BASE`); blokken hebben ruimte tot 1024. Een bewaarde onderbalk met de oude nummers (200+) wordt bij het laden omgezet.
+- ±370 nieuwe blok-id's (inclusief alle standen), met vaste nummers per familie in `blocks.js` (`stairsId`, `slabId`, `doorId`, `gateId`, `glassId`). Elk blok kan per richting een andere tegel hebben (oven met voorkant, liggende stam).
+- Standen: stam liggend op een zijvlak, plaat onder/boven/dubbel (twee platen = het volle blok), trap ondersteboven, glazen panelen die aan elkaar groeien, oven en kist met de voorkant naar je toe, ladder tegen de muur.
+- `js/engine/physics.js`: een wachtrij van vakjes rond elke verandering, elke 0,25 s een stapje (in echte tijd, ook op een trage iPad). Water stroomt 7 ver, valt naar beneden en twee bronnen maken een nieuwe bron; zand en grind vallen als bewegend blok; plantjes, fakkels, ladders en tapijt zonder steun vallen om; gewassen groeien in 4 stappen (±5 minuten); gras groeit over aarde. Water sloop je niet meer met de houweel: daar is de emmer voor.
+- Niet gedaan in deel 1: TNT (zie §14), een bloempot mét bloem, en koraalblokken (alleen koraalplantjes).
 
 ---
 

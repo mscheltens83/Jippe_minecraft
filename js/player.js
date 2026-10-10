@@ -1,7 +1,7 @@
 // De speler: lopen, springen, vliegen, zwemmen, stuiteren en botsen tegen blokken.
 // Botsen gaat met kleine blokjes, zodat je een trap op kunt lopen en langs een open deur kunt.
 
-import { B, BLOCKS, blockBoxes } from './blocks.js';
+import { B, BLOCKS, WATERY, blockBoxes } from './blocks.js';
 import { SY, CENTER, BORDER } from './world.js';
 
 const HALF = 0.3;        // halve breedte
@@ -103,8 +103,8 @@ export class Player {
     const startX = this.x, startZ = this.z;
     const feet = world.get(Math.floor(this.x), Math.floor(this.y + 0.3), Math.floor(this.z));
     const head = world.get(Math.floor(this.x), Math.floor(this.y + EYE), Math.floor(this.z));
-    this.inWater = feet === B.WATER || head === B.WATER;
-    this.climbing = !this.riding && !this.flying && (feet === B.VINE || head === B.VINE);
+    this.inWater = !!(WATERY[feet] || WATERY[head]);
+    this.climbing = !this.riding && !this.flying && !!(BLOCKS[feet]?.climb || BLOCKS[head]?.climb); // liaan of ladder
     const below = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
 
     // Loop-richting t.o.v. waar je kijkt

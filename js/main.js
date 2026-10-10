@@ -2,7 +2,10 @@
 
 import { logError } from './errors.js'; // als eerste, zodat ook fouten tijdens het opstarten bewaard worden
 import * as THREE from '../lib/three.module.min.js';
-import { AIR, B, BLOCKS, OPAQUE, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, doorId, gateId, isSpecial, torchId, bedId } from './blocks.js';
+import {
+  AIR, B, BLOCKS, OPAQUE, WATERY, DIRS, DEFAULT_HOTBAR, PALETTE, SPECIALS, WOODS, MATERIALS,
+  doorId, gateId, isSpecial, upgradeItemId, torchId, bedId, stairsId, slabId,
+} from './blocks.js';
 import { createAtlas } from './textures.js';
 import { World, CHUNK } from './world.js';
 import { WorkerPool } from './engine/pool.js';
@@ -30,6 +33,7 @@ import { Bench } from './bench.js';
 import { VERSION } from './version.js';
 import { DayNight, NOON, sunAmount, glowAmount, sunAngle } from './daynight.js';
 import { TINT_KIND } from './engine/tint.js';
+import { Physics } from './engine/physics.js';
 import { Animal } from './animals/core.js';
 import { showTextures } from './texview.js';
 
@@ -157,6 +161,17 @@ class Game {
     this.pool = new WorkerPool(this.atlas.faceTiles, Math.max(1, Math.min(2, cores - 1)));
     this.loader = new ChunkLoader(this.world, this.scene, this.pool);
     this.world.onChunkAdded = (c) => this.chunkAdded(c);
+    // Natuurkunde: vallend zand, stromend water, plantjes zonder grond, groeiende gewassen
+    this.physics = new Physics(this.world, {
+      onChange: () => this.markDirty(),
+      onBreak: (x, y, z, id) => this.particles.burst(x, y, z, this.atlas.particleColors[BLOCKS[id].family] || [[0.4, 0.7, 0.3]], 10),
+      onFall: (f) => { f.mesh = this.scene.fallingBlock(f.id); },
+      onLand: (f, ok) => {
+        this.scene.removeFalling(f.mesh);
+        if (ok) this.sounds.place(BLOCKS[f.id].sound); else this.particles.burst(f.x, f.y, f.z, this.atlas.particleColors[f.id] || [[0.8, 0.7, 0.5]], 12);
+      },
+    });
+    this.world.onBlockChanged = (x, y, z, old, id) => this.physics.notify(x, y, z, id);
     this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
     this.maxView = touch ? 7 : 10;
@@ -213,6 +228,7 @@ class Game {
 
   // Een nieuw stuk wereld: soms komen er een paar dieren van dat landschap bij
   chunkAdded(c) {
+    this.physics.scanChunk(c);
     if (this.spawned.has(c.key)) return;
     this.spawned.add(c.key);
     if (!this.worldReady || c.edited || this.readOnly) return;
@@ -225,6 +241,7 @@ class Game {
     this.dismount();
     this.snowmen.clear();
     this.loader.reset();
+    this.physics.reset();
     this.spawned = new Set();
     fn();
     for (const key of this.world.chunks.keys()) this.spawned.add(key);
@@ -294,8 +311,9 @@ class Game {
       this.player.unstick(this.world);
       this.home = s.home && Number.isFinite(s.home.x) ? s.home : null;
       this.daynight.set(s.time ?? 0.02);
-      this.hotbar = Array.isArray(s.hotbar) && s.hotbar.length === DEFAULT_HOTBAR.length && s.hotbar.every((id) => PALETTE.includes(id))
-        ? [...s.hotbar] : [...DEFAULT_HOTBAR];
+      const hotbar = Array.isArray(s.hotbar) ? s.hotbar.map(upgradeItemId) : null;
+      this.hotbar = hotbar && hotbar.length === DEFAULT_HOTBAR.length && hotbar.every((id) => PALETTE.includes(id))
+        ? hotbar : [...DEFAULT_HOTBAR];
       this.sel = Number.isInteger(s.sel) && s.sel >= 0 && s.sel < this.hotbar.length ? s.sel : 0;
       this.mode = s.mode === 'break' ? 'break' : 'build';
       // Een omgezette wereld van de eerste versie heeft nog geen dieren: die komen er nu bij
@@ -698,9 +716,64 @@ class Game {
     if (hit.id === B.TREASURE && !forceBreak) { this.openTreasure(hit); return; }
     if (hit.id === B.FIREWORK && !forceBreak) { this.launchFirework(hit); return; }
     if (BLOCKS[hit.id].bed && !forceBreak) { this.useBed(hit); return; }
+    if (!forceBreak && this.interact(hit)) return;
     if (mode === 'build') this.use(hit);
     else if (forceBreak) this.breakBlock(hit);
     else this.hintHold(hit);
+  }
+
+  // Tikken op oven, kist, jukebox of taart doet iets (in plaats van bouwen)
+  interact(hit) {
+    const w = this.world, b = BLOCKS[hit.id], { x, y, z } = hit;
+    if (b.family === B.FURNACE) {
+      w.set(x, y, z, B.FURNACE + b.dir * 2 + (b.lit ? 0 : 1));
+      this.sounds.place(b.lit ? 'stone' : 'wood');
+      if (!b.lit) this.particles.smokeAt(x + 0.5, y + 1, z + 0.5, true);
+    } else if (b.family === B.CHEST) {
+      w.set(x, y, z, B.CHEST + b.dir * 2 + (b.open ? 0 : 1));
+      this.sounds.door();
+      if (!b.open) this.particles.sparkle(x + 0.1, y + 0.8, z + 0.1, x + 0.9, y + 1.4, z + 0.9, 12);
+    } else if (hit.id === B.JUKEBOX) {
+      this.sounds.jukebox();
+      this.particles.sparkle(x - 0.2, y + 1, z - 0.2, x + 1.2, y + 2.2, z + 1.2, 30);
+    } else if (b.family === B.CAKE) {
+      // een hapje: na vier hapjes is de taart op
+      w.set(x, y, z, b.bites < 3 ? hit.id + 1 : AIR);
+      this.sounds.nom();
+      this.particles.heartsAt(x + 0.5, y + 0.9, z + 0.5);
+    } else return false;
+    this.markDirty();
+    return true;
+  }
+
+  // Waar raakte de straal het blok? (voor platen en trappen: boven- of onderhelft)
+  hitFraction(hit) {
+    const r = this.raycaster.ray;
+    return r.origin.y + r.direction.y * hit.dist - hit.y;
+  }
+
+  // Emmer: water weghalen, of een waterbron neerzetten
+  useBucket(hit) {
+    const w = this.world;
+    if (WATERY[hit.id] && BLOCKS[hit.id].render === 'water') {
+      this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: hit.id, to: AIR }]);
+      this.sounds.place('water');
+      return;
+    }
+    const [x, y, z] = this.targetCell(hit, B.WATER), existing = w.get(x, y, z);
+    if (!w.inside(x, y, z) || !BLOCKS[existing].replaceable || existing === B.WATER) { this.sounds.nope(); return; }
+    this.apply([{ x, y, z, from: existing, to: B.WATER }]);
+    this.sounds.place('water');
+    this.particles.waterAt(x + 0.5, y + 0.8, z + 0.5, 0, 0);
+  }
+
+  // Zaadjes: op gras, aarde of een akker; de grond wordt een akker en er komt een plantje op
+  plantSeed(hit, crop) {
+    const w = this.world, { x, y, z } = hit, above = w.get(x, y + 1, z);
+    if (hit.ny !== 1 || ![B.GRASS, B.DIRT, B.FARMLAND].includes(hit.id) || !BLOCKS[above].replaceable || WATERY[above]) { this.sounds.nope(); return; }
+    this.apply([{ x, y, z, from: hit.id, to: B.FARMLAND }, { x, y: y + 1, z, from: above, to: crop }]);
+    this.sounds.place('grass');
+    this.particles.burst(x, y + 0.5, z, [[0.45, 0.32, 0.2], [0.6, 0.8, 0.3]], 8, true);
   }
 
   // Staat het dier vóór het blok? (gras, bloemetjes en water staan niet in de weg)
@@ -713,6 +786,8 @@ class Game {
     if (!isSpecial(item)) { this.placeBlock(hit, item); return; }
     const sp = SPECIALS[item];
     if (sp.kind === 'stamp') this.placeStamp(hit, sp.stamp);
+    else if (sp.kind === 'bucket') this.useBucket(hit);
+    else if (sp.kind === 'seed') this.plantSeed(hit, sp.crop);
     else this.placeAnimal(hit, sp.animal);
   }
 
@@ -722,14 +797,55 @@ class Game {
     const existing = w.get(x, y, z);
     const nb = BLOCKS[id];
     const nope = () => this.sounds.nope();
+    const f = this.facing();
+    const inPlace = x === hit.x && y === hit.y && z === hit.z;
+    const frac = this.hitFraction(hit);
+    // Plaat op een plaat van hetzelfde soort: samen één vol blok
+    if (nb.shape === 'slab') {
+      const hb = BLOCKS[hit.id];
+      if (hb.shape === 'slab' && hb.mat === nb.mat && ((!hb.slabTop && hit.ny === 1) || (hb.slabTop && hit.ny === -1))) {
+        this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: hit.id, to: MATERIALS[nb.mat].block }]);
+        return this.placed(hit.x, hit.y, hit.z, nb);
+      }
+      const eb = BLOCKS[existing];
+      if (eb.shape === 'slab' && eb.mat === nb.mat) {
+        this.apply([{ x, y, z, from: existing, to: MATERIALS[nb.mat].block }]);
+        return this.placed(x, y, z, nb);
+      }
+    }
     if (!w.inside(x, y, z) || !BLOCKS[existing].replaceable || existing === id) return nope();
+    // Ladder: tegen de muur die je aantikt
+    if (nb.family === B.LADDER) {
+      if (inPlace || hit.ny !== 0 || !OPAQUE[hit.id]) return nope();
+      this.apply([{ x, y, z, from: existing, to: B.LADDER + DIRS.findIndex(([dx, dz]) => dx === -hit.nx && dz === -hit.nz) }]);
+      return this.placed(x, y, z, nb);
+    }
+    // Zeewier en koraal: alleen onder water, op de bodem
+    if (nb.waterlogged) {
+      const below = w.get(x, y - 1, z);
+      if (!WATERY[existing] || !(OPAQUE[below] || below === B.SEAWEED)) return nope();
+      this.apply([{ x, y, z, from: existing, to: id }]);
+      return this.placed(x, y, z, nb);
+    }
+    // Suikerriet: op zand, gras of aarde, of op ander suikerriet
+    if (id === B.SUGAR_CANE) {
+      const below = w.get(x, y - 1, z);
+      if (![B.SAND, B.RED_SAND, B.GRASS, B.DIRT, B.SUGAR_CANE].includes(below)) return nope();
+      this.apply([{ x, y, z, from: existing, to: id }]);
+      return this.placed(x, y, z, nb);
+    }
+    // Zonnebloem: twee blokken hoog
+    if (id === B.SUNFLOWER) {
+      const up = w.get(x, y + 1, z);
+      if (!OPAQUE[w.get(x, y - 1, z)] || !w.inside(x, y + 1, z) || !BLOCKS[up].replaceable) return nope();
+      this.apply([{ x, y, z, from: existing, to: B.SUNFLOWER }, { x, y: y + 1, z, from: up, to: B.SUNFLOWER + 1 }]);
+      return this.placed(x, y, z, nb);
+    }
     if (nb.climb) {
       const supported = [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]
         .some(([dx, dy, dz]) => { const id = w.get(x + dx, y + dy, z + dz); return BLOCKS[id].solid || id === B.VINE; });
       if (!supported) return nope();
     } else if (nb.render === 'cross' && !OPAQUE[w.get(x, y - 1, z)]) return nope();
-    const f = this.facing();
-    const inPlace = x === hit.x && y === hit.y && z === hit.z;
 
     // Fakkel: op de grond, of tegen de muur die je aantikt
     if (id === B.TORCH) {
@@ -766,11 +882,19 @@ class Game {
       if (p.overlapsBlock(x, y, z) || p.overlapsBlock(x, y + 1, z)) return nope();
       const d = (f + 2) % 4;
       this.apply([
-        { x, y, z, from: existing, to: doorId(d, false, false) },
-        { x, y: y + 1, z, from: up, to: doorId(d, true, false) },
+        { x, y, z, from: existing, to: doorId(d, false, false, nb.wood || 0) },
+        { x, y: y + 1, z, from: up, to: doorId(d, true, false, nb.wood || 0) },
       ]);
     } else {
-      const place = nb.shape === 'stairs' ? B.STAIRS + f : nb.shape === 'gate' ? gateId(f, false) : id;
+      // Bovenhelft van een zijvlak of de onderkant van een blok aangetikt: trap ondersteboven, plaat boven
+      const high = !inPlace && (hit.ny === -1 || (hit.ny === 0 && frac > 0.5));
+      const wood = WOODS.findIndex((wd) => wd.log === id);
+      let place = id;
+      if (nb.shape === 'stairs') place = stairsId(nb.mat, f, high);
+      else if (nb.shape === 'slab') place = slabId(nb.mat, high);
+      else if (nb.shape === 'gate') place = gateId(f, false, nb.wood || 0);
+      else if (wood >= 0 && !inPlace && hit.ny === 0) place = B.LOG_AXIS + wood * 2 + (hit.nx !== 0 ? 0 : 1); // stam ligt
+      else if (nb.family === B.FURNACE || nb.family === B.CHEST) place = nb.family + ((f + 2) % 4) * 2; // voorkant naar jou
       let lift = false;
       if (nb.shape === 'fence' || nb.shape === 'gate') {
         const box = p.box();
@@ -952,7 +1076,7 @@ class Game {
     const before = [w.get(hit.x, y0, hit.z), w.get(hit.x, y0 + 1, hit.z)];
     before.forEach((id, i) => {
       const d = BLOCKS[id];
-      if (d.shape === 'door') w.set(hit.x, y0 + i, hit.z, doorId(d.dir, d.upper, open));
+      if (d.shape === 'door') w.set(hit.x, y0 + i, hit.z, doorId(d.dir, d.upper, open, d.wood || 0));
     });
     // Zou de deur dicht in de speler zitten? Dan blijft hij open.
     if (this.player.collides(w, this.player.x, this.player.y, this.player.z)) {
@@ -966,7 +1090,7 @@ class Game {
 
   toggleGate(hit) {
     const w = this.world, b = BLOCKS[hit.id];
-    w.set(hit.x, hit.y, hit.z, gateId(b.dir, !b.open));
+    w.set(hit.x, hit.y, hit.z, gateId(b.dir, !b.open, b.wood || 0));
     if (this.player.collides(w, this.player.x, this.player.y, this.player.z) ||
       this.animals.list.some((a) => Math.abs(a.x - hit.x - 0.5) < 2 && Math.abs(a.z - hit.z - 0.5) < 2 &&
         Math.abs(a.y - hit.y) < 3 && !a.clearAt(w, a.x, a.y, a.z))) {
@@ -1007,18 +1131,14 @@ class Game {
     const w = this.world, b = BLOCKS[hit.id];
     if (!b.breakable) { this.sounds.nope(); return; }
     const { x, y, z } = hit;
-    // Een gat naast water loopt vol met water
-    let to = AIR;
-    if (hit.id !== B.WATER) {
-      const wet = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].some(([dx, dy, dz]) => w.get(x + dx, y + dy, z + dz) === B.WATER);
-      if (wet) to = B.WATER;
-    }
-    if (to === hit.id) { this.sounds.nope(); return; }
+    // Een gat naast water loopt vanzelf vol: dat doet de natuurkunde (water stroomt erin)
+    const to = b.waterlogged ? B.WATER : AIR;
+    if (WATERY[hit.id] && b.render === 'water') { this.sounds.nope(); return; } // water sloop je niet, daar is de emmer voor
     const changes = [{ x, y, z, from: hit.id, to }];
-    if (b.shape === 'door') {
+    if (b.shape === 'door' || b.family === B.SUNFLOWER) {
       const oy = b.upper ? y - 1 : y + 1;
       const other = w.get(x, oy, z);
-      if (BLOCKS[other].shape === 'door') changes.push({ x, y: oy, z, from: other, to: AIR });
+      if (BLOCKS[other].family === b.family && BLOCKS[other].upper !== b.upper) changes.push({ x, y: oy, z, from: other, to: AIR });
     }
     if (b.bed) {
       const o = this.bedPartner(x, y, z);
@@ -1182,6 +1302,8 @@ class Game {
     this.updateCompass();
     this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
     this.snowmen.update(this.playing ? dt : 0, this.world);
+    if (!this.readOnly) this.physics.update(realDt, p); // echte tijd: water stroomt even snel op een trage iPad
+    for (const f of this.physics.falling) f.mesh?.position.set(f.x + 0.5, f.y + 0.5, f.z + 0.5);
     this.weather.update(dt, this.world, this.player, this.scene.pixelRatio, this.playing && !document.hidden);
     this.particles.update(dt, this.world);
     this.scene.updateClouds(dt);
@@ -1229,7 +1351,7 @@ class Game {
   // Zit de camera onder water? Dan blauwe mist, een blauwe tint en gedempt geluid
   updateUnderwater() {
     const c = this.scene.camera.position;
-    const under = this.world.get(Math.floor(c.x), Math.floor(c.y), Math.floor(c.z)) === B.WATER;
+    const under = !!WATERY[this.world.get(Math.floor(c.x), Math.floor(c.y), Math.floor(c.z))];
     if (under === !!this.underwater) return;
     this.underwater = under;
     this.scene.setUnderwater(under);

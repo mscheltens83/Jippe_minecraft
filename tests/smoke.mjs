@@ -19,6 +19,7 @@ import { testPhase4B } from './phase-4b.mjs';
 import { testPhase4C } from './phase-4c.mjs';
 import { testPhase4D } from './phase-4d.mjs';
 import { testPhase4E } from './phase-4e.mjs';
+import { testPhase4F } from './phase-4f.mjs';
 import { VERSION } from '../js/version.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -80,10 +81,10 @@ const vp = page.viewportSize();
 const cx = vp.width / 2, cy = vp.height / 2;
 const cdp = await context.newCDPSession(page);
 const touch = (type, x, y, id = 1) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y, id }] });
-const TAB = { Huisje: 'Stempels', Boom: 'Stempels', Toren: 'Stempels', Brug: 'Stempels', Varken: 'Dieren', Kip: 'Dieren', Schaap: 'Dieren' };
+const TAB = { Huisje: 'Stempels', Boom: 'Stempels', Toren: 'Stempels', Brug: 'Stempels', Varken: 'Dieren', Kip: 'Dieren', Schaap: 'Dieren', 'Rood glas': 'Kleuren' };
 const pickFromChest = async (label) => {
   await page.locator('.slot.chest').tap();
-  await page.locator(`.pal-tab[aria-label="${TAB[label] || 'Blokken'}"]`).tap();
+  await page.locator(`.pal-tab[aria-label="${TAB[label] || 'Bouwen'}"]`).tap();
   await page.locator(`.pal-item[aria-label="${label}"]`).tap();
 };
 const edits = () => g(() => window.__jippecraft.edits);
@@ -146,12 +147,12 @@ check(await until((n) => window.__jippecraft.undoStack.length === n - 1, undoLen
 // --- de kist met groepen
 await page.locator('.slot.chest').tap();
 check(await page.locator('.palette').isVisible(), 'kist gaat open');
-check((await page.locator('.pal-tab').count()) === 5, 'kist heeft tabbladen: blokken, natuur, licht, stempels en dieren');
+check((await page.locator('.pal-tab').count()) === 7, 'kist heeft tabbladen: bouwen, kleuren, natuur, licht en huis, planten, stempels en dieren');
 await shot('03-kist');
 await page.locator('.pal-tab[aria-label="Stempels"]').tap();
 check(await page.locator('.pal-item[aria-label="Toren"]').isVisible(), 'stempels-tabblad laat de stempels zien');
 await shot('03-kist-stempels');
-await page.locator('.pal-tab[aria-label="Blokken"]').tap();
+await page.locator('.pal-tab[aria-label="Bouwen"]').tap();
 await page.locator('.pal-item[aria-label="Regenboog"]').tap();
 check(await until(() => window.__jippecraft.ui.paletteOpen === false), 'kist gaat dicht na kiezen');
 check(await g(() => window.__jippecraft.mode === 'build'), 'terug naar bouwen na kiezen');
@@ -390,6 +391,7 @@ if (want('4b')) await testPhase4B({ newPage, check, out });
 if (want('4c')) await testPhase4C({ newPage, check, out });
 if (want('4d')) await testPhase4D({ newPage, check, out });
 if (want('4e')) await testPhase4E({ newPage, check, out });
+if (want('4f')) await testPhase4F({ newPage, check, out });
 
 check(errors.length === 0, 'geen fouten in de console' + (errors.length ? ':\n  ' + errors.join('\n  ') : ''));
 

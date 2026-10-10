@@ -1,16 +1,16 @@
 // Onder de grond: grotten (lange tunnels en grote zalen), meertjes onderin, steensoorten en ertsen.
 // Alles hangt alleen af van de seed en de chunk, dus het past overal naadloos op elkaar.
 
-import { AIR, B } from '../blocks.js';
+import { AIR, B, MAX_ID } from '../blocks.js';
 import { hash, rng, simplex2, simplex3 } from './noise.js';
 import { CHUNK, SY, SEA } from './constants.js';
 
 const SX = 4, SYG = 8;                     // grof raster voor de 3D-ruis (sneller)
 const GX = CHUNK / SX + 1, GY = SY / SYG + 1;
-const CARVE = new Uint8Array(256);         // wat een grot mag weghalen
+const CARVE = new Uint8Array(MAX_ID);         // wat een grot mag weghalen
 for (const id of [B.STONE, B.DIRT, B.GRAVEL, B.GRANITE, B.DIORITE, B.ANDESITE, B.SANDSTONE, B.RED_DIRT, B.CLAY,
   B.TERRACOTTA_ORANGE, B.TERRACOTTA_BROWN, B.COAL_ORE, B.IRON_ORE]) CARVE[id] = 1;
-const STONES = new Uint8Array(256);
+const STONES = new Uint8Array(MAX_ID);
 for (const id of [B.STONE, B.GRANITE, B.DIORITE, B.ANDESITE]) STONES[id] = 1;
 
 // [blok, gemiddeld aantal per chunk, grootte, laagste y, hoogste y]
@@ -88,7 +88,7 @@ export class Underground {
         if (axis === 0) lx += step; else if (axis === 1) y += step; else lz += step;
       }
     };
-    const stoneOnly = new Uint8Array(256); stoneOnly[B.STONE] = 1;
+    const stoneOnly = new Uint8Array(MAX_ID); stoneOnly[B.STONE] = 1;
     const times = (n) => Math.floor(n) + (r() < n % 1 ? 1 : 0);
     for (const [id, n, size, y0, y1] of VEINS) for (let k = times(n); k > 0; k--) blob(id, size, y0, y1, stoneOnly);
     for (const [id, n, size, y0, y1] of ORES) for (let k = times(n); k > 0; k--) blob(id, size, y0, y1, STONES);

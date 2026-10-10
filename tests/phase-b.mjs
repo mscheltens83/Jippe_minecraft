@@ -199,13 +199,13 @@ export async function testPhaseB({ newPage, check, out }) {
     const j = window.__jippecraft; j.animals.clear();
     wild.forEach((t, i) => { const a = j.animals.spawn(t, 25 + i * 3, 50, 40, 0.25); a.hunger = 240 + i; if (t === 'lion') { a.tame = true; a.sleep = 11; } });
     j.world.set(40, 60, 40, 19);
-    j.hotbar[0] = 213; j.sel = 0; j.playing = false; await j.saveNow();
+    j.hotbar[0] = 60013; j.sel = 0; j.playing = false; await j.saveNow(); // 60013 = leeuw (stempels en dieren hebben sinds 4.5 id 60000+)
     return { animals: JSON.stringify(j.makeSave().animals), world: j.world.fingerprint() };
   }, wild);
   await page.reload(); await page.waitForFunction(() => window.__jippecraft, null, { timeout: 30000 });
   check(await run((saved) => {
     const j = window.__jippecraft;
-    return j.hotbar[0] === 213 && JSON.stringify(j.animals.serialize()) === saved.animals && j.world.fingerprint() === saved.world && j.world.get(40, 60, 40) === 19;
+    return j.hotbar[0] === 60013 && JSON.stringify(j.animals.serialize()) === saved.animals && j.world.fingerprint() === saved.world && j.world.get(40, 60, 40) === 19;
   }, storage), 'herladen bewaart alle nieuwe dieren, positie, temveld, slaaptijd, honger, onderbalk en blokken');
 
   // Contactblad van de echte 3D-modellen; gebruikt dezelfde renderer als het spel.

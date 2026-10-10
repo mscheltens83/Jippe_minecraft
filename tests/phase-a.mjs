@@ -26,7 +26,7 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   check(migrated.ids.slice(1).every((n) => n > 0), 'alle oude blokken 1–60 zijn er na het omzetten nog');
   check(migrated.type === phase2Save.type && migrated.seed === phase2Save.seed &&
     ['x', 'z', 'pitch', 'flying'].every((k) => migrated.player[k] === phase2Save.player[k]) && Math.abs(migrated.player.yaw - phase2Save.player.yaw) < 0.3 /* achter het menu draait de camera langzaam */ && Math.abs(migrated.player.y - phase2Save.player.y - SHIFT) < 1e-6 &&
-    JSON.stringify(migrated.hotbar) === JSON.stringify(phase2Save.hotbar) && migrated.sel === phase2Save.sel && migrated.mode === phase2Save.mode,
+    JSON.stringify(migrated.hotbar) === JSON.stringify(phase2Save.hotbar.map((id) => (id >= 200 && id < 300 ? id - 200 + 60000 : id))) /* stempels en dieren: sinds 4.5 nummer 60000+ */ && migrated.sel === phase2Save.sel && migrated.mode === phase2Save.mode,
   'omzetten bewaart wereldsoort, seed, positie (38 hoger), vliegen, onderbalk en bouwstand');
   check(migrated.animals.length === 3 && migrated.animals.every((a, i) => {
     const old = phase2Save.animals[i];

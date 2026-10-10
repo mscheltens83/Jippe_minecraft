@@ -1,7 +1,7 @@
 // Welk blok raak je als je vanaf de camera in een richting kijkt?
 // Stapt blok voor blok langs de straal (voxel-DDA).
 
-import { AIR, B, BLOCKS } from './blocks.js';
+import { AIR, BLOCKS, WATERY } from './blocks.js';
 
 // `stop(id)` bepaalt welke blokken de straal tegenhouden (standaard: alles behalve lucht)
 export function raycast(world, origin, dir, maxDist, stop = null) {
@@ -13,7 +13,7 @@ export function raycast(world, origin, dir, maxDist, stop = null) {
   let tMaxY = dir.y !== 0 ? frac(origin.y, stepY) * tDeltaY : Infinity;
   let tMaxZ = dir.z !== 0 ? frac(origin.z, stepZ) * tDeltaZ : Infinity;
   // Zit de camera onder water, dan kun je door het water heen bouwen
-  const skipWater = world.get(x, y, z) === B.WATER;
+  const skipWater = !!WATERY[world.get(x, y, z)];
   let nx, ny, nz, t = 0;
 
   while (t <= maxDist) {
@@ -32,7 +32,7 @@ export function raycast(world, origin, dir, maxDist, stop = null) {
       const below = world.get(x, y - 1, z);
       if (!stop || stop(below)) return { x, y: y - 1, z, nx, ny, nz, id: below, dist: t };
     }
-    if (stop ? stop(id) : id !== AIR && !(skipWater && id === B.WATER)) {
+    if (stop ? stop(id) : id !== AIR && !(skipWater && WATERY[id])) {
       return { x, y, z, nx, ny, nz, id, dist: t };
     }
   }

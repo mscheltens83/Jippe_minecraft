@@ -428,6 +428,27 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     }
   }
 
+  // Een vallend blok (zand, grind): een losse kubus met de textuur van dat blok
+  fallingBlock(id) {
+    this.fallingMats ||= new Map();
+    let mat = this.fallingMats.get(id);
+    if (!mat) {
+      const tile = this.atlas.faceTiles[id][2], c = document.createElement('canvas');
+      c.width = c.height = 16;
+      c.getContext('2d').drawImage(this.atlas.canvas, (tile % 16) * 16, Math.floor(tile / 16) * 16, 16, 16, 0, 0, 16, 16);
+      const t = new THREE.CanvasTexture(c);
+      t.magFilter = t.minFilter = THREE.NearestFilter; t.colorSpace = THREE.SRGBColorSpace;
+      mat = new THREE.MeshBasicMaterial({ map: t });
+      this.fallingMats.set(id, mat);
+    }
+    this.fallingGeo ||= new THREE.BoxGeometry(1, 1, 1);
+    const mesh = new THREE.Mesh(this.fallingGeo, mat);
+    this.scene.add(mesh);
+    return mesh;
+  }
+
+  removeFalling(mesh) { if (mesh) this.scene.remove(mesh); }
+
   removeChunk(key) {
     const e = this.chunks.get(key);
     if (!e) return;
