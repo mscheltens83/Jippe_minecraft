@@ -213,7 +213,8 @@ export class Animal {
     this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.hunt?.phase === 'stalk' ? 'sluipen'
       : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.following && this.walking ? 'volgen'
         : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
-    this.speedNow = this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
+    // chaseSpeed: in de Wilde Nacht rennen de dieren op je af (storm.js)
+    this.speedNow = this.chaseSpeed ? this.chaseSpeed : this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
       : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
       : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
     this.yaw += wrap(this.targetYaw - this.yaw) * Math.min(1, dt * 4);

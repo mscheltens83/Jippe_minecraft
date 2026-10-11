@@ -8,6 +8,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 |---|---|
 | [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad en op de testcomputer |
 | [`analyse-code.md`](analyse-code.md) | Code-analyse na fase 5: foutencheck, metingen en wat er sneller en beter is gemaakt |
+| [`fase-6-plan.md`](fase-6-plan.md) | Het plan voor fase 6: de Wilde Nacht, een enge spelstand waarin je overdag een huis bouwt en 's nachts alle dieren op je af komen |
 | [`fase-5-plan.md`](fase-5-plan.md) | Het plan voor fase 5: de Dinowereld, opdrachtjes met stickers, schatkisten en verkleden, rails met karretje, bootje, knoppen en hendels |
 | [`fase-4-plan.md`](fase-4-plan.md) | Het plan voor fase 4: van blokkenspel naar echte Minecraft-kloon. Eindeloze wereld met biomen, grotten, licht en dag en nacht, veel meer blokken, Minecraft-dieren en dorpen, en de themawerelden als extra werelden via portalen |
 | [`fase-3-plan.md`](fase-3-plan.md) | Het grote plan voor fase 3: jungle, woestijn, toendra, savanne en avontuur; wilde dieren (leeuw, cheetah, tijger en 20 meer); roofdieren en stallen; temmen en rijden op de leeuw; dierenalbum |
@@ -49,3 +50,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Analyse | Foutencheck en optimalisatie: workers onthouden chunks, geen shaders vertalen tijdens het spelen, drie fouten opgelost, foutenlogboek in de tests ([analyse](analyse-code.md)) | Klaar (versie 5.4.1) |
 | Dieren en zee | Dieren plaatsen lukt weer als er al 60 zijn, een dier naar huis sturen, kwal, walvis en kogelvis, veel meer zeedieren ([plan, §9](fase-5-plan.md)) | Klaar (versie 5.5.0) |
 | Zwemrit | Rijden op een dolfijn en een walvis: duiken, dolfijnsprong, walvisfontein ([plan, §10](fase-5-plan.md)) | Klaar (versie 5.6.0) |
+| 6A | Wilde Nacht: dag om te bouwen, nacht met jagende dieren, hartjes, gepakt of overleefd, steeds moeilijker ([plan](fase-6-plan.md)) | Klaar (versie 6.0.0) |
+| 6B–6D | Eng maken, muren slopen, golven, beperkte bouwstenen, BOE-knop | Nog te doen |

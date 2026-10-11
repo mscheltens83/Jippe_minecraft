@@ -296,7 +296,12 @@ export class UI {
     this.versionBtn.type = 'button';
     this.versionBtn.setAttribute('aria-label', 'Versie ' + VERSION + ' (vasthouden voor ouders)');
     onLongPress(this.versionBtn, 3000, () => this.showPanel('parent'));
-    main.append(this.playBtn, row, labeled(this.predatorsBtn, 'Roofdieren jagen'), this.versionBtn);
+    // De Wilde Nacht (fase 6): bouw een huis voordat de dieren komen
+    this.stormBtn = button('small storm-menu-btn', 'wildNight', 'Wilde Nacht');
+    onPress(this.stormBtn, () => h.onStorm());
+    const row2 = el('div', 'menu-row');
+    row2.append(labeled(this.predatorsBtn, 'Roofdieren jagen'), labeled(this.stormBtn, 'Wilde Nacht'));
+    main.append(this.playBtn, row, row2, this.versionBtn);
 
     const worlds = this.panels.worlds = el('div', 'panel');
     this.slotRow = el('div', 'slots');
@@ -474,6 +479,13 @@ export class UI {
     this.downBtn.hidden = this.riding;
     this.downBtn.setAttribute('aria-label', swim ? 'Duiken' : 'Sluipen');
     this.jumpBtn.innerHTML = on && swim ? ICONS.up : ICONS.jump;
+  }
+
+  // Tijdens de Wilde Nacht: geen huisknop (dat zou te makkelijk zijn)
+  setStorm(on) {
+    this.homeBtn.hidden = on;
+    this.compass.hidden = on || this.compass.hidden;
+    document.body.classList.toggle('storm', on);
   }
 
   setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }

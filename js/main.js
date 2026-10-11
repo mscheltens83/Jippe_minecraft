@@ -31,6 +31,7 @@ import { iconURL } from './icons.js';
 import { placeState, neighbourChanges, startCart, stepCart, cartPose, isRail } from './rails.js';
 import { switchOn, signalChanges } from './switches.js';
 import { speech } from './speech.js';
+import { Storm } from './storm.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
@@ -125,6 +126,7 @@ class Game {
       onTogglePredators: () => this.togglePredators(),
       onAlbum: () => this.album.open(),
       onGoHome: () => this.goHome(),
+      onStorm: () => this.startStorm(),
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
@@ -293,7 +295,7 @@ class Game {
     this.physics.scanChunk(c);
     if (this.spawned.has(c.key)) return;
     this.spawned.add(c.key);
-    if (!this.worldReady || c.edited || this.readOnly) return;
+    if (!this.worldReady || c.edited || this.readOnly || this.storm) return;
     if (this.animals.spawnInChunk(this.world, c.cx, c.cz, this.player)) this.markDirty();
   }
 
@@ -454,7 +456,7 @@ class Game {
   }
 
   saveNow() {
-    if (this.readOnly || !this.worldReady) return Promise.resolve();
+    if (this.readOnly || !this.worldReady || this.storm) return Promise.resolve(); // de Wilde Nacht wordt niet bewaard
     const s = this.makeSave();
     const slot = this.worldKey();
     if (this.resetSlot) { this.store.clearSlot(slot); this.resetSlot = false; }
@@ -587,6 +589,7 @@ class Game {
   }
 
   openMenu() {
+    if (this.storm) { this.stopStorm(); return; } // naar het menu = stoppen met de Wilde Nacht
     this.playing = false;
     this.input.enabled = false;
     this.input.releaseAll();
@@ -635,6 +638,7 @@ class Game {
 
   // Met een wolkje glitters naar huis (ook als je op een dier rijdt: dat gaat mee)
   goHome() {
+    if (this.storm) { this.sounds.nope(); return; }
     const p = this.player, target = this.homeSpot();
     const hx = Math.floor(target.x), hz = Math.floor(target.z);
     this.world.ensureArea(hx - 2 * CHUNK, hz - 2 * CHUNK, hx + 2 * CHUNK, hz + 2 * CHUNK);
@@ -654,6 +658,7 @@ class Game {
 
   // Het pijltje naar huis: alleen als je verder dan 50 blokken weg bent
   updateCompass() {
+    if (this.storm) { this.ui.setCompass(null); return; }
     const p = this.player, h = this.homeSpot();
     const dx = h.x - p.x, dz = h.z - p.z;
     if (!this.playing || Math.hypot(dx, dz) < 50) { this.ui.setCompass(null); return; }
@@ -681,6 +686,7 @@ class Game {
 
   toggleFly() {
     const p = this.player;
+    if (this.storm && !p.flying) { this.sounds.nope(); this.ui.say('In de Wilde Nacht kun je niet vliegen!', 'wildNight'); return; }
     p.flying = !p.flying;
     if (p.flying) p.vy = 4;
     this.ui.setFlying(p.flying);
@@ -1096,6 +1102,7 @@ class Game {
   // Tik op een bed: dit is nu je thuis. Is het nacht, dan ga je slapen tot de ochtend.
   useBed(hit) {
     if (this.sleeping) return;
+    if (this.storm) { this.sounds.nope(); this.ui.say('Slapen gaat niet: de dieren komen eraan!', 'wildNight'); return; }
     const head = BLOCKS[hit.id].bed.head ? hit : this.bedPartner(hit.x, hit.y, hit.z) || hit;
     this.home = { x: head.x + 0.5, y: head.y + 0.6, z: head.z + 0.5 };
     this.particles.sparkle(hit.x - 0.2, hit.y + 0.5, hit.z - 0.2, hit.x + 1.2, hit.y + 1.6, hit.z + 1.2, 40);
@@ -1117,6 +1124,7 @@ class Game {
   }
 
   placeStamp(hit, kind) {
+    if (this.storm) { this.sounds.nope(); this.ui.say('Stempels doen niet mee in de Wilde Nacht. Bouw zelf!', 'wildNight'); return; }
     const [x, y, z] = this.targetCell(hit, -1);
     const changes = buildStamp(kind, this.world, x, y, z, this.facing());
     if (!changes.length) { this.sounds.nope(); return; }
@@ -1269,6 +1277,7 @@ class Game {
 
   // Het karretje op de rails, het bootje op het water
   placeVehicle(hit, type) {
+    if (this.storm) { this.sounds.nope(); return; }
     const w = this.world, p = this.player;
     let [x, y, z] = this.targetCell(hit, -1);
     if (type === 'minecart') {
@@ -1342,6 +1351,7 @@ class Game {
 
   placeAnimal(hit, type) {
     const w = this.world, p = this.player;
+    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht zet je geen dieren neer!', 'wildNight'); return; }
     const [x, y, z] = this.targetCell(hit, -1);
     if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid) { this.sounds.nope(); return; }
     // Vissen, dolfijnen en inktvissen alleen in het water
@@ -1380,6 +1390,7 @@ class Game {
 
   // Lievelingseten geven: het dier wordt verliefd (hartjes) en zoekt een maatje; een jong groeit sneller
   feedAnimal(a) {
+    if (this.storm) { this.sounds.nope(); return; }
     a.wild = false; // een dier dat je gevoerd hebt, wordt nooit opgeruimd
     this.sounds.animal(a.type);
     this.discoverAnimal(a);
@@ -1405,6 +1416,7 @@ class Game {
   }
 
   petAnimal(a) {
+    if (this.storm) { this.sounds.nope(); return; } // in de Wilde Nacht valt er niets te aaien
     if ((a.tame || a.def.voertuig) && a.def.rijdbaar && !a.baby) { this.mountAnimal(a); return; }
     // De ijzergolem geeft je soms een bloem
     if (a.type === 'golem') {
@@ -1542,6 +1554,7 @@ class Game {
 
   // Tik op een dino-ei: het ei breekt en er komt een jonge dino uit (de kleur bepaalt welke soort)
   hatchEgg(hit) {
+    if (this.storm) { this.sounds.nope(); return; }
     const kinds = [['triceratops', 'stegosaurus', 'parasaur'], ['brachio', 'pteranodon'], ['trex', 'raptor']][BLOCKS[hit.id].egg] || ['triceratops'];
     const type = kinds[Math.floor(Math.random() * kinds.length)];
     const { x, y, z } = hit;
@@ -1687,7 +1700,7 @@ class Game {
 
   // Een dier naar huis sturen (vasthouden in de sloop-stand): het verdwijnt met een poef
   sendAnimalHome(a) {
-    if (a.riding) return;
+    if (a.riding || this.storm) return;
     this.particles.burst(a.x - 0.5, a.y + a.def.h * 0.4, a.z - 0.5, [[1, 1, 1], [0.95, 0.95, 1]], 30, true);
     this.particles.heartsAt(a.x, a.y + a.def.h, a.z, 1);
     this.sounds.pop();
@@ -1709,7 +1722,7 @@ class Game {
     const reach = this.reach();
     const hit = raycast(this.world, ray.origin, ray.direction, reach);
     const pet = this.animals.pick(ray, reach);
-    if (pet && this.animalInFront(pet, hit) && !pet.animal.riding) {
+    if (pet && !this.storm && this.animalInFront(pet, hit) && !pet.animal.riding) {
       if (!this.breakState || this.breakState.animal !== pet.animal || this.breakState.ptr !== h) this.breakState = { animal: pet.animal, t: 0, ptr: h };
       const st = this.breakState;
       st.t += dt;
@@ -1789,6 +1802,63 @@ class Game {
       cam.position.set(p.x, p.y + EYE - (p.sneaking ? 0.2 : 0), p.z); // sluipen: iets lager
     }
     cam.rotation.set(Math.max(-1.55, p.pitch + (this.thirdPerson && p.riding ? RIDE_TILT : 0)), p.yaw, 0);
+    // Geraakt in de Wilde Nacht: het beeld schudt even
+    const shake = this.storm?.shake || 0;
+    if (shake > 0) { cam.position.x += (Math.random() - 0.5) * shake * 0.5; cam.position.y += (Math.random() - 0.5) * shake * 0.5; cam.rotation.z = (Math.random() - 0.5) * shake * 0.12; }
+  }
+
+  // ---------- de Wilde Nacht (fase 6) ----------
+
+  // Een nieuwe Wilde Nacht op een eigen eiland. Eerst de echte wereld bewaren; van deze wereld
+  // wordt niets bewaard (zie saveNow). opts: andere tijden voor de tests.
+  async startStorm(opts = {}) {
+    if (this.switching) return;
+    this.switching = true;
+    try {
+      if (!this.storm) {
+        this.captureThumb();
+        await this.saveNow();
+        this.stormBack = { alwaysDay: this.daynight.alwaysDay };
+      } else this.storm.destroy();
+      this.storm = new Storm(this, opts);
+      this.dismount();
+      this.freshWorld('island', 1 + Math.floor(Math.random() * 1e6));
+      this.animals.clear();
+      this.animals.setPredators(false); // de roofdieren jagen hier alleen op Jippe
+      this.daynight.alwaysDay = false;
+      this.player.flying = false;
+      this.mode = 'build';
+      this.scene.rebuildAll(this.world);
+      this.refreshUI();
+      this.ui.setStorm(true);
+      this.storm.begin();
+      this.play();
+    } finally {
+      this.switching = false;
+    }
+  }
+
+  // Stoppen: terug naar de eigen wereld, en naar het menu
+  async stopStorm() {
+    if (!this.storm || this.switching) return;
+    this.switching = true;
+    try {
+      this.storm.destroy();
+      this.storm = null;
+      this.playing = false;
+      this.input.enabled = false;
+      this.input.releaseAll();
+      this.daynight.alwaysDay = this.stormBack?.alwaysDay ?? !!this.settings.alwaysDay;
+      this.animals.setPredators(this.settings.predators);
+      this.ui.setStorm(false);
+      if (!(await this.loadSlot(this.slot))) this.freshWorld('world');
+      this.scene.rebuildAll(this.world);
+      this.refreshUI();
+      this.ui.closePalette();
+      this.ui.showMenu();
+    } finally {
+      this.switching = false;
+    }
   }
 
   frame(t) {
@@ -1816,10 +1886,11 @@ class Game {
       this.syncRide(dt);
       // In een portaal gestapt? Dan op reis (pas weer als je er eerst uit bent gestapt)
       const inPortal = portalAt(this.world, p.x, p.y, p.z);
-      if (inPortal !== null && !this.inPortal && !this.readOnly) this.travel(inPortal);
+      if (inPortal !== null && !this.inPortal && !this.readOnly && !this.storm) this.travel(inPortal);
       this.inPortal = inPortal !== null;
       this.questTick(now);
       this.switchTick(now);
+      this.storm?.update(dt);
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();
@@ -1856,7 +1927,7 @@ class Game {
     const tDraw = performance.now();
     this.scene.render();
     if (this.bench) this.bench.after(rawDt, this.scene.renderer.info, { logic: tDraw - t0, draw: performance.now() - tDraw });
-    if (this.playing && !this.readOnly && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
+    if (this.playing && !this.readOnly && !this.storm && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
     // Automatisch bewaren
     if (this.dirty && now - this.dirtyAt > 1.5) this.saveNow();
