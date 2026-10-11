@@ -12,10 +12,11 @@ if (typeof window !== 'undefined' && window.speechSynthesis) {
 
 export const speech = {
   enabled: true,
+  silent: false, // de tests: nooit echt praten (op sommige computers houdt dat het spel even op)
   last: '', // voor de tests: wat er het laatst gezegd werd
   say(text) {
     this.last = text;
-    if (!this.enabled) return false;
+    if (!this.enabled || this.silent) return false;
     try {
       const s = window.speechSynthesis;
       if (!s) return false;

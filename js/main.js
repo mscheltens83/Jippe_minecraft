@@ -152,6 +152,8 @@ class Game {
     this.settings = { ...settings, predators: settings.predators !== false, album: Array.isArray(settings.album) ? settings.album : [] };
     // Opdrachtjes en stickers (fase 5B): van Jippe, in alle werelden samen
     this.quests = new Quests(settings.stickers || {}, (q) => this.questDone(q));
+    // ?stil (de tests): niets hardop voorlezen; het spel onthoudt wel wat het zou zeggen
+    speech.silent = /[?&]stil\b/.test(location.search);
     speech.enabled = !this.sounds.muted;
     // Verkleden (fase 5C): wat je aanhebt en wat je al gevonden hebt
     this.wardrobe = new Wardrobe(settings.wardrobe || {});

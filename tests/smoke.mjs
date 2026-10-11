@@ -44,7 +44,7 @@ const server = http.createServer((req, res) => {
 await new Promise((r) => server.listen(0, r));
 // ?vast = vaste beeldkwaliteit, zodat de (trage) test-browser niet steeds wisselt
 // ?zicht=3: kleine zichtafstand, anders is de test-browser zonder videokaart erg traag
-const base = `http://127.0.0.1:${server.address().port}/?vast&zicht=3`;
+const base = `http://127.0.0.1:${server.address().port}/?vast&zicht=3&stil`; // stil: niet hardop voorlezen
 
 let failures = 0;
 const check = (ok, msg) => {
