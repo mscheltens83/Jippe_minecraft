@@ -34,9 +34,11 @@ export async function testPhase6B({ newPage, check, out }) {
   check(looks.musicOff, 'in de Wilde Nacht speelt het vrolijke muziekje niet');
   check(looks.dusk, 'als de avond valt, wordt het al een beetje eng');
   // (het licht verandert pas bij het volgende getekende beeldje)
-  const dark = await waitTrue(page, () => window.__jippecraft.scene.light.uSkyLight.value.g < 0.03, null, 10000);
-  check(looks.level === 1 && looks.moonRed && looks.fog <= 31 && dark && looks.vignette === 1,
-    's nachts: rode maan, heel donker, dichte mist en een donkere rand om het beeld');
+  const dark = await waitTrue(page, () => { const l = window.__jippecraft.scene.light.uSkyLight.value; return l.g < 0.05 && l.g > 0.02 && l.b > l.r; }, null, 10000);
+  const blue = await run(() => { const sc = window.__jippecraft.scene, f = sc.scene.fog.color, c = sc.clouds.material.color; return f.b > f.r * 2 && c.b > c.r * 2; });
+  check(looks.level === 1 && looks.moonRed && looks.fog <= 39 && dark && looks.vignette > 0.5,
+    's nachts: rode maan, donker (maar niet té), mist dichtbij en een donkere rand om het beeld');
+  check(blue, 's nachts zijn de lucht, de wolken en de mist allemaal donkerblauw');
   await page.screenshot({ path: out + '/6b-nacht.png' });
 
   // Geluid: grommen, een hartslag als ze dichtbij zijn, en een bromtoon die steeds harder wordt

@@ -106,3 +106,7 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 - **Stickers** (groep Wilde Nacht, 46 stickers in totaal): je eerste nacht overleefd, drie nachten, vijf nachten (de T-rex), een dier weggejaagd met de BOE-knop, en een kapot geslagen blok vervangen.
 - Niet gedaan: dieren die bewust de zwakste plek in je muur zoeken. Een sloper die tegen een te sterk blok aanloopt, probeert het wel vanzelf even opzij, en komt zo vaak bij een zwakkere plek.
 - Tests: `FASE=6d npm run test:browser`.
+
+## 11. Na het testen op de iPad (versie 6.3.1)
+
+- Het was net te donker, en als je omhoog keek zag je vlakken donkerblauw (de wolken) en vlakken zwart (de lucht). Nu zijn de lucht, de wolken en de mist allemaal donkerblauw, en de nacht is lichter: het maanlicht is nog maar een kwart zwakker dan in een gewone nacht (was veel donkerder en rood), de mist begint verder weg (38 blokken) en de donkere rand om het beeld is minder sterk. De rode maan en de rode ogen blijven.

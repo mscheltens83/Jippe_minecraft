@@ -13,8 +13,10 @@ const SKY = new THREE.Color('#9ad8ff');
 const NIGHT = { boven: new THREE.Color('#070b1f'), horizon: new THREE.Color('#18264a'), mist: new THREE.Color('#0e1530') };
 const GLOW = new THREE.Color('#ff8d45'), SUN_LOW = new THREE.Color('#ffb066');
 const MOONLIGHT = new THREE.Color(0.62, 0.72, 1), DUSKLIGHT = new THREE.Color(1, 0.82, 0.66);
-// De Wilde Nacht (fase 6B): donkerrode lucht, dichte mist en een rode maan
-const STORM = { boven: new THREE.Color('#050102'), horizon: new THREE.Color('#2a0606'), mist: new THREE.Color('#130304'), maan: new THREE.Color('#ff3322') };
+// De Wilde Nacht (fase 6B): een donkerblauwe lucht (wolken en mist ook donkerblauw, geen zwarte vlakken),
+// mist dichtbij en een rode maan
+const STORM = { boven: new THREE.Color('#0c1a44'), horizon: new THREE.Color('#13265a'), mist: new THREE.Color('#0f1f4c'),
+  wolk: new THREE.Color('#132555'), maan: new THREE.Color('#ff3322') };
 const WHITE = new THREE.Color(1, 1, 1);
 const SEA_COLOR = new THREE.Color('#3d7fd8'), CLOUD_NIGHT = new THREE.Color('#3b4562');
 const UNDERWATER = new THREE.Color('#1f56a8');
@@ -236,11 +238,11 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     const day = lin(NIGHT_LIGHT + (1 - NIGHT_LIGHT) * sun);
     this.light.uSkyLight.value.copy(MOONLIGHT).lerp(new THREE.Color(1, 1, 1), sun).lerp(DUSKLIGHT, glow * 0.6).multiplyScalar(day);
     // Wilde Nacht: veel donkerder en rood (alleen fakkels geven nog echt licht)
-    if (st) this.light.uSkyLight.value.multiply(new THREE.Color(1 - 0.45 * st, 1 - 0.8 * st, 1 - 0.8 * st));
+    if (st) this.light.uSkyLight.value.multiplyScalar(1 - 0.25 * st); // iets donkerder dan een gewone nacht (blauw maanlicht)
     this.moon.material.color.copy(WHITE).lerp(STORM.maan, st);
     this.moon.scale.setScalar(1 + 0.9 * st);
     this.sea.material.color.copy(SEA_COLOR).multiplyScalar(day);
-    this.clouds.material.color.copy(CLOUD_NIGHT).lerp(new THREE.Color(1, 1, 1), sun).lerp(GLOW, glow * 0.25);
+    this.clouds.material.color.copy(CLOUD_NIGHT).lerp(new THREE.Color(1, 1, 1), sun).lerp(GLOW, glow * 0.25).lerp(STORM.wolk, st);
     if (this.biomeCurrent) this.applyBiome();
   }
 
@@ -312,8 +314,8 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     this.scene.fog.far = Math.min(b.mistEind, this.viewFar);
     this.scene.fog.near = Math.min(b.mistBegin, this.scene.fog.far * 0.6);
     if (st) { // dichte mist: je ziet ze pas als ze dichtbij zijn (behalve hun ogen)
-      this.scene.fog.far += (30 - this.scene.fog.far) * st;
-      this.scene.fog.near += (4 - this.scene.fog.near) * st;
+      this.scene.fog.far += (38 - this.scene.fog.far) * st;
+      this.scene.fog.near += (6 - this.scene.fog.near) * st;
     }
     this.sun.material.color.copy(mix.zon);
     // Meer of minder wolken per landschap (wolken: 0 tot 46, zoals vroeger het aantal wolkenblokken)

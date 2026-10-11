@@ -451,7 +451,7 @@ export class Storm {
     if (Math.abs(v - this.look) < 0.01 && v !== 0) return;
     this.look = v;
     this.g.scene.setStorm(v);
-    this.vignette.style.opacity = String(v);
+    this.vignette.style.opacity = String(0.7 * v); // niet te donker: je moet nog kunnen bouwen
   }
 
   // Waar komt een geluid vandaan? -1 = links, 1 = rechts (kijkend zoals de speler kijkt)
