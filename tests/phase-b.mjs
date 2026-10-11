@@ -115,9 +115,11 @@ export async function testPhaseB({ newPage, check, out }) {
     const cheetah = manager.spawn('cheetah', 40, 50, 65, 0);
     cheetah.walking = true; cheetah.timer = 100; cheetah.sprint = 2; cheetah.sprintWait = 60;
     for (let i = 0; i < 120; i++) cheetah.update(1 / 60, w, effects);
-    const sprint = Math.abs((65 - cheetah.z) - 18) < 0.3 && cheetah.sprint < 0.001 && effects.dust > 10;
-    const z = cheetah.z; for (let i = 0; i < 60; i++) cheetah.update(1 / 60, w, effects);
-    const slows = Math.abs((z - cheetah.z) - 1.7) < 0.05;
+    // (sinds 6.4 trekt een dier op en remt het af: de sprint haalt 9 blokken per seconde na een korte aanloop)
+    const ran = 65 - cheetah.z;
+    const sprint = ran > 16 && ran < 18.3 && cheetah.sprint < 0.001 && effects.dust > 10;
+    for (let i = 0; i < 90; i++) cheetah.update(1 / 60, w, effects);
+    const slows = Math.abs(cheetah.speedCur - cheetah.def.speed) < 0.05;
     const lion = manager.spawn('lion', 30, 50, 30, 0); lion.sleep = 10;
     lion.update(0.1, w, effects);
     const sleeps = lion.state === 'slapen' && lion.legs.every((l) => Math.abs(l.rotation.x) > 1) && effects.zzz > 0;
@@ -150,7 +152,7 @@ export async function testPhaseB({ newPage, check, out }) {
     const avoids = shore.z >= 49 && shore.y >= 50;
     return { sprint, slows, sleeps, wakes, sprays, yawns, hides, returns, browses, nods, herds, kicks, swims, avoids };
   });
-  check(skills.sprint && skills.slows, 'cheetah sprint twee seconden met negen blokken per seconde en stof, daarna weer rustig');
+  check(skills.sprint && skills.slows, 'cheetah sprint twee seconden tot negen blokken per seconde en stof, en remt daarna af tot hij weer stapt');
   check(skills.sleeps && skills.wakes, 'leeuw ligt met gevouwen poten en Zzz; aaien maakt hem wakker en schudt zijn manen');
   check(skills.sprays, 'olifant heft zijn slurf, wappert met zijn oren en spuit één fontein per aai');
   check(skills.yawns, 'nijlpaard gaapt met een bewegende onderkaak');

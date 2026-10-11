@@ -7,6 +7,11 @@ import { SPECIES } from './species.js';
 import { updateSkills } from './skills.js';
 
 const wrap = (a) => Math.atan2(Math.sin(a), Math.cos(a));
+const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+// Natuurlijker bewegen (6.4): dieren die graag bij elkaar blijven (kudde, koppel, groep)
+export const HERD = new Set(['cow', 'sheep', 'pig', 'chicken', 'goat', 'llama', 'horse', 'zebra', 'reindeer', 'penguin', 'elephant',
+  'giraffe', 'camel', 'meerkat', 'triceratops', 'stegosaurus', 'parasaur', 'brachio']);
+const PARTNERS = { lion: ['lion', 'lioness'], lioness: ['lion', 'lioness'] };
 export class Animal {
   constructor(type, x, y, z, yaw, variant = null) {
     this.type = type; this.def = SPECIES[type];
@@ -16,6 +21,7 @@ export class Animal {
     this.model = cachedModel(n ? `${type}:${this.variant}` : type, () => this.def.bouw(this.variant));
     Object.assign(this, this.model);
     this.group = new THREE.Group();
+    this.group.rotation.order = 'YXZ'; // eerst draaien (yaw), dan kantelen en leunen ten opzichte van het dier zelf
     this.group.add(...this.parts, ...this.legs);
     // Ver weg: één vorm in rusthouding in plaats van alle losse stukjes (zie setFar)
     this.lod = new THREE.Mesh(this.merged, MODEL_MAT);
@@ -39,6 +45,9 @@ export class Animal {
     this.skillWait = 0; this.sprayed = false; this.browsing = false;
     this.sleepPuff = 0; this.elapsed = 0; this.clockElapsed = 0;
     this.baby = 0; this.love = 0; this.breedWait = 0; this.sitting = false; // fokken en zitten (fase 4G)
+    // Natuurlijker bewegen (6.4): snelheid nu, doelplek, liggen, kop, vooruit kijken
+    this.speedCur = 0; this.goal = null; this.lying = 0; this.yawRate = 0; this.headYaw = 0;
+    this.lookT = Math.random() * 0.25; this.seed = Math.random() * 100; this.groupT = Math.random();
     this.box = new THREE.Box3();
     this.sync(); this.show(0);
   }
@@ -106,18 +115,99 @@ export class Animal {
     // 's Nachts gaan bijna alle dieren slapen (tamme dieren en wie bereden wordt niet)
     // (een nachtdier zoals de vos slaapt juist overdag)
     const night = (this.def.nachtdier ? !Animal.night : Animal.night) && !this.tame && !this.riding;
+    // Een jong dier dat ver van zijn moeder is, gaat eerst naar haar toe (ook voordat het gaat slapen)
+    if (this.baby > 0) {
+      const mom = this.groupTarget();
+      if (mom) { this.walking = true; this.goal = mom; this.timer = 6; this.graze = false; return; }
+    }
     if (!this.walking && this.onGround && Math.random() < (night ? 0.8 : this.def.slaapkans)) {
       this.sleep = night ? 30 + Math.random() * 40 : 12 + Math.random() * 20; this.walking = false; this.graze = false; return;
     }
+    // Af en toe even gaan liggen (dieren op vier poten, op het land)
+    if (!this.walking && this.onGround && this.legs.length === 4 && !this.inWater && Math.random() < 0.08) {
+      this.lying = 6 + Math.random() * 8; this.timer = this.lying; this.graze = false; this.goal = null; return;
+    }
     this.walking = !this.walking && Math.random() < 0.75;
-    this.timer = this.walking ? 1.5 + Math.random() * 3 : 1 + Math.random() * 3.5;
+    this.timer = this.walking ? 3 + Math.random() * 4 : 1.5 + Math.random() * 3.5;
     this.graze = !this.walking && Math.random() < 0.5;
-    if (this.walking) this.targetYaw = this.yaw + (Math.random() - 0.5) * Math.PI * 1.5;
+    this.goal = null;
+    if (this.walking) this.pickGoal();
+  }
+
+  // Waar gaat hij heen? Een jong dier naar zijn moeder, een kuddedier naar zijn kudde, anders een plekje
+  // een paar blokken verderop (meestal ongeveer vooruit, zodat hij niet ineens omdraait)
+  pickGoal() {
+    const group = this.groupTarget();
+    if (group) { this.goal = group; return; }
+    const a = this.yaw + (Math.random() - 0.5) * Math.PI * 1.1, d = 3 + Math.random() * 6;
+    this.goal = { x: this.x - Math.sin(a) * d, z: this.z - Math.cos(a) * d };
+  }
+
+  // Een plek bij de moeder (jong dier) of bij de kudde, of null als hij daar al dichtbij is
+  groupTarget() {
+    const all = this.others;
+    if (!all) return null;
+    const near = (x, z, r) => { const a = Math.random() * Math.PI * 2; return { x: x + Math.cos(a) * r, z: z + Math.sin(a) * r }; };
+    const kin = PARTNERS[this.type] || [this.type];
+    if (this.baby > 0) {
+      let mom = null, best = 24;
+      for (const o of all) {
+        if (o === this || o.baby > 0 || !kin.includes(o.type)) continue;
+        const d = Math.hypot(o.x - this.x, o.z - this.z);
+        if (d < best) { best = d; mom = o; }
+      }
+      if (mom) return best > 2.5 ? near(mom.x, mom.z, 1.2 + Math.random()) : null;
+    }
+    if (!HERD.has(this.type)) return null;
+    let n = 0, cx = 0, cz = 0;
+    for (const o of all) {
+      if (o === this || o.type !== this.type || o.riding) continue;
+      if (Math.hypot(o.x - this.x, o.z - this.z) > 26) continue;
+      cx += o.x; cz += o.z; n++;
+    }
+    if (!n) return null;
+    cx /= n; cz /= n;
+    return Math.hypot(cx - this.x, cz - this.z) > 4 ? near(cx, cz, 1 + Math.random() * 2.5) : null;
+  }
+
+  // Is de weg in richting `a` vrij? Een opstapje van één blok mag; een muur, een afgrond of (voor wie
+  // niet zwemt) water niet. Een vis kijkt of er water is.
+  pathClear(world, a) {
+    const sin = Math.sin(a), cos = Math.cos(a);
+    for (const dd of [0.8, 1.7]) {
+      const ahead = dd + this.def.d * 0.3, x = this.x - sin * ahead, z = this.z - cos * ahead;
+      if (!world.isLoaded(x, z)) return false;
+      if (this.def.onderwater) {
+        if (!WATERY[world.get(Math.floor(x), Math.floor(this.y + this.def.h / 2), Math.floor(z))]) return false;
+        continue;
+      }
+      if (!this.clearAt(world, x, this.y, z) && !this.clearAt(world, x, this.y + 1.05, z)) return false;
+      const fy = Math.floor(this.y - 0.05), ix = Math.floor(x), iz = Math.floor(z);
+      const water = WATERY[world.get(ix, fy, iz)] || WATERY[world.get(ix, fy + 1, iz)];
+      if (water) { if (!this.has('zwemmen') && !this.inWater) return false; continue; }
+      if (!this.solid(world, x, fy, z) && !this.solid(world, x, fy - 1, z)) return false;
+    }
+    return true;
+  }
+
+  // Vooruit kijken: staat er iets in de weg, dan op tijd met een boog eromheen (of stoppen en omkeren)
+  lookAhead(world) {
+    const want = this.targetYaw;
+    if (this.pathClear(world, this.yaw) && this.pathClear(world, want)) return;
+    for (const off of [0.55, -0.55, 1.1, -1.1, 1.75, -1.75]) {
+      const a = want + (this.seed > 50 ? off : -off); // het ene dier gaat liever links om, het andere rechts
+      if (!this.pathClear(world, a)) continue;
+      this.targetYaw = a;
+      if (this.goal) this.goal = { x: this.x - Math.sin(a) * 4, z: this.z - Math.cos(a) * 4 };
+      return;
+    }
+    this.walking = false; this.goal = null; this.timer = 0.8 + Math.random() * 1.5;
+    this.targetYaw = this.yaw + Math.PI * (this.seed > 50 ? 0.9 : -0.9);
   }
 
   move(dt, world) {
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
-    const nx = this.x - sin * this.speedNow * dt, nz = this.z - cos * this.speedNow * dt;
+    const nx = this.x - sin * this.speedCur * dt, nz = this.z - cos * this.speedCur * dt;
     let blocked = !this.clearAt(world, nx, this.y, nz);
     // Vissen, dolfijnen en inktvissen blijven in het water
     if (this.def.onderwater && this.inWater) {
@@ -127,7 +217,7 @@ export class Animal {
       return true;
     }
     if (!blocked && this.hay && Math.hypot(nx - this.hay.x, nz - this.hay.z) > 6) {
-      this.targetYaw = Math.atan2(-(this.hay.x - this.x), -(this.hay.z - this.z));
+      this.targetYaw = Math.atan2(-(this.hay.x - this.x), -(this.hay.z - this.z)); this.goal = null;
       return false;
     }
     if (blocked && (this.onGround || this.inWater && this.has('zwemmen')) && this.clearAt(world, nx, this.y + 1.05, nz)) {
@@ -142,7 +232,11 @@ export class Animal {
       if (water !== null || !this.solid(world, fx, fy, fz) && !this.solid(world, fx, fy - 1, fz)) blocked = true;
     }
     if (blocked) {
-      if (!this.hunt && !this.fleeFrom) this.targetYaw = this.yaw + Math.PI * (0.6 + Math.random() * 0.8);
+      // Toch ergens tegenaan: afremmen en opzij een nieuwe kant op (niet ineens helemaal omdraaien)
+      if (!this.hunt && !this.fleeFrom && !this.chaseSpeed) {
+        this.targetYaw = this.yaw + (this.seed > 50 ? 1 : -1) * Math.PI * (0.45 + Math.random() * 0.35);
+        this.goal = null; this.speedCur *= 0.5;
+      }
     } else { this.x = nx; this.z = nz; }
     return !blocked;
   }
@@ -201,8 +295,11 @@ export class Animal {
       this.sync(); if (animate) this.show(dt);
       return;
     }
+    this.others = all;
     this.happy = Math.max(0, this.happy - dt);
     this.sleep = Math.max(0, this.sleep - clockDt);
+    this.lying = Math.max(0, this.lying - dt);
+    if (this.lying && (this.walking || this.sleep || this.happy || this.hunt || this.fleeFrom || this.following)) this.lying = 0;
     this.eatTime = Math.max(0, this.eatTime - dt);
     this.inWater = this.waterSurface(world) !== null;
     if (this.sitting) { this.walking = false; this.graze = false; this.sleep = 0; }
@@ -210,29 +307,70 @@ export class Animal {
       this.timer -= dt;
       if (this.timer <= 0) this.choose();
     }
+    // Op weg naar een doelplek: met een lichte slinger, en stoppen als hij er is
+    const free = !this.hunt && !this.fleeFrom && !this.chaseSpeed && !this.following && !this.flight && !this.riding;
+    if (free && this.walking && this.goal && dt > 0) {
+      const gx = this.goal.x - this.x, gz = this.goal.z - this.z;
+      if (Math.hypot(gx, gz) < 0.8) { this.walking = false; this.goal = null; this.timer = 1 + Math.random() * 3; this.graze = Math.random() < 0.5; }
+      else this.targetYaw = Math.atan2(-gx, -gz) + Math.sin(this.time * 0.9 + this.seed) * 0.22;
+    }
+    // Een jong dier dat te ver van zijn moeder is, of een kuddedier ver van de kudde, gaat er snel weer heen
+    if (free && dt > 0 && !this.walking && !this.sleep && !this.sitting && (this.groupT -= dt) <= 0) {
+      this.groupT = 1 + Math.random();
+      if ((this.baby > 0 || HERD.has(this.type)) && this.timer > 0.5) {
+        const g = this.groupTarget();
+        if (g && (this.baby > 0 || Math.hypot(g.x - this.x, g.z - this.z) > 7)) { this.lying = 0; this.walking = true; this.goal = g; this.timer = 6; }
+      }
+    }
+    // Vissen zwemmen in een school: dezelfde kant op als de vissen om hen heen, en bij elkaar
+    if (this.type === 'fish' && this.inWater && dt > 0 && (this.schoolT = (this.schoolT ?? Math.random()) - dt) <= 0) {
+      this.schoolT = 0.4;
+      let n = 0, sx = 0, sz = 0, cx = 0, cz = 0;
+      for (const o of all) {
+        if (o === this || o.type !== 'fish' || Math.hypot(o.x - this.x, o.z - this.z) > 6) continue;
+        sx -= Math.sin(o.yaw); sz -= Math.cos(o.yaw); cx += o.x; cz += o.z; n++;
+      }
+      if (n) {
+        cx = cx / n - this.x; cz = cz / n - this.z;
+        const dx = sx / n + cx * 0.15, dz = sz / n + cz * 0.15;
+        if (Math.hypot(dx, dz) > 0.05) { this.targetYaw = Math.atan2(-dx, -dz); this.walking = true; this.goal = null; this.timer = Math.max(this.timer, 1); }
+      }
+    }
     if (!this.hunt && !this.fleeFrom && !this.chaseSpeed) updateSkills(this, dt, world, effects, all);
-    this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.hunt?.phase === 'stalk' ? 'sluipen'
+    if (this.walking && dt > 0 && !this.hunt && !this.chaseSpeed && !this.flight && (this.lookT -= dt) <= 0) { this.lookT = 0.25; this.lookAhead(world); }
+    this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.lying ? 'liggen' : this.hunt?.phase === 'stalk' ? 'sluipen'
       : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.following && this.walking ? 'volgen'
         : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';
     // chaseSpeed: in de Wilde Nacht rennen de dieren op je af (storm.js)
     this.speedNow = this.chaseSpeed ? this.chaseSpeed : this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
       : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
       : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
-    this.yaw += wrap(this.targetYaw - this.yaw) * Math.min(1, dt * 4);
     if (this.sliding) this.speedNow *= 2;
     if (this.dash > 0) this.speedNow = Math.max(this.speedNow, this.def.speed * 2.5);
-    const moving = (this.walking && !this.happy || this.dash > 0) && !this.sleep;
+    const moving = (this.walking && !this.happy || this.dash > 0) && !this.sleep && !this.lying;
+    // Haast (jagen, vluchten, rennen, volgen): snel optrekken en scherp draaien. Anders rustig op gang
+    // komen, uitlopen, en in een boog draaien in plaats van ter plekke.
+    const urgent = !!(this.hunt || this.fleeFrom || this.chaseSpeed || this.sprint > 0 || this.dash > 0 || this.following || this.flight);
+    const want = moving ? this.speedNow : 0;
+    const acc = urgent ? 30 : want > this.speedCur ? 2.6 : this.happy || this.sleep ? 12 : 5;
+    this.speedCur += clamp(want - this.speedCur, -acc * dt, acc * dt);
+    const turn = clamp(wrap(this.targetYaw - this.yaw) * Math.min(1, dt * 4), -(urgent ? 7 : 2.4) * dt, (urgent ? 7 : 2.4) * dt);
+    this.yaw += turn;
+    this.yawRate = dt > 0 ? turn / dt : 0;
     // Verre dieren krijgen vier beeldjes tegelijk: kleine stappen houden botsingen betrouwbaar.
     for (let left = dt; left > 0.00001;) {
       const step = Math.min(0.025, left); left -= step;
-      if (moving) {
+      if (this.speedCur > 0.02) {
         const moved = this.move(step, world);
         if (this.hunt?.phase === 'chase') this.hunt.blocked = moved ? 0 : (this.hunt.blocked || 0) + step;
       }
       this.gravity(step, world);
     }
-    if (moving) { this.phase += dt * (this.hunt || this.fleeFrom || this.sprint ? 21 : 9); this.swing = Math.min(1, this.swing + dt * 5); }
-    else this.swing = Math.max(0, this.swing - dt * 5);
+    // Pootjes: hoe sneller, hoe snellere en grotere passen (stappen, draven, rennen)
+    if (this.speedCur > 0.05) {
+      this.phase += dt * Math.min(26, (2.5 + this.speedCur * 6) / Math.sqrt(Math.max(0.5, this.def.h * 0.8)));
+      this.swing = Math.min(1, this.swing + dt * 4);
+    } else this.swing = Math.max(0, this.swing - dt * 4);
     if (animate && this.sleep && (this.sleepPuff -= dt) <= 0) {
       effects?.sleepAt?.(this.x, this.y + this.def.h * 0.65, this.z); this.sleepPuff = 1.5;
     }
@@ -252,14 +390,36 @@ export class Animal {
     for (const [node, rest] of this.rest) { node.position.copy(rest.p); node.rotation.copy(rest.r); }
     if (this.saddle) this.saddle.visible = this.tame;
     if (this.flower) this.flower.visible = !!this.holdFlower;
-    const asleep = this.state === 'slapen', happy = this.happy > 0, motion = Math.sin(this.phase) * 0.6 * this.swing;
+    const asleep = this.state === 'slapen', happy = this.happy > 0, lying = this.lying > 0 && !asleep;
+    const gait = 0.75 + 0.35 * Math.min(1, this.speedCur / 3); // rennen: grotere passen
+    const motion = Math.sin(this.phase) * 0.6 * this.swing * gait;
     const size = this.baby > 0 ? 0.55 : 1; // een jong dier is half zo groot
     this.group.scale.set(size, size, size);
-    this.group.position.y = this.y + (happy && this.def.dieet === 'boerderij' ? Math.abs(Math.sin(this.happy * 9)) * 0.12 : 0);
-    this.legs.forEach((leg, i) => { leg.rotation.x = asleep ? (i % 2 ? -1.35 : 1.35) : motion * this.pattern[i]; });
-    this.head.rotation.x = asleep ? 0.28 : this.graze && !this.walking ? 0.55 + Math.sin(this.time * 3) * 0.08 : this.walking ? Math.sin(this.phase * 2) * 0.06 : 0;
-    if (this.tail) this.tail.rotation.y = Math.sin(this.time * (happy ? 12 : 3)) * (happy ? 0.5 : 0.2);
-    if (asleep) {
+    // Het lijf deint mee met de stappen
+    const bob = asleep || lying ? 0 : this.swing * Math.abs(Math.sin(this.phase)) * Math.min(0.08, this.def.h * 0.035) * gait;
+    this.group.position.y = this.y + bob + (happy && this.def.dieet === 'boerderij' ? Math.abs(Math.sin(this.happy * 9)) * 0.12 : 0);
+    // Leunen in de bocht, en kantelen bij een sprong
+    this.group.rotation.z = this.riding ? 0 : clamp(-this.yawRate * 0.07 * Math.min(1, this.speedCur), -0.16, 0.16);
+    this.group.rotation.x = !this.onGround && !this.flight && !this.inWater && !this.riding ? clamp(-this.vy * 0.03, -0.25, 0.25) : 0;
+    this.legs.forEach((leg, i) => { leg.rotation.x = asleep || lying ? (i % 2 ? -1.35 : 1.35) : motion * this.pattern[i]; });
+    this.head.rotation.x = asleep ? 0.28 : this.graze && !this.walking ? 0.55 + Math.sin(this.time * 3) * 0.08 + Math.sin(this.time * 14) * 0.03
+      : this.swing > 0.05 ? Math.sin(this.phase * 2) * 0.08 * this.swing : 0;
+    // Rondkijken als hij stilstaat, en nieuwsgierig naar Jippe kijken als die dichtbij is
+    let look = 0;
+    if (!asleep && !happy && !this.graze && this.swing < 0.3) {
+      const v = Animal.viewer;
+      const dv = v ? Math.hypot(v.x - this.x, v.z - this.z) : Infinity;
+      if (dv < 6) look = clamp(wrap(Math.atan2(-(v.x - this.x), -(v.z - this.z)) - this.yaw), -0.9, 0.9);
+      else if ((this.time + this.seed) % 9 < 4.5) look = Math.sin((this.time + this.seed) * 0.8) * 0.6;
+    }
+    this.headYaw += (look - this.headYaw) * Math.min(1, dt * 3);
+    this.head.rotation.y = this.headYaw;
+    // De staart zwiept rustig, en af en toe een snelle zwiep
+    if (this.tail) {
+      const flick = (this.time + this.seed) % 6 < 0.5 ? Math.sin(this.time * 22) * 0.35 : 0;
+      this.tail.rotation.y = Math.sin(this.time * (happy ? 12 : 3) + this.seed) * (happy ? 0.5 : 0.2) + flick;
+    }
+    if (asleep || lying) {
       if (this.body) this.body.position.y -= 0.3;
       this.head.position.y -= Math.min(0.4, this.def.h * 0.3);
     }
@@ -301,7 +461,7 @@ export class Animal {
   }
 
   pet(px, pz) {
-    this.happy = 1.8; this.walking = false; this.graze = false; this.sleep = 0; this.sprint = 0;
+    this.happy = 1.8; this.walking = false; this.graze = false; this.sleep = 0; this.sprint = 0; this.lying = 0; this.goal = null;
     if (this.hunt) { this.hunt = null; this.huntPause = 30; }
     this.timer = 2.5; this.state = 'blij'; this.sprayed = false;
     if (this.onGround && this.def.dieet === 'boerderij') this.vy = 4.5;
@@ -311,3 +471,5 @@ export class Animal {
 
 // Is het nacht? Wordt door het spel gezet (dan gaan de dieren slapen)
 Animal.night = false;
+// Waar is Jippe? (dieren dichtbij kijken naar hem) Wordt door Animals.update gezet
+Animal.viewer = null;

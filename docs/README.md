@@ -53,4 +53,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 6A | Wilde Nacht: dag om te bouwen, nacht met jagende dieren, hartjes, gepakt of overleefd, steeds moeilijker ([plan](fase-6-plan.md)) | Klaar (versie 6.0.0) |
 | 6B | Wilde Nacht eng: rode ogen, rode maan, donker en mist, grommen, krabben, hartslag, schrikmomenten | Klaar (versie 6.1.0) |
 | 6C | Wilde Nacht: muren slopen (niet elk dier), instortende torens, springers, klimmers, vliegers, bang voor fakkels, BOE-knop | Klaar (versie 6.2.0) |
+| Beweging | Dieren bewegen natuurlijker: optrekken en afremmen, in bochten, om muren heen, deinen en knikken, rondkijken en naar Jippe kijken, liggen, kuddes, jong bij de moeder, scholen vissen ([plan, §12](fase-6-plan.md)) | Klaar (versie 6.4.0) |
 | 6D | Wilde Nacht: drie golven per nacht, je eigen bouwstenen met aantallen en een beloning per nacht, 5 stickers | Klaar (versie 6.3.0) |

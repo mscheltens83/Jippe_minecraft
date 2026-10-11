@@ -226,6 +226,7 @@ export class Animals {
 
   update(dt, world, viewer = null, camera = null, clockDt = dt) {
     this.frame++;
+    Animal.viewer = viewer;
     this.caught.length = 0;
     if (camera) {
       camera.updateMatrixWorld(); this.matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
@@ -247,7 +248,7 @@ export class Animals {
       a.clockElapsed += clockDt;
       // Wie in een dorp woont, blijft in de buurt van de waterput
       if (a.village && !a.tame && !a.inBed && Math.hypot(a.x - a.village.x, a.z - a.village.z) > a.village.r) {
-        a.targetYaw = Math.atan2(-(a.village.x - a.x), -(a.village.z - a.z)); a.walking = true; a.timer = Math.max(a.timer, 1.5);
+        a.targetYaw = Math.atan2(-(a.village.x - a.x), -(a.village.z - a.z)); a.walking = true; a.timer = Math.max(a.timer, 1.5); a.goal = null;
       }
       if (!far || (this.frame + i) % 4 === 0) {
         if (a.tame && (a.def.rijdbaar || a.def.volger) && !a.sitting && viewer && a.clockElapsed > 0) {

@@ -2,7 +2,7 @@
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
 // Moet precies 'jippecraft-' + VERSION uit js/version.js zijn (de unit-test controleert dat)
-const CACHE = 'jippecraft-6.3.1';
+const CACHE = 'jippecraft-6.4.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',

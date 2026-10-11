@@ -110,3 +110,17 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 ## 11. Na het testen op de iPad (versie 6.3.1)
 
 - Het was net te donker, en als je omhoog keek zag je vlakken donkerblauw (de wolken) en vlakken zwart (de lucht). Nu zijn de lucht, de wolken en de mist allemaal donkerblauw, en de nacht is lichter: het maanlicht is nog maar een kwart zwakker dan in een gewone nacht (was veel donkerder en rood), de mist begint verder weg (38 blokken) en de donkere rand om het beeld is minder sterk. De rode maan en de rode ogen blijven.
+
+## 12. Natuurlijker bewegen (versie 6.4.0)
+
+Voorheen stonden de dieren stil en liepen ze meteen op volle snelheid, kozen ze zomaar een nieuwe richting (soms bijna achteruit), draaiden ze ter plekke, botsten ze tegen muren voordat ze omkeerden, bewogen alleen hun poten, en deden ze weinig als ze stilstonden. Nu (in `animals/core.js`):
+
+1. **Optrekken en afremmen** (`speedCur`): een dier komt rustig op gang en loopt even uit. Bij haast (jagen, vluchten, de sprint van de cheetah, volgen, de Wilde Nacht) trekt het snel op en draait het scherp.
+2. **In een boog naar een doelplek** (`goal`, `pickGoal`): een dier kiest een plekje een paar blokken verderop (meestal ongeveer vooruit) en loopt er met een lichte slinger naartoe. Draaien gaat hoogstens 2,4 radialen per seconde, dus in een boog in plaats van ter plekke.
+3. **Vooruit kijken** (`lookAhead`, `pathClear`): vier keer per seconde kijkt een lopend dier of de weg vrij is (een opstapje van één blok mag; een muur, een afgrond of water niet, behalve voor zwemmers; een vis kijkt of er water is). Zo niet, dan buigt het op tijd af (het ene dier liever links, het andere rechts), of stopt het en keert om. Botst het toch, dan remt het af en gaat het opzij, niet ineens achteruit.
+4. **Een levend lijf**: het lijf deint mee met de stappen, de kop knikt mee, een dier leunt in de bocht en kantelt bij een sprong; hoe sneller, hoe snellere en grotere passen (stappen, draven, rennen).
+5. **Rustgedrag**: om zich heen kijken, de kop naar Jippe draaien als die binnen 6 blokken staat, de staart rustig laten zwiepen met af en toe een snelle zwiep, snuffelen tijdens het grazen, en af en toe even gaan liggen (6 tot 14 seconden).
+6. **Groepjes**: koeien, schapen, varkens, kippen, geiten, lama's, paarden, zebra's, rendieren, pinguïns, olifanten, giraffen, kamelen, stokstaartjes en plantenetende dino's lopen naar hun kudde als ze er te ver vandaan zijn (`HERD`). Een jong dier loopt achter zijn moeder aan (ook voordat het gaat slapen). Vissen zwemmen in een school: dezelfde kant op als de vissen om hen heen, en bij elkaar.
+
+- De zware dingen (vooruit kijken, kudde zoeken) gebeuren een paar keer per seconde, niet elk beeldje; ver weg blijven de dieren één stuk (zoals voorheen).
+- Tests: `FASE=6e npm run test:browser`. De cheetah-test in fase B is aangepast: de sprint haalt 9 blokken per seconde na een korte aanloop, en daarna remt hij af tot hij weer stapt.
