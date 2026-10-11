@@ -40,7 +40,7 @@ export class Sounds {
   // Als de app naar de achtergrond gaat: alles stil (bij terugkomen weer aan na een tik)
   suspend() { try { this.ctx?.suspend(); } catch { /* niet erg */ } }
 
-  tone(type, f0, f1, dur, vol, delay = 0) {
+  tone(type, f0, f1, dur, vol, delay = 0, dest = this.master) {
     const c = this.ctx, t = c.currentTime + delay;
     const o = c.createOscillator(), g = c.createGain();
     o.type = type;
@@ -49,11 +49,11 @@ export class Sounds {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    o.connect(g).connect(this.master);
+    o.connect(g).connect(dest);
     o.start(t); o.stop(t + dur + 0.02);
   }
 
-  hiss(filter, freq, q, dur, vol, delay = 0) {
+  hiss(filter, freq, q, dur, vol, delay = 0, dest = this.master) {
     const c = this.ctx, t = c.currentTime + delay;
     const s = c.createBufferSource();
     s.buffer = this.noise;
@@ -63,8 +63,85 @@ export class Sounds {
     g.gain.setValueAtTime(0.0001, t);
     g.gain.exponentialRampToValueAtTime(vol, t + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    s.connect(f).connect(g).connect(this.master);
+    s.connect(f).connect(g).connect(dest);
     s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+  }
+
+  // ---------- enge geluiden voor de Wilde Nacht (fase 6B) ----------
+
+  // Een uitgang links of rechts (pan -1 = links, 1 = rechts) die na `dur` seconden weer opgeruimd wordt
+  out(pan, dur) {
+    const c = this.ctx;
+    if (!pan || !c.createStereoPanner) return this.master;
+    const node = c.createStereoPanner();
+    node.pan.value = Math.max(-1, Math.min(1, pan));
+    node.connect(this.master);
+    setTimeout(() => node.disconnect(), (dur + 0.5) * 1000);
+    return node;
+  }
+
+  growl(pan = 0, vol = 1) {
+    if (!this.ok()) return;
+    const o = this.out(pan, 1.2), p = 0.85 + Math.random() * 0.3;
+    this.tone('sawtooth', 78 * p, 52 * p, 0.95, 0.16 * vol, 0, o);
+    this.tone('square', 112 * p, 70 * p, 0.7, 0.05 * vol, 0.06, o);
+    this.hiss('lowpass', 320, 0.7, 0.95, 0.28 * vol, 0, o);
+  }
+
+  roar(pan = 0, vol = 1) {
+    if (!this.ok()) return;
+    const o = this.out(pan, 1.8);
+    this.tone('sawtooth', 170, 58, 1.4, 0.3 * vol, 0, o);
+    this.tone('sawtooth', 128, 46, 1.5, 0.22 * vol, 0.03, o);
+    this.hiss('lowpass', 950, 0.6, 1.3, 0.5 * vol, 0, o);
+    this.hiss('bandpass', 2300, 1, 0.5, 0.2 * vol, 0, o);
+  }
+
+  scratch(pan = 0, vol = 1) {
+    if (!this.ok()) return;
+    const o = this.out(pan, 0.6);
+    for (let i = 0; i < 3; i++) this.hiss('bandpass', 2800 + Math.random() * 1800, 4, 0.07, 0.24 * vol, i * 0.1, o);
+  }
+
+  bonk(pan = 0, vol = 1) {
+    if (!this.ok()) return;
+    const o = this.out(pan, 0.5);
+    this.tone('sine', 115, 42, 0.28, 0.45 * vol, 0, o);
+    this.hiss('lowpass', 420, 1, 0.16, 0.45 * vol, 0, o);
+  }
+
+  heartbeat(vol = 0.5) {
+    if (!this.ok()) return;
+    this.tone('sine', 64, 40, 0.15, 0.55 * vol);
+    this.tone('sine', 58, 38, 0.17, 0.4 * vol, 0.21);
+  }
+
+  // Lage, dreigende bromtoon (0 = uit). Blijft doorklinken tot hij weer op 0 gaat.
+  drone(level) {
+    const c = this.ctx;
+    if (!c) return;
+    if (level > 0 && !this.droneNodes) {
+      const g = c.createGain(), f = c.createBiquadFilter(), lfo = c.createOscillator(), lg = c.createGain();
+      g.gain.value = 0.0001;
+      f.type = 'lowpass'; f.frequency.value = 170; f.Q.value = 4;
+      lfo.frequency.value = 0.13; lg.gain.value = 70;
+      lfo.connect(lg).connect(f.frequency);
+      const oscs = [41.2, 41.9, 61.7].map((hz) => { const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.value = hz; o.connect(f); o.start(); return o; });
+      f.connect(g).connect(this.master);
+      lfo.start();
+      this.droneNodes = { g, oscs: [...oscs, lfo] };
+    }
+    const d = this.droneNodes;
+    if (!d) return;
+    clearTimeout(this.droneStop);
+    d.g.gain.setTargetAtTime(this.muted ? 0.0001 : Math.max(0.0001, level * 0.14), c.currentTime, 0.8);
+    if (level <= 0) {
+      this.droneStop = setTimeout(() => {
+        for (const o of d.oscs) { try { o.stop(); } catch { /* al gestopt */ } }
+        d.g.disconnect();
+        if (this.droneNodes === d) this.droneNodes = null;
+      }, 3000);
+    }
   }
 
   place(kind) {

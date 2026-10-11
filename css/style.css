@@ -733,3 +733,14 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 .storm-btn svg { width: 40px; height: 40px; }
 .storm-btn.again, .storm-btn.next { background: var(--grass); color: #fff; }
 .storm-menu-btn { background: #1d1b3a; }
+
+/* Wilde Nacht (6B): donkere rand om het beeld; bij elke hartslag even rood */
+.storm-vignette {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 75%, rgba(0, 0, 0, 0.92) 100%);
+}
+.storm-vignette.beat { animation: storm-beat 0.35s ease-out; }
+@keyframes storm-beat {
+  0% { box-shadow: inset 0 0 90px 30px rgba(170, 0, 0, 0.7); }
+  100% { box-shadow: inset 0 0 90px 30px rgba(170, 0, 0, 0); }
+}

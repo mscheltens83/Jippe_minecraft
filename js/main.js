@@ -236,7 +236,7 @@ class Game {
     window.addEventListener('pagehide', () => { if (!this.leaving) this.saveNow(); });
     // Op de iPad mag geluid pas aan na het loslaten van een vinger
     for (const type of ['pointerup', 'touchend', 'keydown']) {
-      window.addEventListener(type, () => { this.sounds.unlock(); if (this.playing) this.music.start(); }, true);
+      window.addEventListener(type, () => { this.sounds.unlock(); if (this.playing && !this.storm) this.music.start(); }, true);
     }
 
     this.frameTimes = [];
@@ -585,7 +585,7 @@ class Game {
     this.playing = true;
     this.input.enabled = true;
     this.sounds.pop();
-    this.music.start();
+    if (this.storm) this.music.stop(); else this.music.start(); // in de Wilde Nacht geen vrolijk muziekje
   }
 
   openMenu() {
@@ -715,7 +715,7 @@ class Game {
     this.music.on = !this.music.on;
     this.saveSettings();
     this.ui.setMusic(this.music.on);
-    if (this.music.on) this.music.start(); else this.music.stop();
+    if (this.music.on && !this.storm) this.music.start(); else this.music.stop();
   }
 
   // Reservekopie van alle werelden (en de instellingen) als bestand

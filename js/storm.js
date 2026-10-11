@@ -2,6 +2,7 @@
 // wordt, komen alle dieren op je af. Raken ze je, dan ben je een hartje kwijt; alle hartjes op is
 // "gepakt". Overleef je de nacht, dan komt de volgende nacht (steeds moeilijker).
 // Het is een losse spelstand op een eigen eiland: van deze wereld wordt niets bewaard.
+import * as THREE from '../lib/three.module.min.js';
 import { BLOCKS, blockBoxes } from './blocks.js';
 import { ICONS } from './icons.js';
 import { speech } from './speech.js';
@@ -57,6 +58,49 @@ export function houseCheck(world, px, py, pz, R = 10, H = 8) {
   return { closed: false, gap: { x: gap[0], y: gap[1], z: gap[2] }, outside: sky(path[0]) };
 }
 
+// Gloeiende rode ogen met een rode gloed eromheen, en boze wenkbrauwen (fase 6B).
+// Ze zijn ook in het donker en door de mist heen te zien. Eén keer gemaakt, gedeeld door alle dieren.
+let EYES = null;
+function eyeParts() {
+  if (EYES) return EYES;
+  const c = document.createElement('canvas');
+  c.width = c.height = 64;
+  const ctx = c.getContext('2d'), grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+  grad.addColorStop(0, 'rgba(255,60,30,0.9)'); grad.addColorStop(0.35, 'rgba(255,20,10,0.35)'); grad.addColorStop(1, 'rgba(255,0,0,0)');
+  ctx.fillStyle = grad; ctx.fillRect(0, 0, 64, 64);
+  EYES = {
+    eye: new THREE.MeshBasicMaterial({ color: 0xff2a12, fog: false }),
+    brow: new THREE.MeshBasicMaterial({ color: 0x120404 }),
+    glow: new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), fog: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }),
+    box: new THREE.BoxGeometry(1, 1, 1),
+  };
+  return EYES;
+}
+
+export function addEyes(a) {
+  if (a.eyes || !a.head?.geometry) return;
+  const E = eyeParts(), head = a.head;
+  head.geometry.computeBoundingBox();
+  const bb = head.geometry.boundingBox, hp = head.position;
+  const w = bb.max.x - bb.min.x, h = bb.max.y - bb.min.y;
+  const s = Math.max(0.05, Math.min(0.16, w * 0.17));
+  const cx = hp.x + (bb.min.x + bb.max.x) / 2, y = hp.y + bb.min.y + h * 0.62, z = hp.z + bb.min.z - 0.015;
+  const eyes = new THREE.Group();
+  for (const side of [-1, 1]) {
+    const x = cx + side * Math.max(s * 0.9, w * 0.24);
+    const eye = new THREE.Mesh(E.box, E.eye);
+    eye.scale.set(s, s * 0.75, 0.03); eye.position.set(x, y, z);
+    const brow = new THREE.Mesh(E.box, E.brow);
+    brow.scale.set(s * 1.5, s * 0.32, 0.04); brow.position.set(x - side * s * 0.1, y + s * 0.62, z - 0.005);
+    brow.rotation.z = side * 0.45; // naar binnen omlaag: boos
+    const glow = new THREE.Sprite(E.glow);
+    glow.scale.setScalar(s * 6); glow.position.set(x, y, z - 0.05);
+    eyes.add(eye, brow, glow);
+  }
+  a.group.add(eyes);
+  a.eyes = eyes;
+}
+
 function el(tag, cls, html) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -78,6 +122,9 @@ export class Storm {
     this.knock = null;
     this.peak = null;
     this.mistAt = 0;
+    this.t = 0;              // eigen klok (seconden) voor geluiden en schrikmomenten
+    this.growlAt = 3; this.beatAt = 0; this.scrapeAt = 0; this.scareAt = 18; this.droneAt = 0;
+    this.look = 0;
     this.buildHud();
   }
 
@@ -93,6 +140,8 @@ export class Storm {
     this.g.ui.hud.appendChild(this.bar);
     this.flashEl = el('div', 'storm-flash');
     root.appendChild(this.flashEl);
+    this.vignette = el('div', 'storm-vignette');
+    root.insertBefore(this.vignette, this.g.ui.hud); // onder de knoppen, boven het spelbeeld
     this.endEl = el('div', 'storm-end');
     this.endEl.hidden = true;
     root.appendChild(this.endEl);
@@ -100,8 +149,10 @@ export class Storm {
   }
 
   destroy() {
-    for (const e of [this.bar, this.flashEl, this.endEl]) e.remove();
+    for (const e of [this.bar, this.flashEl, this.vignette, this.endEl]) e.remove();
     for (const a of this.animals()) this.g.animals.remove(a);
+    this.g.scene.setStorm(0);
+    this.g.sounds.drone(0);
   }
 
   render() {
@@ -180,6 +231,7 @@ export class Storm {
 
   survived() {
     const g = this.g, p = g.player;
+    g.sounds.drone(0);
     this.phase = 'ochtend';
     this.left = 3;
     for (let i = 0; i < 5; i++) setTimeout(() => g.particles.firework(p.x + (Math.random() - 0.5) * 8, p.y + 2, p.z + (Math.random() - 0.5) * 8), i * 350);
@@ -191,7 +243,8 @@ export class Storm {
 
   caught(a) {
     const g = this.g;
-    g.sounds.animal(a?.type || 'lion');
+    g.sounds.drone(0);
+    g.sounds.roar(0, 1.2);
     speech.say('Je bent gepakt!');
     this.showEnd('gepakt');
   }
@@ -218,6 +271,7 @@ export class Storm {
       if (!a) break;
       if (!a.clearAt(w, a.x, a.y, a.z) || w.get(x, y, z) !== 0) { g.animals.remove(a); continue; }
       a.storm = true; a.wild = false;
+      addEyes(a);
       i++;
     }
   }
@@ -227,6 +281,7 @@ export class Storm {
   update(dt) {
     if (this.phase === 'gepakt' || this.phase === 'overleefd') return;
     const g = this.g, p = g.player;
+    this.t += dt;
     this.invuln = Math.max(0, this.invuln - dt);
     this.shake = Math.max(0, this.shake - dt);
     this.keepInside(p);
@@ -236,6 +291,8 @@ export class Storm {
       this.left -= dt;
       g.daynight.set(DUSK_FROM + (1 - Math.max(0, this.left) / this.total) * (DUSK_TO - DUSK_FROM)); // de zon zakt
       for (const a of this.animals()) this.stare(a, p);
+      this.setLook(0.35 * (1 - Math.max(0, this.left) / this.total));
+      this.growls(p, 14, 4, 0.45); // af en toe gromt er een in de verte
       const s = Math.ceil(this.left);
       if (s !== this.lastTick && s > 0 && s <= 10) {
         this.lastTick = s;
@@ -247,14 +304,120 @@ export class Storm {
       this.left -= dt;
       g.daynight.set(NIGHT);
       for (const a of this.animals()) this.chase(a, dt, p);
+      this.setLook(1);
+      this.scary(p);
       if (this.left <= 0) this.survived();
     } else if (this.phase === 'ochtend') {
       this.left -= dt;
       g.daynight.set(DAWN + (1 - Math.max(0, this.left) / 3) * 0.06);
       for (const a of this.animals()) this.flee(a, p);
+      this.setLook(Math.max(0, this.left) / 3);
       if (this.left <= 0) this.showEnd('overleefd');
     }
     if (this.phase === 'dag' || this.phase === 'nacht' || this.phase === 'ochtend') this.render();
+  }
+
+  // ---------- eng (fase 6B) ----------
+
+  setLook(v) {
+    if (Math.abs(v - this.look) < 0.01 && v !== 0) return;
+    this.look = v;
+    this.g.scene.setStorm(v);
+    this.vignette.style.opacity = String(v);
+  }
+
+  // Waar komt een geluid vandaan? -1 = links, 1 = rechts (kijkend zoals de speler kijkt)
+  pan(x, z) {
+    const p = this.g.player, dx = x - p.x, dz = z - p.z, d = Math.hypot(dx, dz) || 1;
+    return Math.max(-1, Math.min(1, (dx * Math.cos(p.yaw) - dz * Math.sin(p.yaw)) / d));
+  }
+
+  // Een willekeurig dier binnen `range` gromt (hoogstens om de `gap` seconden)
+  growls(p, range, gap, vol = 1) {
+    if (this.t < this.growlAt) return;
+    this.growlAt = this.t + gap * (0.6 + Math.random() * 0.8);
+    const near = this.animals().filter((a) => Math.hypot(a.x - p.x, a.z - p.z) < range);
+    const a = near[Math.floor(Math.random() * near.length)];
+    if (!a) return;
+    const d = Math.hypot(a.x - p.x, a.z - p.z);
+    this.g.sounds.growl(this.pan(a.x, a.z), vol * Math.max(0.25, 1 - d / range));
+  }
+
+  // 's Nachts: hartslag als ze dichtbij zijn, grommen, krabben en bonken tegen je huis,
+  // een dreigende bromtoon die steeds harder wordt, en af en toe een schrikmoment
+  scary(p) {
+    const g = this.g, all = this.animals();
+    let nearest = Infinity;
+    for (const a of all) nearest = Math.min(nearest, Math.hypot(a.x - p.x, a.z - p.z));
+    if (nearest < 10 && this.t >= this.beatAt) {
+      const k = nearest / 10;
+      g.sounds.heartbeat(0.3 + 0.7 * (1 - k));
+      this.beatAt = this.t + 0.35 + k * 0.75;
+      this.vignette.classList.remove('beat'); void this.vignette.offsetWidth; this.vignette.classList.add('beat');
+    }
+    this.growls(p, 16, 2.2);
+    if (this.t >= this.scrapeAt) {
+      this.scrapeAt = this.t + 0.45 + Math.random() * 0.6;
+      const at = all.find((a) => Math.hypot(a.x - p.x, a.z - p.z) < 4.5 && !this.clearLine(a, p));
+      if (at) {
+        const pan = this.pan(at.x, at.z);
+        if (Math.random() < 0.45) { g.sounds.bonk(pan); this.shake = Math.max(this.shake, 0.1); } else g.sounds.scratch(pan);
+      }
+    }
+    if (this.t >= this.droneAt) {
+      this.droneAt = this.t + 1;
+      const total = this.opts.night ?? this.plan.night;
+      g.sounds.drone(0.5 + 0.5 * (1 - Math.max(0, this.left) / total));
+    }
+    if (this.t >= this.scareAt) { this.scareAt = this.t + 22 + Math.random() * 18; this.jumpScare(p); }
+  }
+
+  // Schrikmoment: zit je in je huis en kijk je naar een raam? Dan staat er ineens een dier voor
+  // het raam, met een brul. Geen raam: een brul en een klap tegen de muur.
+  jumpScare(p) {
+    const g = this.g, w = g.world;
+    const fx = -Math.sin(p.yaw), fz = -Math.cos(p.yaw), px = Math.floor(p.x), py = Math.floor(p.y), pz = Math.floor(p.z);
+    let best = null;
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (let dy = 0; dy <= 2; dy++) {
+      const b = BLOCKS[w.get(px + dx, py + dy, pz + dz)];
+      if (!b?.solid || b.sound !== 'glass') continue;
+      const vx = dx + 0.5 - (p.x - px), vz = dz + 0.5 - (p.z - pz), d = Math.hypot(vx, vz);
+      if (d < 1.2 || d > 6) continue;
+      const dot = (vx * fx + vz * fz) / d;
+      if (dot < 0.55 || (best && dot <= best.dot)) continue;
+      // de buitenkant van het raam (sx, sz: de richting naar buiten)
+      const sx = Math.abs(vx) > Math.abs(vz) ? Math.sign(vx) : 0, sz = sx ? 0 : Math.sign(vz);
+      const oy = w.surfaceY(px + dx + sx, pz + dz + sz) + 1;
+      if (oy > py + dy + 1 || oy < py + dy - 3) continue;
+      best = { dot, wx: px + dx + 0.5, wz: pz + dz + 0.5, sx, sz, y: oy };
+    }
+    const scary = ['trex', 'tiger', 'lion', 'polarBear', 'elephant', 'lioness'];
+    const all = this.animals().sort((a, b) => scary.indexOf(b.type) - scary.indexOf(a.type));
+    if (best) {
+      // Met zijn kop tegen het raam: het midden van het dier ligt een halve lengte van het glas af
+      const spot = (a) => {
+        const off = 0.5 + a.def.d / 2 + 0.05;
+        return { x: best.wx + best.sx * off, y: best.y, z: best.wz + best.sz * off, yaw: Math.atan2(best.sx, best.sz) };
+      };
+      const a = all.find((x) => {
+        const s = spot(x), keep = x.yaw;
+        x.yaw = s.yaw;
+        const ok = x.clearAt(w, s.x, s.y, s.z);
+        x.yaw = keep;
+        return ok;
+      });
+      if (a) {
+        const s = spot(a);
+        a.x = s.x; a.y = s.y; a.z = s.z; a.vy = 0;
+        a.yaw = a.targetYaw = s.yaw;
+        a.scare = 1.6; a.walking = false; a.sync();
+        g.sounds.roar(this.pan(a.x, a.z));
+        this.shake = 0.6;
+        this.scared = (this.scared || 0) + 1;
+        return;
+      }
+    }
+    if (houseCheck(w, p.x, p.y, p.z).closed) { const side = Math.random() < 0.5 ? -1 : 1; g.sounds.roar(side * 0.8, 0.8); g.sounds.bonk(side * 0.8); this.shake = 0.3; }
   }
 
   // Overdag: stilstaan en staren
@@ -267,6 +430,7 @@ export class Storm {
   chase(a, dt, p) {
     const dx = p.x - a.x, dz = p.z - a.z, dist = Math.hypot(dx, dz);
     a.sleep = 0; a.happy = 0; a.graze = false; a.timer = 5; a.hunt = null; a.hiding = false;
+    if (a.scare > 0) { a.scare -= dt; a.walking = false; a.targetYaw = Math.atan2(-dx, -dz); return; } // staat voor het raam te staren
     a.chaseSpeed = Math.min(6.2, Math.max(3.2, a.def.speed * 2.6)) * this.plan.speed;
     a.stormCool = Math.max(0, (a.stormCool || 0) - dt);
     let yaw = Math.atan2(-dx, -dz);

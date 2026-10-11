@@ -60,7 +60,7 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 | Deel | Wat | Versie |
 |---|---|---|
 | **6A** | Aparte wereld, dag- en nachtronde, hartjes, dieren jagen, raken, wegduwen, gepakt of overleefd, vallen kost een hartje, vliegen/stempels/rijden uit, controle of het huis dicht is, record | **6.0.0 (klaar)** |
-| 6B | Eng maken: ogen, gezichten, rode maan, mist, geluid, hartslag, schrikmomenten | 6.1.0 |
+| **6B** | Eng maken: ogen, gezichten, rode maan, mist, geluid, hartslag, schrikmomenten | **6.1.0 (klaar)** |
 | 6C | Slopen: blokken met kracht en scheurtjes, beukers, rammers, instortende torens, vliegers, klimmers, BOE-knop | 6.2.0 |
 | 6D | Steeds moeilijker: golven, de T-rex, beperkte bouwstenen als beloning, stickers | 6.3.0 |
 
@@ -72,3 +72,16 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 - **Uit tijdens de Wilde Nacht**: vliegen, stempels, dieren neerzetten, ei uitbroeden, voertuigen, aaien en voeren, dieren naar huis sturen, slapen, de huisknop en portalen.
 - **Menu**: een knop **Wilde Nacht** (maan met rode ogen) naast Roofdieren jagen.
 - Tests: `tests/unit/wildenacht.test.mjs` (huis dicht of open, deuren, steeds moeilijker) en `FASE=6a npm run test:browser`.
+
+## 8. Zo is 6B gebouwd (versie 6.1.0)
+
+- **Rode ogen en boze wenkbrauwen** (`addEyes` in `storm.js`): elk dier van de Wilde Nacht krijgt twee rode oogjes op de voorkant van zijn kop, een rode gloed eromheen en schuine wenkbrauwen. Ze doen niet mee met het licht en de mist, dus je ziet ze in het donker en van ver.
+- **Donker, rood en mist** (`scene.setStorm(level)`): als de avond valt wordt het al een beetje eng, 's nachts helemaal. Het maanlicht wordt veel zwakker en rood (binnen zonder fakkel is het pikdonker), de lucht is donkerrood, de mist komt dichtbij (30 blokken), de maan is rood en groter, de sterren verdwijnen bijna. Een donkere rand om het beeld (`.storm-vignette`) flitst rood bij elke hartslag.
+- **Geluid** (`audio.js`), allemaal links of rechts te horen, afhankelijk van waar het dier staat:
+  - grommen: overdag af en toe uit de verte, 's nachts vaak;
+  - krabben en bonken: een dier vlak achter je muur (het beeld trilt even bij een bonk);
+  - hartslag: als er een dier binnen 10 blokken is, sneller naarmate het dichterbij komt;
+  - een lage, dreigende bromtoon die tijdens de nacht steeds harder wordt (het gewone muziekje is uit);
+  - een harde brul als je gepakt wordt.
+- **Schrikmomenten**: om de 22 tot 40 seconden. Kijk je naar een raam (glas), dan staat er ineens een dier voor, met zijn kop tegen het glas, met een brul en een schok in beeld. Geen raam maar wel binnen: een brul en een klap tegen de muur.
+- Tests: `FASE=6b npm run test:browser`.

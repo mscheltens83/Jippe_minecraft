@@ -51,4 +51,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Dieren en zee | Dieren plaatsen lukt weer als er al 60 zijn, een dier naar huis sturen, kwal, walvis en kogelvis, veel meer zeedieren ([plan, §9](fase-5-plan.md)) | Klaar (versie 5.5.0) |
 | Zwemrit | Rijden op een dolfijn en een walvis: duiken, dolfijnsprong, walvisfontein ([plan, §10](fase-5-plan.md)) | Klaar (versie 5.6.0) |
 | 6A | Wilde Nacht: dag om te bouwen, nacht met jagende dieren, hartjes, gepakt of overleefd, steeds moeilijker ([plan](fase-6-plan.md)) | Klaar (versie 6.0.0) |
-| 6B–6D | Eng maken, muren slopen, golven, beperkte bouwstenen, BOE-knop | Nog te doen |
+| 6B | Wilde Nacht eng: rode ogen, rode maan, donker en mist, grommen, krabben, hartslag, schrikmomenten | Klaar (versie 6.1.0) |
+| 6C–6D | Muren slopen, golven, beperkte bouwstenen, BOE-knop | Nog te doen |
