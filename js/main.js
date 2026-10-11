@@ -1676,6 +1676,7 @@ class Game {
 
   apply(changes) {
     for (const c of changes) this.world.set(c.x, c.y, c.z, c.to);
+    this.storm?.repaired(changes); // een gerepareerd blok in de Wilde Nacht is weer heel
     this.undoStack.push(changes);
     if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
     this.edits++;

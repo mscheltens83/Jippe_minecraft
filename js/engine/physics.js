@@ -151,6 +151,18 @@ export class Physics {
     this.set(x, y, z, want);
   }
 
+  // Een blok laten vallen, ook als het niet vanzelf valt (een instortende toren in de Wilde Nacht).
+  // tx, tz: in welke kolom het neerkomt (een omvallende toren valt opzij)
+  drop(x, y, z, tx = x, tz = z) {
+    const id = this.world.get(x, y, z);
+    if (id === AIR) return null;
+    this.set(x, y, z, AIR);
+    const f = { x: tx, y, z: tz, id, vy: 0 };
+    this.falling.push(f);
+    this.hooks.onFall?.(f);
+    return f;
+  }
+
   // Vallende blokken: vallen met zwaartekracht en worden weer een blok als ze landen
   updateFalling(dt) {
     if (!this.falling.length) return;

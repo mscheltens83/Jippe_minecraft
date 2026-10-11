@@ -3,7 +3,7 @@
 // "gepakt". Overleef je de nacht, dan komt de volgende nacht (steeds moeilijker).
 // Het is een losse spelstand op een eigen eiland: van deze wereld wordt niets bewaard.
 import * as THREE from '../lib/three.module.min.js';
-import { BLOCKS, blockBoxes } from './blocks.js';
+import { B, BLOCKS, blockBoxes } from './blocks.js';
 import { ICONS } from './icons.js';
 import { speech } from './speech.js';
 
@@ -11,14 +11,57 @@ export const HEARTS = 5;          // zoveel hartjes heb je
 export const ARENA = 44;          // zo ver mag je van het midden (daarna is de mist te dik)
 export const FALL_HURT = 4;       // een val van zoveel blokken kost een hartje
 const DUSK_FROM = 0.5, DUSK_TO = 0.7, NIGHT = 0.78, DAWN = 0.96;
+export const BOO_COOL = 15;       // zo lang moet de BOE-knop opladen (seconden)
+const BOO_RANGE = 7, BOO_TIME = 4;
+
+// Wat de dieren kunnen (fase 6C)
+export const SNEAKERS = new Set(['chicken', 'rabbit', 'fox', 'cat', 'meerkat']);   // glippen door gaatjes, bang voor licht
+export const JUMPERS = new Set(['goat', 'frog', 'raptor']);                         // springen 2 blokken hoog
+export const CLIMBERS = new Set(['monkey']);                                         // klimmen tegen muren op
+export const FLYERS = new Set(['parrot', 'snowyOwl', 'pteranodon']);                 // komen van boven
+// Slopers: hoe sterk een blok mag zijn dat ze kapot krijgen
+export const BASHERS = { pig: 2, cow: 2, polarBear: 2, hippo: 2, elephant: 4, triceratops: 4, trex: 10 };
+
+// Hoe vaak je erop moet beuken voordat een blok kapot is (Infinity = nooit)
+export function blockStrength(id) {
+  const b = BLOCKS[id];
+  if (!b?.solid) return 0;
+  if (!b.breakable || id === B.OBSIDIAN || b.sound === 'metal') return Infinity;
+  if (b.sound === 'glass') return 1;
+  if (b.sound === 'grass' || b.sound === 'sand' || b.sound === 'wool') return 2;
+  if (b.sound === 'wood') return 4;
+  if (/bakste/i.test(b.name)) return 10; // bakstenen
+  return 8;
+}
+
+// Valt er iets om als (x, y-1, z) weg is? Alles wat vanaf (x, y, z) aan elkaar vastzit en nergens
+// op of naast de hoogte van het gat (of lager) steun heeft, valt. Geeft die blokken terug (of []).
+export function looseBlocks(world, x, y, z, limit = 300) {
+  const solid = (cx, cy, cz) => blockBoxes(world, cx, cy, cz, true).length > 0;
+  if (!solid(x, y, z)) return [];
+  const base = y - 1, seen = new Set([`${x},${y},${z}`]), cells = [[x, y, z]];
+  for (let i = 0; i < cells.length; i++) {
+    const [cx, cy, cz] = cells[i];
+    if (cy <= base || cells.length > limit) return [];
+    for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) {
+      const nx = cx + dx, ny = cy + dy, nz = cz + dz, k = `${nx},${ny},${nz}`;
+      if (seen.has(k) || !solid(nx, ny, nz)) continue;
+      seen.add(k); cells.push([nx, ny, nz]);
+    }
+  }
+  return cells;
+}
 
 // Wat er in nacht n gebeurt: hoe lang je mag bouwen, hoe lang de nacht duurt, welke dieren komen
 // en hoe snel ze zijn. Elke nacht is moeilijker (fase 6D maakt dit verder af).
 export function nightPlan(n) {
+  // nacht 1: sluipers en beukers; 2: springers, klimmers en de leeuw; 3: vliegers (nu heb je een dak nodig);
+  // 4: rammers (slopen hout); 5: de T-rex (sloopt bijna alles)
   const kinds = ['pig', 'cow', 'chicken', 'rabbit', 'fox'];
-  if (n >= 2) kinds.push('lion', 'lioness');
-  if (n >= 3) kinds.push('tiger', 'polarBear');
-  if (n >= 4) kinds.push('elephant', 'trex');
+  if (n >= 2) kinds.push('goat', 'monkey', 'lion');
+  if (n >= 3) kinds.push('parrot', 'snowyOwl', 'tiger', 'polarBear');
+  if (n >= 4) kinds.push('elephant', 'triceratops', 'pteranodon', 'raptor');
+  if (n >= 5) kinds.push('trex');
   return {
     build: Math.max(45, 90 - (n - 1) * 10),
     night: 120,
@@ -125,6 +168,9 @@ export class Storm {
     this.t = 0;              // eigen klok (seconden) voor geluiden en schrikmomenten
     this.growlAt = 3; this.beatAt = 0; this.scrapeAt = 0; this.scareAt = 18; this.droneAt = 0;
     this.look = 0;
+    this.booLeft = 0;
+    this.damage = new Map(); // beschadigde blokken: "x,y,z" -> { x, y, z, id, hits, mesh }
+    this.checkAt = 0;
     this.buildHud();
   }
 
@@ -138,6 +184,12 @@ export class Storm {
     this.heartsEl = el('span', 'storm-hearts');
     this.bar.append(this.phaseEl, this.timeEl, this.heartsEl);
     this.g.ui.hud.appendChild(this.bar);
+    // De BOE-knop: jaagt de dieren dichtbij even weg (en moet dan opladen)
+    this.booBtn = el('button', 'btn storm-boo', `${ICONS.torch}<span>BOE!</span>`);
+    this.booBtn.type = 'button';
+    this.booBtn.setAttribute('aria-label', 'Boe! Dieren wegjagen');
+    this.booBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.boo(); });
+    this.g.ui.hud.appendChild(this.booBtn);
     this.flashEl = el('div', 'storm-flash');
     root.appendChild(this.flashEl);
     this.vignette = el('div', 'storm-vignette');
@@ -149,7 +201,9 @@ export class Storm {
   }
 
   destroy() {
-    for (const e of [this.bar, this.flashEl, this.vignette, this.endEl]) e.remove();
+    for (const e of [this.bar, this.booBtn, this.flashEl, this.vignette, this.endEl]) e.remove();
+    for (const d of this.damage.values()) this.dropCrack(d);
+    this.damage.clear();
     for (const a of this.animals()) this.g.animals.remove(a);
     this.g.scene.setStorm(0);
     this.g.sounds.drone(0);
@@ -287,6 +341,10 @@ export class Storm {
     this.keepInside(p);
     this.knockStep(dt, p);
     this.fall(p);
+    this.booLeft = Math.max(0, this.booLeft - dt);
+    this.booBtn.style.setProperty('--cool', String(this.booLeft / BOO_COOL));
+    this.booBtn.classList.toggle('ready', this.booLeft <= 0);
+    if (this.t >= this.checkAt) { this.checkAt = this.t + 0.5; this.checkDamage(); }
     if (this.phase === 'dag') {
       this.left -= dt;
       g.daynight.set(DUSK_FROM + (1 - Math.max(0, this.left) / this.total) * (DUSK_TO - DUSK_FROM)); // de zon zakt
@@ -422,17 +480,40 @@ export class Storm {
 
   // Overdag: stilstaan en staren
   stare(a, p) {
-    a.walking = false; a.sleep = 0; a.graze = false; a.timer = 5; a.hunt = null; a.chaseSpeed = 0;
+    a.walking = false; a.sleep = 0; a.graze = false; a.timer = 5; a.hunt = null; a.chaseSpeed = 0; a.flight = null;
     a.targetYaw = Math.atan2(-(p.x - a.x), -(p.z - a.z));
   }
 
-  // 's Nachts: op je af. Loopt een dier vast (tegen een muur of boom), dan probeert hij het even opzij.
+  // 's Nachts: op je af. Loopt een dier vast (tegen een muur of boom), dan probeert hij het even opzij,
+  // of hij sloopt de muur, springt eroverheen of klimt erop (fase 6C), elk dier op zijn eigen manier.
   chase(a, dt, p) {
-    const dx = p.x - a.x, dz = p.z - a.z, dist = Math.hypot(dx, dz);
+    const dx = p.x - a.x, dz = p.z - a.z, dist = Math.hypot(dx, dz), ux = dx / (dist || 1), uz = dz / (dist || 1);
     a.sleep = 0; a.happy = 0; a.graze = false; a.timer = 5; a.hunt = null; a.hiding = false;
     if (a.scare > 0) { a.scare -= dt; a.walking = false; a.targetYaw = Math.atan2(-dx, -dz); return; } // staat voor het raam te staren
     a.chaseSpeed = Math.min(6.2, Math.max(3.2, a.def.speed * 2.6)) * this.plan.speed;
     a.stormCool = Math.max(0, (a.stormCool || 0) - dt);
+    // BOE! Even weg van je af
+    if (a.boo > 0) { a.boo -= dt; a.walking = true; a.flight = null; a.chaseSpeed = 5.5; a.targetYaw = Math.atan2(ux, uz); return; }
+    if (FLYERS.has(a.type)) { this.fly(a, p, dist); return; }
+    const w = this.g.world, front = this.front(a, ux, uz);
+    // Kleine dieren durven niet in het licht van een fakkel (binnen 3 blokken)
+    if (SNEAKERS.has(a.type)) {
+      if ((a.lightT = (a.lightT || 0) - dt) <= 0) { a.lightT = 0.3; a.afraid = this.nearLight(front.x, Math.floor(a.y + 0.5), front.z); }
+      if (a.afraid) { a.walking = false; a.targetYaw = Math.atan2(-dx, -dz); return; }
+    }
+    // Slopers beuken op het blok dat in de weg staat (als ze er sterk genoeg voor zijn)
+    const power = BASHERS[a.type];
+    if (power && front.wall) {
+      const strength = blockStrength(w.get(front.x, front.wall, front.z));
+      if (strength && strength <= power) {
+        a.walking = false; a.targetYaw = Math.atan2(-dx, -dz);
+        if ((a.bashT = (a.bashT ?? 0.6) - dt) <= 0) { a.bashT = 0.9 / this.plan.speed; this.bash(a, front.x, front.wall, front.z, ux, uz); }
+        return;
+      }
+    }
+    // Springers springen over een muur van 2 hoog, klimmers klimmen erop
+    if (JUMPERS.has(a.type) && a.onGround && front.solid[0] && front.solid[1] && !front.solid[2]) a.vy = 9.3;
+    if (CLIMBERS.has(a.type) && front.solid[0] && a.clearAt(w, a.x, a.y + 0.35, a.z)) { a.y += 3 * dt; a.vy = 0; a.climbing = 0.15; }
     let yaw = Math.atan2(-dx, -dz);
     if ((a.backoff = Math.max(0, (a.backoff || 0) - dt)) > 0) yaw += Math.PI; // na een aanval even terug
     else if ((a.detour = Math.max(0, (a.detour || 0) - dt)) > 0) yaw += a.detourSide * 1.25;
@@ -446,18 +527,153 @@ export class Storm {
     if (dist < reach && p.y < a.y + a.def.h + 0.3 && a.y < p.y + 1.8 && a.stormCool <= 0 && this.invuln <= 0 && this.clearLine(a, p)) this.hurt(a);
   }
 
+  // Wat staat er vlak voor het dier (in de richting van de speler)? solid[i]: blok op hoogte y+i;
+  // wall: de hoogte van het eerste blok dat in de weg staat (of null)
+  front(a, ux, uz) {
+    const w = this.g.world, probe = Math.max(a.def.w, a.def.d) / 2 + 0.35;
+    const x = Math.floor(a.x + ux * probe), z = Math.floor(a.z + uz * probe), y0 = Math.floor(a.y + 0.05);
+    const solid = [0, 1, 2].map((i) => blockBoxes(w, x, y0 + i, z, true).length > 0);
+    let wall = null;
+    for (let y = y0; y < a.y + Math.min(a.def.h, 2.6); y++) if (blockBoxes(w, x, y, z, true).length) { wall = y; break; }
+    return { x, z, y0, solid, wall };
+  }
+
+  // Vliegers vliegen recht op je af als dat kan; anders cirkelen ze boven je. Zonder dak duiken ze naar binnen.
+  fly(a, p, dist) {
+    const open = this.openAbove(p);
+    const low = (dist < 3 && open) || this.clearLine(a, p);
+    a.flight = { x: p.x, y: low ? p.y + 0.9 : p.y + 5.5, z: p.z, left: 1 };
+    a.walking = dist > 0.6;
+    a.targetYaw = Math.atan2(-(p.x - a.x), -(p.z - a.z));
+    const reach = Math.max(a.def.w, a.def.d) / 2 + 0.75;
+    if (dist < reach && p.y < a.y + a.def.h + 0.3 && a.y < p.y + 1.8 && a.stormCool <= 0 && this.invuln <= 0 && this.clearLine(a, p)) this.hurt(a);
+  }
+
+  // Staat er een fakkel, lantaarn of ander licht binnen 3 blokken?
+  nearLight(x, y, z) {
+    const w = this.g.world;
+    for (let dx = -3; dx <= 3; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -3; dz <= 3; dz++) {
+      if (dx * dx + dy * dy + dz * dz <= 10.5 && (BLOCKS[w.get(x + dx, y + dy, z + dz)]?.light || 0) >= 12) return true;
+    }
+    return false;
+  }
+
+  // Is er boven de speler een dak (binnen 7 blokken)?
+  openAbove(p) {
+    const w = this.g.world, x = Math.floor(p.x), z = Math.floor(p.z);
+    for (let y = Math.floor(p.y) + 2; y <= Math.floor(p.y) + 8; y++) if (blockBoxes(w, x, y, z, true).length) return false;
+    return true;
+  }
+
+  // Eén beuk tegen een blok: scheurtjes, en bij genoeg beuken gaat het kapot
+  bash(a, x, y, z, ux, uz) {
+    const g = this.g, w = g.world, id = w.get(x, y, z), strength = blockStrength(id), key = `${x},${y},${z}`;
+    let d = this.damage.get(key);
+    if (!d || d.id !== id) { if (d) this.dropCrack(d); d = { x, y, z, id, hits: 0, mesh: null }; this.damage.set(key, d); }
+    d.hits++;
+    const p = g.player, near = Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z);
+    g.sounds.bonk(this.pan(x + 0.5, z + 0.5), Math.max(0.3, 1 - near / 16));
+    if (near < 7) this.shake = Math.max(this.shake, 0.15);
+    g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 5);
+    if (d.hits < strength) { this.showCrack(d, Math.min(3, Math.floor(d.hits / strength * 4))); return; }
+    this.dropCrack(d); this.damage.delete(key);
+    this.breakBlock(x, y, z, ux, uz);
+    a.bashT = 0.4;
+  }
+
+  breakBlock(x, y, z, ux = 0, uz = 0) {
+    const g = this.g, w = g.world, id = w.get(x, y, z), b = BLOCKS[id];
+    w.set(x, y, z, 0);
+    if (b.shape === 'door') { const oy = b.upper ? y - 1 : y + 1; if (BLOCKS[w.get(x, oy, z)].family === b.family) w.set(x, oy, z, 0); }
+    g.sounds.break(b.sound);
+    g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 16);
+    this.broken = (this.broken || 0) + 1;
+    this.collapse(x, y + 1, z, ux, uz);
+  }
+
+  // Een toren zonder steun valt om (in de richting waarin het dier duwde): hoe hoger, hoe verder opzij
+  collapse(x, y, z, ux, uz) {
+    const g = this.g, cells = looseBlocks(g.world, x, y, z);
+    if (!cells.length) return 0;
+    cells.sort((m, n) => m[1] - n[1]);
+    for (const [cx, cy, cz] of cells) {
+      const shift = Math.round((cy - y + 1) * 0.6);
+      g.physics.drop(cx, cy, cz, cx + Math.round(ux * shift), cz + Math.round(uz * shift));
+    }
+    g.sounds.break('stone');
+    this.shake = Math.max(this.shake, 0.45);
+    this.collapsed = (this.collapsed || 0) + cells.length;
+    return cells.length;
+  }
+
+  showCrack(d, stage) {
+    const sc = this.g.scene;
+    if (!d.mesh) {
+      d.mesh = new THREE.Mesh(sc.crack.geometry, sc.crack.material.clone());
+      d.mesh.position.set(d.x + 0.5, d.y + 0.5, d.z + 0.5);
+      sc.scene.add(d.mesh);
+    }
+    d.mesh.material.map = sc.crackTex[stage];
+    d.mesh.material.needsUpdate = true;
+  }
+
+  dropCrack(d) {
+    if (!d.mesh) return;
+    this.g.scene.scene.remove(d.mesh);
+    d.mesh.material.dispose();
+    d.mesh = null;
+  }
+
+  // Jippe heeft gebouwd of gesloopt: een beschadigd blok op die plek is weer heel
+  repaired(changes) {
+    for (const c of changes) {
+      const key = `${c.x},${c.y},${c.z}`, d = this.damage.get(key);
+      if (d) { this.dropCrack(d); this.damage.delete(key); }
+    }
+  }
+
+  // Een beschadigd blok dat (op een andere manier) veranderd is, is weer heel
+  checkDamage() {
+    const w = this.g.world;
+    for (const [key, d] of this.damage) if (w.get(d.x, d.y, d.z) !== d.id) { this.dropCrack(d); this.damage.delete(key); }
+  }
+
+  // BOE! Alle dieren dichtbij schrikken en rennen even weg. Daarna moet de knop opladen.
+  boo() {
+    const g = this.g, p = g.player;
+    if (this.booLeft > 0 || (this.phase !== 'dag' && this.phase !== 'nacht')) { g.sounds.nope(); return 0; }
+    this.booLeft = BOO_COOL;
+    let n = 0;
+    for (const a of this.animals()) {
+      if (Math.hypot(a.x - p.x, a.z - p.z) > BOO_RANGE) continue;
+      a.boo = BOO_TIME; a.scare = 0; a.flight = null; n++;
+    }
+    g.particles.burst(p.x - 0.5, p.y + 0.6, p.z - 0.5, [[1, 0.55, 0.1], [1, 0.85, 0.25], [1, 0.3, 0.05]], 50, true);
+    g.sounds.whoosh(); g.sounds.roar(0, 0.35);
+    speech.say('Boe!');
+    g.ui.say(n ? 'BOE! Weg jullie!' : 'BOE!', 'torch');
+    this.boos = (this.boos || 0) + 1;
+    this.render();
+    return n;
+  }
+
   // Bij zonsopkomst: weg van je af, en dan verdwijnen ze
   flee(a, p) {
-    a.sleep = 0; a.timer = 5; a.walking = true; a.chaseSpeed = 4;
+    a.sleep = 0; a.timer = 5; a.walking = true; a.chaseSpeed = 4; a.flight = null; a.boo = 0;
     a.targetYaw = Math.atan2(-(a.x - p.x), -(a.z - p.z));
   }
 
-  // Zit er een blok tussen het dier en de speler? (dan kan hij je niet raken)
+  // Zit er een blok tussen het dier en de speler? (dan kan hij je niet raken). Op twee hoogtes van
+  // de speler, vanaf het dier (ook van boven: een vlieger boven het dak kan niet door het dak heen)
   clearLine(a, p) {
-    const w = this.g.world;
-    for (const t of [0.3, 0.55, 0.8]) {
-      const x = Math.floor(a.x + (p.x - a.x) * t), z = Math.floor(a.z + (p.z - a.z) * t);
-      for (const y of [p.y + 0.4, p.y + 1.4]) if (blockBoxes(w, x, Math.floor(y), z, true).length) return false;
+    const w = this.g.world, ay = a.y + Math.min(a.def.h, 1.5) / 2;
+    for (const py of [p.y + 0.4, p.y + 1.4]) {
+      // een groot dier raakt je op jouw hoogte; een vlieger komt echt van boven
+      const from = a.flight ? ay : Math.max(Math.min(ay, py + 1), py - 1);
+      for (const t of [0.2, 0.4, 0.6, 0.8]) {
+        const x = Math.floor(a.x + (p.x - a.x) * t), z = Math.floor(a.z + (p.z - a.z) * t), y = Math.floor(from + (py - from) * t);
+        if (blockBoxes(w, x, y, z, true).length) return false;
+      }
     }
     return true;
   }

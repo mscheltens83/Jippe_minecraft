@@ -52,4 +52,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Zwemrit | Rijden op een dolfijn en een walvis: duiken, dolfijnsprong, walvisfontein ([plan, §10](fase-5-plan.md)) | Klaar (versie 5.6.0) |
 | 6A | Wilde Nacht: dag om te bouwen, nacht met jagende dieren, hartjes, gepakt of overleefd, steeds moeilijker ([plan](fase-6-plan.md)) | Klaar (versie 6.0.0) |
 | 6B | Wilde Nacht eng: rode ogen, rode maan, donker en mist, grommen, krabben, hartslag, schrikmomenten | Klaar (versie 6.1.0) |
-| 6C–6D | Muren slopen, golven, beperkte bouwstenen, BOE-knop | Nog te doen |
+| 6C | Wilde Nacht: muren slopen (niet elk dier), instortende torens, springers, klimmers, vliegers, bang voor fakkels, BOE-knop | Klaar (versie 6.2.0) |
+| 6D | Golven, beperkte bouwstenen als beloning, stickers | Nog te doen |

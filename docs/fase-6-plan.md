@@ -61,7 +61,7 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 |---|---|---|
 | **6A** | Aparte wereld, dag- en nachtronde, hartjes, dieren jagen, raken, wegduwen, gepakt of overleefd, vallen kost een hartje, vliegen/stempels/rijden uit, controle of het huis dicht is, record | **6.0.0 (klaar)** |
 | **6B** | Eng maken: ogen, gezichten, rode maan, mist, geluid, hartslag, schrikmomenten | **6.1.0 (klaar)** |
-| 6C | Slopen: blokken met kracht en scheurtjes, beukers, rammers, instortende torens, vliegers, klimmers, BOE-knop | 6.2.0 |
+| **6C** | Slopen: blokken met kracht en scheurtjes, beukers, rammers, instortende torens, vliegers, klimmers, BOE-knop | **6.2.0 (klaar)** |
 | 6D | Steeds moeilijker: golven, de T-rex, beperkte bouwstenen als beloning, stickers | 6.3.0 |
 
 ## 7. Zo is 6A gebouwd (versie 6.0.0)
@@ -85,3 +85,15 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
   - een harde brul als je gepakt wordt.
 - **Schrikmomenten**: om de 22 tot 40 seconden. Kijk je naar een raam (glas), dan staat er ineens een dier voor, met zijn kop tegen het glas, met een brul en een schok in beeld. Geen raam maar wel binnen: een brul en een klap tegen de muur.
 - Tests: `FASE=6b npm run test:browser`.
+
+## 9. Zo is 6C gebouwd (versie 6.2.0)
+
+- **Welke dieren komen wanneer** (`nightPlan`): nacht 1 varken, koe, kip, konijn en vos; nacht 2 erbij geit, aap en leeuw; nacht 3 papegaai, sneeuwuil, tijger en ijsbeer; nacht 4 olifant, triceratops, pteranodon en raptor; nacht 5 de T-rex.
+- **Slopen**: een sloper die tegen een blok aan staat dat hem in de weg zit, beukt erop (ongeveer elke seconde; latere nachten sneller). `blockStrength`: glas 1, aarde/gras/zand/bladeren/wol 2, hout 4, steen 8, bakstenen 10, ijzer en obsidiaan (en de bodem) nooit. `BASHERS`: varken, koe, ijsbeer en nijlpaard slopen tot 2, olifant en triceratops tot 4 (hout), de T-rex tot 10. Bij elke beuk een bonk (links/rechts), brokjes, het beeld trilt, en scheurtjes op het blok (vier standen). Een deur gaat in zijn geheel kapot.
+- **Repareren**: sloopt Jippe een beschadigd blok en zet hij er een nieuw neer, dan is het weer helemaal heel (`storm.repaired`, vanuit `game.apply`). Wat de dieren kapot maken, kun je niet met de terug-knop terugzetten.
+- **Instortende torens** (`looseBlocks`, `physics.drop`): is er een blok weggeslagen, dan kijkt het spel of wat erboven zit nog ergens steun heeft op de hoogte van het gat of lager. Zo niet, dan valt het om: elk blok valt in de richting waarin het dier duwde, hoe hoger hoe verder opzij. Een muur met een gat en een brede toren met één weggeslagen poot blijven staan; een smalle toren valt om, en Jippe valt mee (vallen van 4 blokken kost een hartje).
+- **Springers** (geit, kikker, raptor) springen over een muur van 2 hoog; **klimmers** (aap) klimmen tegen muren op. Dieren die op je afrennen springen ook van een muur af (normaal blijven dieren van randen weg).
+- **Vliegers** (papegaai, sneeuwuil, pteranodon) vliegen recht op je af als er niets tussen zit; anders cirkelen ze 5 blokken boven je. Zonder dak duiken ze naar binnen. Ze raken je alleen als er geen blok tussen zit, ook van boven: een dak beschermt dus.
+- **Sluipers** (kip, konijn, vos, kat, stokstaartje) durven niet binnen 3 blokken van een fakkel, lantaarn of lamp te komen.
+- **BOE-knop** (links, boven de stuurknop): alle dieren binnen 7 blokken schrikken en rennen 4 seconden weg, met vuurvonkjes en "Boe!". Daarna moet de knop 15 seconden opladen (je ziet een klok rondlopen; als hij klaar is, gloeit hij).
+- Tests: `tests/unit/wildenacht.test.mjs` (sterkte, wie wat sloopt, omvallende torens) en `FASE=6c npm run test:browser` (slopen, repareren, toren, geit en aap, vliegers, fakkel, BOE).

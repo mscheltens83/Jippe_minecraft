@@ -135,7 +135,8 @@ export class Animal {
       return; // Eerst boven het opstapje komen, dan pas vooruit.
     }
     const water = this.waterSurface(world, nx, nz);
-    if (!blocked && !this.flight && !this.inWater && !(water !== null && this.has('zwemmen'))) {
+    // (een dier dat in de Wilde Nacht op je afrent, springt wel van een muur af)
+    if (!blocked && !this.flight && !this.chaseSpeed && !this.inWater && !(water !== null && this.has('zwemmen'))) {
       const fx = nx - sin * this.def.d * 0.3, fz = nz - cos * this.def.d * 0.3;
       const fy = Math.floor(this.y - 0.05);
       if (water !== null || !this.solid(world, fx, fy, fz) && !this.solid(world, fx, fy - 1, fz)) blocked = true;
@@ -209,7 +210,7 @@ export class Animal {
       this.timer -= dt;
       if (this.timer <= 0) this.choose();
     }
-    if (!this.hunt && !this.fleeFrom) updateSkills(this, dt, world, effects, all);
+    if (!this.hunt && !this.fleeFrom && !this.chaseSpeed) updateSkills(this, dt, world, effects, all);
     this.state = this.happy ? 'blij' : this.eatTime ? 'eten' : this.sleep ? 'slapen' : this.hunt?.phase === 'stalk' ? 'sluipen'
       : this.hunt ? 'jagen' : this.fleeFrom ? 'vluchten' : this.following && this.walking ? 'volgen'
         : this.walking ? 'lopen' : this.graze ? 'grazen' : 'rust';

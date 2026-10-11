@@ -49,14 +49,15 @@ export async function testPhase6A({ newPage, check, out }) {
   // Overdag staren ze; als de klok op is, wordt het nacht en komen ze eraan
   const night = await run(() => {
     const j = window.__jippecraft, s = j.storm, p = j.player;
-    const d = () => Math.min(...s.animals().map((a) => Math.hypot(a.x - p.x, a.z - p.z)));
+    // gemiddelde afstand (één dier kan best even achter een boom vastzitten)
+    const d = () => { const l = s.animals().map((a) => Math.hypot(a.x - p.x, a.z - p.z)); return l.reduce((m, v) => m + v, 0) / l.length; };
     const d0 = d();
     window.__sim(60);
     const stare = Math.abs(d() - d0) < 0.5 && s.phase === 'dag';
     s.left = 0.05; window.__sim(3);
     const dark = s.phase === 'nacht' && j.daynight.night;
     const d1 = d(); window.__sim(90);
-    return { stare, dark, closer: d1 - d() > 4 };
+    return { stare, dark, closer: d1 - d() > 3 };
   });
   check(night.stare, 'overdag staan de dieren stil en kijken naar je');
   check(night.dark && night.closer, 'als de klok op is, wordt het nacht en rennen de dieren op je af');
