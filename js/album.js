@@ -112,6 +112,7 @@ export class Album {
   showNotice(title, img, label) {
     // Komt er een tweede bij terwijl de eerste nog in beeld is? Dan na elkaar
     if (!this.notice.hidden) { (this.noticeQueue ||= []).push([title, img, label]); return; }
+    this.lastNotice = { title, label }; // voor de tests: het bordje staat maar even in beeld
     this.notice.innerHTML = `<span>${title}</span><img src="${img}" alt=""><strong>${label}</strong>`;
     this.notice.hidden = false;
     const target = document.querySelector('.album-hud-btn')?.getBoundingClientRect();

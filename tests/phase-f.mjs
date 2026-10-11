@@ -24,7 +24,7 @@ export async function testPhaseF({ newPage, check, out }) {
   });
   await page.touchscreen.tap(spot.x, spot.y);
   // "Nieuw!" staat maar 2,2 seconden in beeld: meteen controleren als de sticker binnenkomt (de test-browser is traag)
-  const shown = await page.waitForFunction(() => { const a = window.__jippecraft.album; return a.known.has('pig') && !a.notice.hidden; }, null, { timeout: 30000 })
+  const shown = await page.waitForFunction(() => { const a = window.__jippecraft.album; return a.known.has('pig') && a.lastNotice?.title === 'Nieuw!' && a.lastNotice.label === 'Varken'; }, null, { timeout: 30000 })
     .then(() => true, () => false);
   check(shown && await run(() => JSON.parse(localStorage.getItem('jippecraft.settings.v1')).album.includes('pig')),
   '10: eerste echte aai toont Nieuw! en bewaart de sticker in de instellingen');
