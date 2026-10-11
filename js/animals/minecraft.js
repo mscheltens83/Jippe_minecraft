@@ -136,6 +136,9 @@ function swimmer(p) {
   }
   for (const s of [-1, 1]) bodyGeo.push(box(w * 0.4, 0.04, d * 0.14, p.body, s * w * 0.6, y - h * 0.15, -d * 0.12));
   const body = part(bodyGeo, 0, y, 0);
+  // Zadeltje (dolfijn en walvis): alleen te zien als hij tam is
+  const saddle = p.saddle ? part([box(Math.min(w * 0.9, 0.6), 0.08, Math.min(d * 0.25, 0.6), p.saddle, 0, y + h * 0.4 + 0.04, -d * 0.05),
+    box(0.06, 0.12, 0.06, '#d8b04a', 0, y + h * 0.4 + 0.12, -d * 0.05 - Math.min(d * 0.25, 0.6) / 2)], 0, y, 0) : null;
   const headGeo = [box(w * 0.85, h * 0.7, d * 0.2, p.face || p.body, 0, y, -d * 0.47)];
   if (p.beak) headGeo.push(box(w * 0.4, h * 0.25, d * 0.14, p.face || p.body, 0, y - h * 0.15, -d * 0.62));
   const eye = p.eye ?? 0.05;
@@ -148,7 +151,7 @@ function swimmer(p) {
   const tail = p.fluke
     ? part([box(w * 0.35, h * 0.35, d * 0.16, p.body, 0, y, d * 0.44), box(w * 1.5, 0.1, d * 0.12, p.tailColor || p.body, 0, y, d * 0.55)], 0, y, d * 0.37)
     : part([box(0.05, h * 0.9, d * 0.18, p.tailColor || p.body, 0, y, d * 0.46), box(w * 0.9, 0.05, d * 0.14, p.tailColor || p.body, 0, y, d * 0.5)], 0, y, d * 0.37);
-  return { parts: [body, head, tail], body, head, tail, wings: [], ears: [], legs: [], pattern: [] };
+  return { parts: saddle ? [body, head, tail, saddle] : [body, head, tail], body, head, tail, saddle, wings: [], ears: [], legs: [], pattern: [] };
 }
 
 // Kwal: een roze hoedje met lange, slierterige tentakels (die als "poten" golven)
@@ -225,10 +228,10 @@ export function buildMc(type, variant = 0) {
     case 'llama': return beast({ w: 0.75, h: 1.95, d: 1.25, body: '#e9dfc9', snout: '#d8ccb2', blanket: v[0], neck: true, ears: 'tall', tail: 'short', legH: 0.38, bodyH: 0.3, headD: 0.32, legW: 0.24 });
     case 'bee': return bee();
     case 'fish': return swimmer({ w: 0.18, h: 0.3, d: 0.55, body: v[0], stripe: v[1], tailColor: v[1] });
-    case 'dolphin': return swimmer({ w: 0.48, h: 0.5, d: 1.6, body: '#7f96ab', belly: '#dfe6ec', fin: true, beak: true });
+    case 'dolphin': return swimmer({ w: 0.48, h: 0.5, d: 1.6, body: '#7f96ab', belly: '#dfe6ec', fin: true, beak: true, saddle: '#7a4b2a' });
     case 'squid': return squid();
     case 'jellyfish': return jellyfish();
-    case 'whale': return swimmer({ w: 1.5, h: 1.4, d: 4.2, body: '#3f5a78', belly: '#cfd8e0', tailColor: '#34506c', blowhole: true, fluke: true, eye: 0.12 });
+    case 'whale': return swimmer({ w: 1.5, h: 1.4, d: 4.2, body: '#3f5a78', belly: '#cfd8e0', tailColor: '#34506c', blowhole: true, fluke: true, eye: 0.12, saddle: '#7a4b2a' });
     case 'puffer': return swimmer({ w: 0.42, h: 0.42, d: 0.5, body: '#f2c230', stripe: '#e0a020', spikes: '#f7f1d8', tailColor: '#e0a020' });
     case 'villager': return villager(v);
     case 'golem': return golem();

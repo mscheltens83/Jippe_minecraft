@@ -149,6 +149,15 @@ class Game {
     this.input.onKey = (e) => this.key(e);
     this.player.onJump = () => this.sounds.jump();
     this.player.onBounce = () => this.sounds.boing();
+    // Zwemrit (5.6): de dolfijn springt uit het water en plonst terug; de walvis spuit bovenaan een fontein
+    this.player.onLeap = () => { const p = this.player; this.sounds.animal('dolphin'); this.particles.waterAt(p.x, p.y + 0.3, p.z, 0, 0); this.note('dolphinLeap'); };
+    this.player.onSplash = () => { const p = this.player; this.sounds.place('water'); this.particles.waterAt(p.x, p.y + 0.6, p.z, 0, 0); };
+    this.player.onSurface = () => {
+      const p = this.player, a = p.riding, now = performance.now() / 1000;
+      if (a?.type !== 'whale' || now < (this.spoutAt || 0)) return;
+      this.spoutAt = now + 2;
+      this.particles.waterAt(p.x, p.y + a.def.h + 0.2, p.z, 0, 0); this.sounds.animal('whale');
+    };
     this.particles.onBang = () => this.sounds.bang();
 
     const settings = this.storage.loadLocal('settings') || {};
@@ -1447,11 +1456,11 @@ class Game {
     p.riding = a;
     if (p.collides(this.world, a.x, a.y, a.z)) { p.riding = null; this.sounds.nope(); return false; }
     this.animals.stopHunt(a);
-    p.setPos({ x: a.x, y: a.y, z: a.z }); p.yaw = a.yaw; p.flying = false; p.onGround = a.onGround;
+    p.setPos({ x: a.x, y: a.y, z: a.z }); p.yaw = a.yaw; p.flying = false; p.onGround = a.onGround; p.leaping = false;
     a.riding = true; a.walking = false; a.sleep = 0; a.state = 'bereden';
     this.rideCamera = this.thirdPerson;
     this.thirdPerson = true; this.ui.setThirdPerson(true);
-    this.ui.setFlying(false); this.ui.setRiding(true);
+    this.ui.setFlying(false); this.ui.setRiding(true, !!a.def.onderwater);
     this.input.releaseAll(); this.sounds.magic(); this.markDirty();
     this.note('ride', { type: a.type });
     return true;
@@ -1478,7 +1487,7 @@ class Game {
     const next = this.dismountSpot();
     p.riding = null; a.riding = false; a.walking = false; a.sleep = a.def.voertuig ? 0 : 2; a.state = a.def.voertuig ? 'rust' : 'slapen';
     if (a.def.voertuig) { a.yaw = a.targetYaw = this.vehicleYaw ?? a.yaw; this.cart = null; this.vehicleYaw = null; }
-    p.setPos(next); p.onGround = true;
+    p.setPos(next); p.onGround = true; p.leaping = false;
     this.thirdPerson = this.rideCamera; this.ui.setThirdPerson(this.thirdPerson);
     this.ui.setRiding(false); this.ui.setFlying(false);
     this.sounds.pop(); this.markDirty();

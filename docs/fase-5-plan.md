@@ -164,3 +164,13 @@ Wat er veranderd is:
 - Drie nieuwe soorten: **kwal** (roze, pulseert op en neer), **walvis** (groot, spuit een fontein bij aaien en soms vanzelf als hij bovenaan zwemt; met een walvislied) en **kogelvis** (blaast zich op als je hem aait). Ze staan in de dierenkist en in het album bij Zee. Nu zijn er 51 dieren.
 - Overal waar diep water is, zwemmen nu vaak zeedieren: in ongeveer een op de drie waterstukken (chunks) van de zee een of twee groepjes, in rivieren en meertjes een op de vijf. Dat geldt in elke wereld, dus ook in de zee rond het eiland, en al vanaf 20 blokken van de bouwplek (land-dieren pas vanaf 80). Een walvis komt alleen in water dat diep genoeg is. Eerder was het 1 op de 14, alleen in het landschap Zee van de Grote wereld en niet rond het eiland.
 - Test: `FASE=5f npm run test:browser`.
+
+## 10. Rijden op een dolfijn en een walvis (versie 5.6.0)
+
+- **Temmen** zoals de andere rijdieren: drie keer snel aaien. Dan krijgt het dier een zadeltje; nog een tik en Jippe zit erop.
+- **Zwemmen**: de stuurknop zwemt vooruit (dolfijn snel, walvis rustig), de pijl omhoog gaat naar boven, de pijl omlaag duikt (de omlaag-knop blijft tijdens deze rit in beeld). Laat je alles los, dan blijf je op dezelfde diepte.
+- **Bovenaan**: de dolfijn springt met de pijl omhoog uit het water en plonst terug (met spetters en een klikgeluid); de walvis drijft met zijn rug boven water en spuit om de twee seconden een fontein met zijn walvislied.
+- **In het water blijven**: een zwemdier zwemt niet het land op. Tijdens een sprong mag hij alleen verder boven water, zodat hij weer in het water landt. Komt hij toch op de rand terecht, dan glijdt hij terug zodra je terugstuurt.
+- Twee nieuwe stickers: zwemmen op een dolfijn of walvis, en met een dolfijn uit het water springen (41 stickers).
+- Gebouwd in `player.js` (de zwemrit: drijven, duiken, springen, niet het land op), `species.js` (`rijdbaar`, `rijsnelheid`, `zadel`, `springer`), `minecraft.js` (zadeltje), `ui.js` (knoppen) en `main.js` (spetters, fontein, sticker).
+- Test: `FASE=5f npm run test:browser`.

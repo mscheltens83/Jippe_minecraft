@@ -106,6 +106,13 @@ export class Player {
     this.inWater = !!(WATERY[feet] || WATERY[head]);
     this.climbing = !this.riding && !this.flying && !!(BLOCKS[feet]?.climb || BLOCKS[head]?.climb); // liaan of ladder
     const below = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));
+    // Rijden op een zwemdier (dolfijn, walvis): het blijft in het water. `keel` = hoe diep het dier in het water ligt.
+    const swimRide = !!this.riding?.def?.onderwater;
+    const keel = swimRide ? Math.min(this.riding.def.h * 0.6, 0.85) : 0;
+    const wetAt = (x, y, z) => !!WATERY[world.get(Math.floor(x), Math.floor(y), Math.floor(z))];
+    const wasWet = swimRide && wetAt(this.x, this.y + keel, this.z);
+    if (swimRide && this.leaping && this.vy < 0 && wasWet) { this.leaping = false; this.vy *= 0.3; this.onSplash?.(); }
+    if (!swimRide) this.leaping = false;
 
     // Loop-richting t.o.v. waar je kijkt
     const sin = Math.sin(this.yaw), cos = Math.cos(this.yaw);
@@ -134,6 +141,17 @@ export class Player {
     } else if (this.climbing) {
       // Vooruit in een liaan of de springknop = omhoog; omlaag heeft voorrang.
       this.vy = (input.down ? -1 : input.jump || mz > 0.2 ? 1 : 0) * 2.5;
+    } else if (swimRide && wasWet && !this.leaping) {
+      // Op een dolfijn of walvis: springknop = omhoog, omlaag-knop = duiken, anders blijf je op dezelfde diepte.
+      // Een dolfijn springt bovenaan met de springknop uit het water.
+      const atTop = !wetAt(this.x, this.y + keel + 0.35, this.z);
+      if (input.jump && atTop && this.riding.def.springer && now - this.jumpedAt > 0.8) {
+        this.vy = 9; this.leaping = true; this.jumpedAt = now; this.onLeap?.();
+      } else {
+        const up = (input.jump ? 1 : 0) - (input.down ? 1 : 0);
+        this.vy += (up * 3.5 - this.vy) * Math.min(1, 8 * dt);
+        if (input.jump && atTop) this.onSurface?.();
+      }
     } else if (this.inWater && !this.riding) {
       this.vy -= 7 * dt;
       if (input.jump) this.vy = Math.min(this.vy + 22 * dt, 3.8);     // zwemmen: springen houden
@@ -167,6 +185,14 @@ export class Player {
     }
     if (hitX) this.vx = 0;
     if (hitZ) this.vz = 0;
+    // Een zwemdier zwemt niet het land op: terug als hij uit het water zou gaan. Tijdens een sprong mag hij
+    // alleen verder boven water (zodat hij weer in het water landt, niet op de kant).
+    const sea = (x, z) => { for (let yy = Math.floor(this.y + keel); yy >= Math.floor(this.y) - 4; yy--) if (wetAt(x, yy, z)) return true; return false; };
+    const ok = (x, z) => (wasWet && !this.leaping ? wetAt(x, this.y + keel, z) : sea(x, z));
+    if (swimRide && (wasWet || sea(ox, oz))) {
+      if (!ok(this.x, oz)) { this.x = ox; this.vx = 0; }
+      if (!ok(this.x, this.z)) { this.z = oz; this.vz = 0; }
+    }
     // Sluipen: niet van een rand af lopen (zoals in Minecraft)
     if (this.sneaking && !this.collides(world, this.x, this.y - 0.55, this.z)) {
       if (this.collides(world, ox, this.y - 0.55, this.z)) { this.x = ox; this.vx = 0; }
@@ -176,6 +202,10 @@ export class Player {
 
     const landing = this.vy;
     const hitY = this.moveAxis(world, 1, this.vy * dt);
+    // Bovenaan het water blijft het zwemdier drijven (met zijn rug boven water)
+    if (wasWet && !this.leaping && !wetAt(this.x, this.y + keel, this.z)) {
+      this.y = Math.floor(this.y + keel) - keel - E; this.vy = Math.min(this.vy, 0);
+    }
     this.onGround = hitY && landing < 0;
     if (hitY) {
       const under = world.get(Math.floor(this.x), Math.floor(this.y - 0.05), Math.floor(this.z));

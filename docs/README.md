@@ -48,3 +48,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 5E | Knoppen, hendels, drukplaten en lampen | Klaar (versie 5.4.0) |
 | Analyse | Foutencheck en optimalisatie: workers onthouden chunks, geen shaders vertalen tijdens het spelen, drie fouten opgelost, foutenlogboek in de tests ([analyse](analyse-code.md)) | Klaar (versie 5.4.1) |
 | Dieren en zee | Dieren plaatsen lukt weer als er al 60 zijn, een dier naar huis sturen, kwal, walvis en kogelvis, veel meer zeedieren ([plan, §9](fase-5-plan.md)) | Klaar (versie 5.5.0) |
+| Zwemrit | Rijden op een dolfijn en een walvis: duiken, dolfijnsprong, walvisfontein ([plan, §10](fase-5-plan.md)) | Klaar (versie 5.6.0) |

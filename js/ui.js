@@ -466,11 +466,14 @@ export class UI {
     this.jumpBtn.innerHTML = f || climbing ? ICONS.up : ICONS.jump;
   }
 
-  setRiding(on) {
+  // swim: op een dolfijn of walvis; dan blijft de omlaag-knop (duiken) en is de springknop omhoog
+  setRiding(on, swim = false) {
     this.flyBtn.innerHTML = on ? ICONS.dismount : ICONS.fly;
     this.flyBtn.setAttribute('aria-label', on ? 'Afstappen' : 'Vliegen');
-    this.riding = on;
-    this.downBtn.hidden = on;
+    this.riding = on && !swim;
+    this.downBtn.hidden = this.riding;
+    this.downBtn.setAttribute('aria-label', swim ? 'Duiken' : 'Sluipen');
+    this.jumpBtn.innerHTML = on && swim ? ICONS.up : ICONS.jump;
   }
 
   setThirdPerson(on) { this.camBtn.classList.toggle('on', on); }

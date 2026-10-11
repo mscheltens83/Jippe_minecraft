@@ -36,6 +36,8 @@ export const QUESTS = [
   { id: 'album10', groep: 'dieren', icon: 'book', tekst: 'Vind tien dieren voor je album.', on: 'album', match: (d) => d.count >= 10 },
   { id: 'hondZit', groep: 'dieren', icon: 'dog', tekst: 'Laat een tamme hond zitten: tik erop.', on: 'sit' },
   { id: 'golemBloem', groep: 'dieren', icon: 'golem', tekst: 'Krijg een bloem van de ijzergolem in het dorp.', on: 'golemFlower' },
+  { id: 'zwemrit', groep: 'dieren', icon: 'dolphin', tekst: 'Maak een dolfijn of een walvis tam en zwem erop.', on: 'ride', match: (d) => d.type === 'dolphin' || d.type === 'whale' },
+  { id: 'dolfijnsprong', groep: 'dieren', icon: 'dolphin', tekst: 'Spring met een dolfijn uit het water: druk bovenaan op de springknop.', on: 'dolphinLeap' },
   // Ontdekken
   { id: 'dorp', groep: 'ontdekken', icon: 'villageHouse', tekst: 'Vind een dorp.', on: 'near', match: (d) => d.kind === 'village' },
   { id: 'tempel', groep: 'ontdekken', icon: 'temple', tekst: 'Vind een tempel of een piramide.', on: 'near', match: (d) => d.kind === 'temple' || d.kind === 'pyramid' },

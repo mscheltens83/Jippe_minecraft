@@ -50,11 +50,12 @@ export const SPECIES = {
   goat: { naam: 'Geit', werelden: [], w: .62, h: 1.15, d: 1.0, speed: 1.2, bouw: () => buildMc('goat'), geluid: 'bleat', kunstjes: ['springen'], slaapkans: .04, springkracht: 9 },
   llama: { naam: 'Lama', werelden: [], w: .75, h: 1.95, d: 1.25, speed: 1.0, bouw: (v) => buildMc('llama', v), varianten: VARIANTS.llama.length, geluid: 'camel', kunstjes: ['kudde', 'kauwen'], slaapkans: .04 },
   fish: { naam: 'Vis', werelden: [], w: .18, h: .3, d: .55, speed: 1.4, bouw: (v) => buildMc('fish', v), varianten: VARIANTS.fish.length, geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
-  dolphin: { naam: 'Dolfijn', werelden: [], w: .48, h: .5, d: 1.6, speed: 2.4, bouw: () => buildMc('dolphin'), geluid: 'click', kunstjes: ['zwemmen', 'dolfijnsprong'], slaapkans: 0, onderwater: true },
+  dolphin: { naam: 'Dolfijn', werelden: [], w: .48, h: .5, d: 1.6, speed: 2.4, bouw: () => buildMc('dolphin'), geluid: 'click', kunstjes: ['zwemmen', 'dolfijnsprong'], slaapkans: 0, onderwater: true, rijdbaar: true, rijsnelheid: 1.6, zadel: 0.5, springer: true },
+  // (dolfijn en walvis zijn sinds 5.6 rijdbaar: temmen met drie keer aaien, dan erop zwemmen; springer = springt uit het water)
   squid: { naam: 'Inktvis', werelden: [], w: .6, h: 1.1, d: .6, speed: .6, bouw: () => buildMc('squid'), geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
   // Meer zeedieren (5.5): een kwal die op en neer pulseert, een walvis die water spuit en een kogelvis die zich opblaast
   jellyfish: { naam: 'Kwal', werelden: [], w: .7, h: 1.1, d: .7, speed: .35, bouw: () => buildMc('jellyfish'), geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
-  whale: { naam: 'Walvis', werelden: [], w: 1.5, h: 1.4, d: 4.2, speed: 1.1, bouw: () => buildMc('whale'), geluid: 'whale', kunstjes: ['zwemmen', 'blazen'], slaapkans: 0, onderwater: true },
+  whale: { naam: 'Walvis', werelden: [], w: 1.5, h: 1.4, d: 4.2, speed: 1.1, bouw: () => buildMc('whale'), geluid: 'whale', kunstjes: ['zwemmen', 'blazen'], slaapkans: 0, onderwater: true, rijdbaar: true, rijsnelheid: 1.1, zadel: 1.45 },
   puffer: { naam: 'Kogelvis', werelden: [], w: .42, h: .42, d: .5, speed: 1.0, bouw: () => buildMc('puffer'), geluid: 'bubble', kunstjes: ['zwemmen'], slaapkans: 0, onderwater: true },
 };
 // Fokken (fase 4G): wat een soort graag eet. Twee gevoerde dieren van dezelfde soort (of groep,

@@ -1,4 +1,5 @@
 // 5.5: dieren plaatsen als de teller vol zit, een dier naar huis sturen, en meer zeedieren.
+// 5.6: rijden op een dolfijn en een walvis.
 import { waitTrue } from './helpers.mjs';
 
 export async function testPhase5F({ newPage, check, out }) {
@@ -97,5 +98,54 @@ export async function testPhase5F({ newPage, check, out }) {
   check(tricks.puff > 1.4, 'kogelvis blaast zich op als je hem aait');
   check(tricks.pulse > 3, 'kwal pulseert op en neer');
   await page.screenshot({ path: out + '/5f-zeedieren.png' });
+
+  // 5.6: rijden op een dolfijn en een walvis (beeldje voor beeldje, zodat het niet van de snelheid van de testcomputer afhangt)
+  const ride = await run(async () => {
+    const { B, WATERY } = await import('./js/blocks.js');
+    const j = window.__jippecraft, w = j.world, p = j.player, log = {};
+    j.freshWorld('flat', 7); j.animals.clear(); j.physics.enabled = false; j.playing = false;
+    const y = w.surfaceY(48, 48) + 1;
+    for (let x = 30; x <= 60; x++) for (let z = 34; z <= 46; z++) for (let yy = y - 7; yy < y; yy++) w.set(x, yy, z, B.WATER);
+    let now = 100;
+    const inp = { move: { x: 0, y: 0 }, jump: false, down: false, sprint: false };
+    const step = (n) => { for (let i = 0; i < n; i++) { now += 1 / 30; p.update(1 / 30, inp, w, now); j.syncRide(1 / 30); } };
+    const wet = () => !!WATERY[w.get(Math.floor(p.x), Math.floor(p.y + 0.3), Math.floor(p.z))];
+    const d = j.animals.spawn('dolphin', 36, y - 4, 40, 0);
+    p.setPos({ x: 36, y: y - 2, z: 42 });
+    j.petAnimal(d); log.notYet = !p.riding;
+    for (let i = 0; i < 3; i++) j.petAnimal(d);
+    log.mounted = d.tame && p.riding === d && !document.querySelector('.down-btn').hidden;
+    p.yaw = -Math.PI / 2; inp.move.y = 1; const x0 = p.x; step(30); inp.move.y = 0;
+    log.swims = p.x - x0 > 5 && wet();
+    const y1 = p.y; inp.down = true; step(20); inp.down = false; log.dives = y1 - p.y > 1;
+    const events = []; p.onLeap = () => events.push('leap'); p.onSplash = () => events.push('splash');
+    inp.jump = true; let top = -99;
+    for (let i = 0; i < 150; i++) { step(1); top = Math.max(top, p.y); }
+    inp.jump = false; step(60);
+    log.leaps = top > y + 0.5 && events.includes('leap') && events.includes('splash') && wet();
+    inp.move.y = 1; step(200); inp.move.y = 0;
+    log.shore = p.x < 61.5 && wet();
+    inp.move.y = 1; inp.jump = true; step(150); inp.jump = false; inp.move.y = 0; step(30);
+    log.noLand = p.x < 61.5;
+    p.yaw = Math.PI / 2; inp.move.y = 1; step(30); inp.move.y = 0; step(30);
+    log.backIn = wet();
+    j.dismount();
+    const wh = j.animals.spawn('whale', 40, y - 5, 40, 0);
+    p.setPos({ x: 40, y: y - 2, z: 43 });
+    for (let i = 0; i < 4; i++) j.petAnimal(wh);
+    let spouts = 0; const fx = j.particles.waterAt.bind(j.particles); j.particles.waterAt = (...a) => { spouts++; fx(...a); };
+    j.spoutAt = 0; inp.jump = true; step(150); inp.jump = false;
+    j.particles.waterAt = fx;
+    log.whale = p.riding === wh && p.y + wh.def.h > y && p.y < y && !p.leaping && spouts >= 1;
+    j.dismount(); j.playing = true; j.physics.enabled = true;
+    log.quests = j.quests.done?.has?.('zwemrit') ?? null;
+    return log;
+  });
+  check(ride.notYet && ride.mounted, 'dolfijn: drie keer aaien maakt hem tam, nog een tik en je zit erop (de duikknop blijft)');
+  check(ride.swims && ride.dives, 'op de dolfijn zwem je vooruit en duik je met de omlaag-knop');
+  check(ride.leaps, 'bovenaan springt de dolfijn met de springknop uit het water en plonst terug');
+  check(ride.shore && ride.noLand && ride.backIn, 'de dolfijn zwemt niet het land op, ook niet met een sprong');
+  check(ride.whale, 'op de walvis drijf je bovenaan met zijn rug boven water, en hij spuit een fontein');
+  check(ride.quests === true, 'zwemmen op een dolfijn geeft de sticker "zwemrit"');
   await context.close();
 }
