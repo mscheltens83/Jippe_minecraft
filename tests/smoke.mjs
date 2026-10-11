@@ -241,7 +241,8 @@ await page.touchscreen.tap(cx, cy + 40);
 check(await until(() => !!window.nearBlocks(45, 60, 1)[0]), 'deur geplaatst');
 const doorOpen = () => g(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; });
 await lookAt(-0.35);
-await page.waitForTimeout(200);
+// (de camera draait pas mee bij het volgende beeldje; op een drukke testcomputer duurt dat even)
+await page.waitForTimeout(800);
 await page.touchscreen.tap(cx, cy);
 check(await until(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
 check(await doorOpen(), 'deur staat open');
