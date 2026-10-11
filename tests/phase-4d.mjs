@@ -83,7 +83,8 @@ export async function testPhase4D({ newPage, check, out }) {
   check(night.night && night.stars && night.bg < 0.1 && night.sky < 0.1, 's nachts is de lucht donker met sterren en is het buiten schemerig');
   check(night.moonUp, 's nachts staat de maan aan de hemel');
   await page.screenshot({ path: out + '/4d-nacht.png' });
-  check(await waitTrue(page, () => { const l = window.__jippecraft.animals.list; return l.length > 0 && l.filter((a) => a.sleep > 0).length >= l.length / 2; }, null, 30000),
+  // Alleen landdieren: vissen en andere zeedieren zwemmen ook 's nachts (sinds 5.5 ook vlak bij de bouwplek)
+  check(await waitTrue(page, () => { const l = window.__jippecraft.animals.list.filter((a) => !a.def.onderwater); return l.length > 0 && l.filter((a) => a.sleep > 0).length >= l.length / 2; }, null, 30000),
     's nachts gaan de dieren slapen');
   check(await run(() => { const a = window.__jippecraft.animals.list[0]; return !a || a.mat.color.r < 0.3; }), 's nachts zijn de dieren ook donkerder');
 
