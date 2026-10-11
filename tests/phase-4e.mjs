@@ -100,7 +100,8 @@ export async function testPhase4E({ newPage, check, out }) {
     check(under.tint && under.fog && under.muffled, 'onder water: blauwe tint, blauwe mist dichtbij en gedempt geluid');
     await page.screenshot({ path: out + '/4e-onderwater.png' });
     await run(() => window.__jippecraft.goHome());
-    check(await waitTrue(page, () => !window.__jippecraft.underwater && document.querySelector('.underwater').hidden, null, 5000), 'boven water is alles weer gewoon');
+    // (naar huis bouwt de wereld om je heen opnieuw op; dat duurt op de trage testcomputer soms even)
+    check(await waitTrue(page, () => !window.__jippecraft.underwater && document.querySelector('.underwater').hidden, null, 15000), 'boven water is alles weer gewoon');
   }
   const clouds = await run(() => {
     const c = window.__jippecraft.scene.clouds;

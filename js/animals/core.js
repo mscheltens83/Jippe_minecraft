@@ -120,8 +120,9 @@ export class Animal {
       const mom = this.groupTarget();
       if (mom) { this.walking = true; this.goal = mom; this.timer = 6; this.graze = false; return; }
     }
-    if (!this.walking && this.onGround && Math.random() < (night ? 0.8 : this.def.slaapkans)) {
-      this.sleep = night ? 30 + Math.random() * 40 : 12 + Math.random() * 20; this.walking = false; this.graze = false; return;
+    // 's Nachts gaan ze slapen, ook als ze net aan het wandelen waren
+    if ((night || !this.walking) && this.onGround && Math.random() < (night ? 0.8 : this.def.slaapkans)) {
+      this.sleep = night ? 30 + Math.random() * 40 : 12 + Math.random() * 20; this.walking = false; this.graze = false; this.goal = null; return;
     }
     // Af en toe even gaan liggen (dieren op vier poten, op het land)
     if (!this.walking && this.onGround && this.legs.length === 4 && !this.inWater && Math.random() < 0.08) {
@@ -304,6 +305,8 @@ export class Animal {
     this.inWater = this.waterSurface(world) !== null;
     if (this.sitting) { this.walking = false; this.graze = false; this.sleep = 0; }
     else if (dt > 0 && !this.happy && !this.sleep && !this.hunt && !this.fleeFrom) {
+      // 's Nachts niet lang meer rondlopen of liggen: snel gaan slapen
+      if (Animal.night && !this.def.nachtdier && !this.tame && !this.following && this.timer > 2) { this.timer = 2; this.lying = 0; }
       this.timer -= dt;
       if (this.timer <= 0) this.choose();
     }
