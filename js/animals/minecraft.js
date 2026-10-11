@@ -13,7 +13,6 @@ export const VARIANTS = {
   // dorpelingen: boer, bakker, bibliothecaris [mantel, schort of rand, hoed]
   villager: [['#8a6a3d', '#6d5230', '#e8c95a'], ['#5a4a3a', '#f4f1ea', '#f4f1ea'], ['#e9e4d8', '#b8342f', null]],
 };
-export const PROFESSIONS = ['Boer', 'Bakker', 'Bibliothecaris'];
 
 const EYE = '#1f252a';
 

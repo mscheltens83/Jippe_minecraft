@@ -67,6 +67,9 @@ class Game {
     this.atlas = createAtlas();
     this.world = new World();
     this.scene = new GameScene(this.canvas, this.atlas);
+    // Na het vertalen van een shader vraagt three.js steeds meteen of het gelukt is: dat laat de iPad
+    // wachten. Alleen in de tests (?vast) of met ?debug controleren we dat.
+    this.scene.renderer.debug.checkShaderErrors = /[?&](vast|debug)\b/.test(location.search);
     this.player = new Player();
     this.sounds = new Sounds();
     this.music = new Music(this.sounds);
@@ -256,7 +259,9 @@ class Game {
       this.scene.rebuildAll(this.world);
     }
     this.savedPos = this.posKey();
+    const restoreHand = this.hand.prewarm(B.GRASS, ITEM.HOUSE); // de hand ook (blokje en plaatje)
     this.scene.precompile();
+    restoreHand();
     this.refreshUI();
     this.ui.showMenu();
     this.resize();
@@ -390,11 +395,12 @@ class Game {
       const key = this.worldKey(n, extra), m = (await this.store.loadMetas([key]))[key];
       if (m && this.applySave(m, await this.store.loadChunks(key))) { this.extra = extra; this.metas[key] = m; return true; }
     }
-    this.extra = null;
     const meta = this.metas['slot' + n];
     if (!meta) return false;
     const chunks = await this.store.loadChunks('slot' + n);
-    return this.applySave(meta, chunks);
+    if (!this.applySave(meta, chunks)) return false;
+    this.extra = null; // pas als het gelukt is: anders blijft de huidige wereld bij zijn eigen naam
+    return true;
   }
 
   // Elke wereldplek heeft een hoofdwereld en (door portalen) extra werelden: 'slot1', 'slot1~jungle', ...
@@ -514,8 +520,10 @@ class Game {
     try {
       this.captureThumb();
       await this.saveNow();
-      const before = this.slot;
-      if (!(await this.loadSlot(n))) { this.sounds.nope(); this.slot = before; return; }
+      const before = this.slot, extraBefore = this.extra;
+      // Lukt het laden niet, dan blijft alles zoals het was (ook welke wereld van de plek: anders
+      // zou het volgende bewaren deze wereld onder de verkeerde naam wegschrijven)
+      if (!(await this.loadSlot(n))) { this.sounds.nope(); this.slot = before; this.extra = extraBefore; return; }
       this.slot = n;
       this.setActiveWorld();
       this.saveT = meta.t;
@@ -1234,6 +1242,17 @@ class Game {
       if (w.get(x, y, z) === B.PLATE + 1) w.set(x, y, z, B.PLATE);
     }
     this.platesOn = on;
+    // Af en toe: knoppen en drukplaten in de buurt die nog aan staan zonder reden (bijvoorbeeld na
+    // opnieuw laden, want de tijd van een knop wordt niet bewaard) springen terug
+    if (now >= (this.nextSwitchSweep || 0)) {
+      this.nextSwitchSweep = now + 2;
+      const px = Math.floor(p.x), py = Math.floor(p.y), pz = Math.floor(p.z);
+      for (let x = px - 8; x <= px + 8; x++) for (let y = py - 4; y <= py + 4; y++) for (let z = pz - 8; z <= pz + 8; z++) {
+        const id = w.get(x, y, z);
+        if (id === B.PLATE + 1 && !on.has(x + ',' + y + ',' + z)) w.set(x, y, z, B.PLATE);
+        else if (id === B.BUTTON + 1 && !this.buttons?.some((k) => k.x === x && k.y === y && k.z === z)) w.set(x, y, z, B.BUTTON);
+      }
+    }
   }
 
   // ---------- karretje en bootje (fase 5D) ----------
@@ -1265,7 +1284,8 @@ class Game {
     const mx = this.input.move.x, mz = this.input.move.y;
     p.vx = p.vy = p.vz = 0;
     if (v.def.voertuig === 'rails') {
-      if (!this.cart) this.cart = startCart(w, Math.floor(v.x), Math.floor(v.y + 0.3), Math.floor(v.z), this.facing());
+      // het karretje staat op de rails in zijn vak (op een helling soms een vak hoger of lager)
+      for (const dy of [0.3, 0, -1]) if (!this.cart) this.cart = startCart(w, Math.floor(v.x), Math.floor(v.y + dy), Math.floor(v.z), this.facing());
       if (!this.cart) return;
       const now = cartPose(this.cart), [dx, dz] = DIRS[now.dir];
       // Rijdt het karretje al? Dan is vooruit: doorrijden, en achteruit: remmen (ook in de bochten).

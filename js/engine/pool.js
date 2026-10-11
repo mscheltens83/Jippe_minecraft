@@ -24,9 +24,12 @@ export class WorkerPool {
   get ok() { return !this.failed && this.workers.length > 0; }
   get busy() { return this.jobs.size; }
 
-  run(msg, transfer = []) {
+  // De worker met het minste werk (zijn nummer)
+  pick() { return this.workers.reduce((best, w, i) => (w.pending < this.workers[best].pending ? i : best), 0); }
+
+  run(msg, transfer = [], index = this.pick()) {
     if (!this.ok) return Promise.reject(new Error('geen workers'));
-    const w = this.workers.reduce((a, b) => (b.pending < a.pending ? b : a));
+    const w = this.workers[index];
     const id = this.nextId++;
     return new Promise((resolve, reject) => {
       this.jobs.set(id, { resolve, reject, w });
@@ -43,6 +46,9 @@ export class WorkerPool {
     if (data.error) job.reject(new Error(data.error));
     else job.resolve(data);
   }
+
+  // Iets naar alle workers sturen, zonder antwoord (bijvoorbeeld: cache leeg)
+  tell(msg) { for (const w of this.workers) w.postMessage(msg); }
 
   // Een worker die niet wil: alles wat nog liep opnieuw laten doen door de lader
   fail(reason) {

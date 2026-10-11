@@ -121,6 +121,4 @@ export function biomeTree(w, kind, x, y, z, r) {
   }
 }
 
-// Hoe ver een boom opzij reikt (voor het zoeken naar bomen die in een chunk hangen)
-export const TREE_REACH = 5;
 export const TREE_RADIUS = { giantJungle: 4, acacia: 4, spruce: 3, jungle: 2, palm: 3, oak: 2, birch: 2, bigOak: 4, swampOak: 3, treeFern: 3, araucaria: 4, cycad: 2 };

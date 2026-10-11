@@ -62,11 +62,12 @@ export function buildExtra(type) {
       p.wings || p.body, s * w * .52, bodyY, 0)], s * w * .42, bodyY + h * .1, 0);
     wings.push(wing); parts.push(wing);
   }
+  let resultTail;
   if (p.tail) {
     const tail = part([box(p.tail === 'bushy' ? w * .35 : .1, p.tail === 'long' ? .13 : .18,
       p.tail === 'long' ? d * .8 : d * .48, p.body, 0, bodyY - h * .13, d * .54)], 0, bodyY, d * .34);
     parts.push(tail);
-    var resultTail = tail;
+    resultTail = tail;
   }
   const legColor = p.legs || p.beak || p.body;
   if (p.fins) for (const s of [-1, 1]) {

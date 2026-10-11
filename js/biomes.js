@@ -165,14 +165,6 @@ export function biomeAt(type, x, z) {
   return biomeWeights(type, x, z).reduce((a, b) => b.weight > a.weight ? b : a).type;
 }
 
-// Alleen bij het kiezen van het bovenblok gebruiken we ruis: geen harde rechte grens.
-export function chooseBiome(type, x, z, r) {
-  const weights = biomeWeights(type, x, z);
-  let pick = r();
-  for (const b of weights) { pick -= b.weight; if (pick <= 0) return b.type; }
-  return weights[weights.length - 1].type;
-}
-
 // Kleuren en mist mengen zonder een nieuwe renderer of textuur te maken.
 export function biomeView(type, x, z) {
   const weights = biomeWeights(type, x, z), lucht = {};

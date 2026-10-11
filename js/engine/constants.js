@@ -7,7 +7,6 @@ export const SHIFT = 38;          // oude werelden (zee op 10) schuiven zoveel o
 export const CENTER = 48;         // midden van de bouwplek (zoals in de oude werelden van 96 x 96)
 export const HOME = 96;           // het oude stuk wereld: x en z van 0 tot 96
 export const BORDER = 4096;       // verder dan dit van het midden kun je niet
-export const MAX_CHUNK = Math.ceil((CENTER + BORDER) / CHUNK) + 2;
 
 // Eén getal per chunk (sneller dan tekst als sleutel)
 export const chunkKey = (cx, cz) => (cx + 1024) * 2048 + (cz + 1024);

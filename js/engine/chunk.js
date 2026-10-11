@@ -8,8 +8,11 @@ export const CHUNK_SIZE = CHUNK * CHUNK * SY;
 // Plek van een blok binnen de chunk (laag voor laag, net als vroeger in de hele wereld)
 export const local = (lx, y, lz) => lx + CHUNK * (lz + CHUNK * y);
 
+let nextUid = 1;
+
 export class Chunk {
   constructor(cx, cz, blocks) {
+    this.uid = nextUid++;         // uniek per chunk-object (ook na opnieuw laden): voor de cache in de workers
     this.cx = cx; this.cz = cz;
     this.key = chunkKey(cx, cz);
     this.blocks = blocks;

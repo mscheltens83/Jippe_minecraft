@@ -95,5 +95,4 @@ for (const def of Object.values(SPECIES)) { def.kunstjes ||= []; def.werelden ||
 // De echte dieren (zonder karretje en bootje): voor het album en de kist
 export const ANIMAL_TYPES = Object.keys(SPECIES).filter((t) => !SPECIES[t].voertuig);
 
-export const STATES = ['rust', 'lopen', 'grazen', 'slapen', 'sluipen', 'jagen', 'vluchten', 'eten', 'blij', 'volgen', 'bereden'];
 export const MAX_ANIMALS = 60;

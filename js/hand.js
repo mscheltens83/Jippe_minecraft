@@ -85,6 +85,20 @@ export class Hand {
     this.holder.add(this.cache.get(id));
   }
 
+  // Vooraf: een blokje en een plaatje in de hand zetten, zodat hun shaders bij het opstarten al
+  // vertaald worden (anders hapert het spel als je voor het eerst op spelen tikt). Geeft een functie
+  // die alles weer terugzet.
+  prewarm(blockId, iconId) {
+    const was = this.group.visible, item = this.item;
+    this.group.visible = true;
+    this.holder.clear();
+    for (const id of [blockId, iconId]) {
+      if (!this.cache.has(id)) this.cache.set(id, this.build(id));
+      this.holder.add(this.cache.get(id));
+    }
+    return () => { this.holder.clear(); this.item = undefined; this.group.visible = was; this.setItem(item); };
+  }
+
   // Zwaaien bij bouwen of slopen
   swing() { this.swingT = 1; }
 

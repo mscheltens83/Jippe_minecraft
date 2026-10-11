@@ -7,6 +7,8 @@ import { buildPad, meshChunk } from './mesher.js';
 import { regionFor } from './light.js';
 import { tintsFor } from './tint.js';
 
+const WORKER_CACHE = 48; // zoveel chunks onthoudt elke worker (±3 MB)
+
 export class ChunkLoader {
   constructor(world, scene, pool) {
     this.world = world;
@@ -18,11 +20,13 @@ export class ChunkLoader {
     this.ready = [];
     this.epoch = 0;
     this.applyBudget = 3;   // zoveel chunks per beeldje naar de beeldkaart sturen
+    this.sent = [];         // per worker: welke chunks (uid -> versie) hij al heeft, oudste eerst
   }
 
   // Nieuwe wereld: antwoorden voor de vorige wereld negeren
   reset() {
     this.epoch++;
+    this.sent = []; this.pool?.tell?.({ type: 'reset' }); // de workers vergeten de chunks van de vorige wereld
     this.genJobs.clear();
     this.meshJobs.clear();
     this.ready.length = 0;
@@ -110,13 +114,30 @@ export class ChunkLoader {
     }, () => { if (epoch === this.epoch) this.genJobs.delete(key); });
   }
 
+  // De blokken voor een worker: de chunk en zijn 8 buren. Wat de worker al heeft (zelfde chunk,
+  // zelfde versie) sturen we niet nog eens: zo kopieert het spel bij het vliegen ±9 keer minder.
+  meshBlocks(c, index) {
+    const sent = this.sent[index] ||= new Map(), uids = [], blocks = [], around = [], drop = [];
+    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
+      const n = this.world.chunk(c.cx + dx, c.cz + dz);
+      around.push(n ? n.version : -1);
+      if (!n) { uids.push(null); blocks.push(null); continue; }
+      const has = sent.get(n.uid) === n.version;
+      sent.delete(n.uid); sent.set(n.uid, n.version); // achteraan: net gebruikt
+      uids.push(n.uid); blocks.push(has ? null : n.blocks.slice());
+    }
+    while (sent.size > WORKER_CACHE) { const old = sent.keys().next().value; sent.delete(old); drop.push(old); }
+    return { uids, blocks, around, drop };
+  }
+
   requestMesh(c) {
     const epoch = this.epoch, versions = c.sectionVersion.slice();
-    const { blocks, versions: around } = this.world.around(c.cx, c.cz);
+    const index = this.pool.pick();
+    const { uids, blocks, around, drop } = this.meshBlocks(c, index);
     c.meshing = true;
     this.meshJobs.add(c.key);
     const w = this.world;
-    this.pool.run({ type: 'mesh', blocks, cx: c.cx, cz: c.cz, worldType: w.type, seed: w.seed, classic: w.classic, gv: w.gv }, blocks.filter(Boolean).map((b) => b.buffer)).then((res) => {
+    this.pool.run({ type: 'mesh', uids, blocks, drop, cx: c.cx, cz: c.cz, worldType: w.type, seed: w.seed, classic: w.classic, gv: w.gv }, blocks.filter(Boolean).map((b) => b.buffer), index).then((res) => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
       // c.meshing blijft aan tot de chunk echt getekend is, anders vragen we hem nog eens aan
@@ -126,6 +147,8 @@ export class ChunkLoader {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
       c.meshing = false;
+      this.sent[index]?.clear(); // klopt de cache van deze worker niet meer? Dan volgende keer alles opnieuw
+      this.pool.workers[index]?.postMessage({ type: 'reset' });
     });
   }
 

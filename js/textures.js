@@ -312,7 +312,7 @@ const GEN = {
     for (let y = 0; y < TILE; y++) for (let x = 0; x < TILE; x++) {
       const edge = x === 0 || y === 0 || x === 15 || y === 15;
       const inner = x >= 4 && x <= 11 && y >= 4 && y <= 11;
-      let c = edge ? [88, 170, 70] : inner ? [104, 196, 84] : [140, 226, 110];
+      const c = edge ? [88, 170, 70] : inner ? [104, 196, 84] : [140, 226, 110];
       t.set(x, y, shade(c, 1 + (t.r() - 0.5) * 0.08));
     }
     for (const [x, y] of [[2, 2], [3, 2], [2, 3], [6, 5], [5, 6]]) t.set(x, y, [214, 255, 196]);

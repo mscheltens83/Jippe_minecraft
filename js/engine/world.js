@@ -193,17 +193,6 @@ export class World {
     return y >= c.height[lx + CHUNK * lz] ? SKY_FULL : 0;
   }
 
-  // De blokken van een chunk en zijn 8 buren (kopieën, voor de worker), en hun versies
-  around(cx, cz) {
-    const blocks = [], versions = [];
-    for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) {
-      const c = this.chunk(cx + dx, cz + dz);
-      blocks.push(c ? c.blocks.slice() : null);
-      versions.push(c ? c.version : -1);
-    }
-    return { blocks, versions };
-  }
-
   aroundVersions(cx, cz) {
     const versions = [];
     for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) versions.push(this.chunk(cx + dx, cz + dz)?.version ?? -1);

@@ -35,7 +35,6 @@ export function sunAngle(t) {
 }
 
 // Daglicht (in sRGB): 1 overdag, NIGHT_LIGHT 's nachts
-export function daylight(t) { return NIGHT_LIGHT + (1 - NIGHT_LIGHT) * sunAmount(t); }
 
 export class DayNight {
   constructor() {

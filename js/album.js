@@ -64,7 +64,7 @@ export class Album {
     const clear = button('btn album-clear', 'trash', 'Album leegmaken');
     const clearLabel = document.createElement('span'); clearLabel.textContent = 'Album leegmaken';
     clear.addEventListener('click', () => {
-      question.textContent = this.tab === 'stickers' ? 'Alle stickers uit het boek halen?' : 'Alle stickers uit het album halen?';
+      this.question.textContent = this.tab === 'stickers' ? 'Alle stickers uit het boek halen?' : 'Alle stickers uit het album halen?';
       this.confirm.hidden = false;
     });
     this.clearLabel = clearLabel;
@@ -73,7 +73,7 @@ export class Album {
     this.overlay.appendChild(card);
     this.overlay.addEventListener('pointerdown', (e) => { if (e.target === this.overlay) this.close(); });
     this.confirm = document.createElement('div'); this.confirm.className = 'album-confirm'; this.confirm.hidden = true;
-    const question = document.createElement('p'); question.textContent = 'Alle stickers uit het album halen?';
+    const question = this.question = document.createElement('p'); question.textContent = 'Alle stickers uit het album halen?';
     const yes = button('btn yes', 'check', 'Ja, leegmaken');
     const no = button('btn no', 'close', 'Nee, bewaren');
     yes.addEventListener('click', () => {
@@ -281,34 +281,48 @@ export class Album {
   }
 
   // Een tijdelijk WebGL-doek tekent de figuren één voor één, zonder nieuwe bestanden.
+  // Een tijdelijk WebGL-doek tekent de figuren, een paar per keer (anders bevriest het beeld even
+  // als je het boek opent). Nieuwe stickers verschijnen meteen in het boek.
   prepare() {
     if (this.preparing || this.stickers.size) return;
     this.preparing = true;
-    let renderer;
-    try {
-      const canvas = document.createElement('canvas');
-      renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, preserveDrawingBuffer: true });
-      renderer.setPixelRatio(1); renderer.setSize(128, 128, false);
-      const scene = new THREE.Scene();
-      const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 50);
-      for (const type of ANIMAL_TYPES) {
-        const a = new Animal(type, 0, 0, 0, Math.PI / 6);
-        const def = SPECIES[type], span = Math.max(1.55, def.h * 1.3, def.w * 1.9, def.d * .9);
-        camera.left = -span / 2; camera.right = span / 2;
-        camera.top = span / 2; camera.bottom = -span / 2;
-        camera.position.set(span * .85, def.h * .5 + span * .45, -span * 1.3);
-        camera.lookAt(0, def.h * .5, 0); camera.updateProjectionMatrix();
-        scene.add(a.group); renderer.render(scene, camera);
-        this.stickers.set(type, canvas.toDataURL('image/png'));
-        scene.remove(a.group);
-      }
-    } catch (e) {
-      // Een ouder toestel kan een tweede WebGL-context weigeren; SVG-iconen blijven werken.
-      console.warn('Album gebruikt diereniconen', e);
-    } finally {
+    let renderer, scene, camera;
+    const todo = [...ANIMAL_TYPES];
+    const finish = () => {
       renderer?.dispose(); renderer?.forceContextLoss();
       this.preparing = false;
-      if (this.openNow) this.render();
-    }
+      if (this.openNow && this.tab === 'dieren') this.render();
+    };
+    const batch = () => {
+      try {
+        if (!renderer) {
+          const canvas = document.createElement('canvas');
+          renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false, preserveDrawingBuffer: true });
+          renderer.setPixelRatio(1); renderer.setSize(128, 128, false);
+          scene = new THREE.Scene();
+          camera = new THREE.OrthographicCamera(-1, 1, 1, -1, .1, 50);
+        }
+        for (let n = 0; n < 6 && todo.length; n++) {
+          const type = todo.shift(), a = new Animal(type, 0, 0, 0, Math.PI / 6);
+          const def = SPECIES[type], span = Math.max(1.55, def.h * 1.3, def.w * 1.9, def.d * .9);
+          camera.left = -span / 2; camera.right = span / 2;
+          camera.top = span / 2; camera.bottom = -span / 2;
+          camera.position.set(span * .85, def.h * .5 + span * .45, -span * 1.3);
+          camera.lookAt(0, def.h * .5, 0); camera.updateProjectionMatrix();
+          scene.add(a.group); renderer.render(scene, camera);
+          const url = renderer.domElement.toDataURL('image/png');
+          this.stickers.set(type, url);
+          scene.remove(a.group); a.mat.dispose();
+          const img = this.grid.querySelector(`.album-sticker[data-type="${type}"] img`);
+          if (img) img.src = url;
+        }
+      } catch (e) {
+        // Een ouder toestel kan een tweede WebGL-context weigeren; SVG-iconen blijven werken.
+        console.warn('Album gebruikt diereniconen', e);
+        todo.length = 0;
+      }
+      if (todo.length) setTimeout(batch, 0); else finish();
+    };
+    batch();
   }
 }

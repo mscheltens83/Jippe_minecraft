@@ -796,5 +796,3 @@ export const DEFAULT_HOTBAR = [
   B.GRASS, B.PLANKS, B.COBBLE, B.BRICK, B.GLASS, B.DOOR, B.WOOL_RED, B.RAINBOW, ITEM.HOUSE,
 ];
 
-export function isSolid(id) { return BLOCKS[id]?.solid ?? false; }
-export function isOpaque(id) { return OPAQUE[id] === 1; }

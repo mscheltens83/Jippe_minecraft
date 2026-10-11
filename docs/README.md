@@ -7,6 +7,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Document | Waarvoor |
 |---|---|
 | [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad en op de testcomputer |
+| [`analyse-code.md`](analyse-code.md) | Code-analyse na fase 5: foutencheck, metingen en wat er sneller en beter is gemaakt |
 | [`fase-5-plan.md`](fase-5-plan.md) | Het plan voor fase 5: de Dinowereld, opdrachtjes met stickers, schatkisten en verkleden, rails met karretje, bootje, knoppen en hendels |
 | [`fase-4-plan.md`](fase-4-plan.md) | Het plan voor fase 4: van blokkenspel naar echte Minecraft-kloon. Eindeloze wereld met biomen, grotten, licht en dag en nacht, veel meer blokken, Minecraft-dieren en dorpen, en de themawerelden als extra werelden via portalen |
 | [`fase-3-plan.md`](fase-3-plan.md) | Het grote plan voor fase 3: jungle, woestijn, toendra, savanne en avontuur; wilde dieren (leeuw, cheetah, tijger en 20 meer); roofdieren en stallen; temmen en rijden op de leeuw; dierenalbum |
@@ -45,3 +46,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 5C | Schatkisten en verkleden | Klaar (versie 5.2.0) |
 | 5D | Rails met karretje, bootje | Klaar (versie 5.3.0) |
 | 5E | Knoppen, hendels, drukplaten en lampen | Klaar (versie 5.4.0) |
+| Analyse | Foutencheck en optimalisatie: workers onthouden chunks, geen shaders vertalen tijdens het spelen, drie fouten opgelost, foutenlogboek in de tests ([analyse](analyse-code.md)) | Klaar (versie 5.4.1) |

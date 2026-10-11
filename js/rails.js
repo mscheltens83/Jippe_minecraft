@@ -62,7 +62,7 @@ export function placeState(world, x, y, z, facing = 0) {
     // liever rails die nog een vrije kant hebben (het eind van een spoor)
     near.push({ d, dy, free: usedEnds(world, n.x, n.y, n.z).length < 2 || pointsTo(world, n.x, n.y, n.z, opposite(d)) });
   }
-  near.sort((a, b) => b.free - a.free);
+  near.sort((a, b) => Number(b.free) - Number(a.free));
   const up = near.find((n) => n.dy === 1 && n.free);
   if (up) return stateFor([], up.d);
   const ends = near.filter((n) => n.free).slice(0, 2).map((n) => n.d);

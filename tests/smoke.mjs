@@ -74,6 +74,16 @@ async function newPage(init, query = '') {
   page.on('requestfailed', (r) => { if (!/fonts\./.test(r.url())) errors.push('request failed: ' + r.url()); });
   await page.goto(base + query);
   await page.waitForFunction(() => window.__jippecraft, null, { timeout: 20000 });
+  // Foutencheck: het spel vangt fouten op in zijn eigen logboek (ook fouten die niet in de console
+  // komen). Staat daar aan het eind van een test iets in, dan telt dat als fout.
+  const close = context.close.bind(context);
+  context.close = async () => {
+    const logged = await page.evaluate(() => {
+      try { return JSON.parse(localStorage.getItem('jippecraft.errors.v1') || '[]'); } catch { return []; }
+    }).catch(() => []);
+    for (const e of logged) errors.push(`foutenlogboek${e.where ? ' (' + e.where + ')' : ''}: ${String(e.msg).split('\n')[0]}`);
+    return close();
+  };
   return { context, page };
 }
 

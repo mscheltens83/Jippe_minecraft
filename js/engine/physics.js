@@ -116,6 +116,7 @@ export class Physics {
     if (b.waterlogged) return !!OPAQUE[below] || below === B.SEAWEED;
     if (b.render === 'cross' && !b.climb) return !!OPAQUE[below];
     if (b.schakel) return !!BLOCKS[below]?.solid; // knop, hendel en drukplaat staan op een blok
+    if (b.rail !== undefined) return !!OPAQUE[below]; // rails liggen op een blok
     if (id === B.TORCH || id === B.LANTERN || (id >= B.CARPET && id < B.CARPET + 16)) return !!BLOCKS[below]?.solid;
     if (id === B.LANTERN_HANGING) return !!BLOCKS[w.get(x, y + 1, z)]?.solid;
     if ((b.family === B.TORCH && id !== B.TORCH) || b.family === B.LADDER) {
