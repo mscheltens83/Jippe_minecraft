@@ -1,5 +1,5 @@
 // De Minecraft-dieren (fase 4G): koe, paard, hond, kat, konijn, vos, bij, geit, lama, vis,
-// dolfijn en inktvis. Blokkig zoals in Minecraft. Sommige soorten hebben meer kleuren
+// dolfijn en inktvis; later ook kwal, walvis en kogelvis (5.5). Blokkig zoals in Minecraft. Sommige soorten hebben meer kleuren
 // (variant): elk dier kiest er bij het neerzetten één.
 import { box, part } from '../models.js';
 
@@ -125,14 +125,45 @@ function swimmer(p) {
   if (p.stripe) bodyGeo.push(box(w + 0.01, h * 0.81, d * 0.1, p.stripe, 0, y, -d * 0.05));
   if (p.belly) bodyGeo.push(box(w * 0.8, 0.02, d * 0.6, p.belly, 0, y - h * 0.4, 0));
   if (p.fin) bodyGeo.push(box(0.06, h * 0.45, d * 0.18, p.body, 0, y + h * 0.55, d * 0.05));
+  // Kogelvis: stekeltjes rondom (die zie je goed als hij zich opblaast)
+  if (p.spikes) for (const [sx, sy, sz] of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [1, 1, -1], [-1, 1, 1], [1, -1, 1], [-1, -1, -1]]) {
+    bodyGeo.push(box(0.05, 0.05, 0.05, p.spikes, sx * (w / 2 + 0.03), y + sy * (h * 0.4 + 0.03), sz * d * 0.2));
+  }
+  // Walvis: een spuitgat bovenop de kop
+  if (p.blowhole) {
+    bodyGeo.push(box(w * 0.18, 0.03, d * 0.05, '#1f2f40', 0, y + h * 0.4 + 0.01, -d * 0.25));
+    bodyGeo.push(box(w + 0.02, h * 0.22, d * 0.62, p.belly, 0, y - h * 0.3, -d * 0.04)); // lichte buik, ook van opzij te zien
+  }
   for (const s of [-1, 1]) bodyGeo.push(box(w * 0.4, 0.04, d * 0.14, p.body, s * w * 0.6, y - h * 0.15, -d * 0.12));
   const body = part(bodyGeo, 0, y, 0);
   const headGeo = [box(w * 0.85, h * 0.7, d * 0.2, p.face || p.body, 0, y, -d * 0.47)];
   if (p.beak) headGeo.push(box(w * 0.4, h * 0.25, d * 0.14, p.face || p.body, 0, y - h * 0.15, -d * 0.62));
-  for (const s of [-1, 1]) headGeo.push(box(0.025, 0.05, 0.05, EYE, s * w * 0.43, y + h * 0.1, -d * 0.48));
+  const eye = p.eye ?? 0.05;
+  for (const s of [-1, 1]) {
+    if (p.eye) headGeo.push(box(0.03, eye * 1.6, eye * 1.6, '#ffffff', s * w * 0.43, y + h * 0.05, -d * 0.48));
+    headGeo.push(box(0.04, eye, eye, EYE, s * w * 0.43 + s * 0.01, y + h * 0.05, -d * 0.485));
+  }
   const head = part(headGeo, 0, y, -d * 0.37);
-  const tail = part([box(0.05, h * 0.9, d * 0.18, p.tailColor || p.body, 0, y, d * 0.46), box(w * 0.9, 0.05, d * 0.14, p.tailColor || p.body, 0, y, d * 0.5)], 0, y, d * 0.37);
+  // Staartvin; een walvis heeft een brede, liggende staart
+  const tail = p.fluke
+    ? part([box(w * 0.35, h * 0.35, d * 0.16, p.body, 0, y, d * 0.44), box(w * 1.5, 0.1, d * 0.12, p.tailColor || p.body, 0, y, d * 0.55)], 0, y, d * 0.37)
+    : part([box(0.05, h * 0.9, d * 0.18, p.tailColor || p.body, 0, y, d * 0.46), box(w * 0.9, 0.05, d * 0.14, p.tailColor || p.body, 0, y, d * 0.5)], 0, y, d * 0.37);
   return { parts: [body, head, tail], body, head, tail, wings: [], ears: [], legs: [], pattern: [] };
+}
+
+// Kwal: een roze hoedje met lange, slierterige tentakels (die als "poten" golven)
+function jellyfish() {
+  const w = 0.7, y = 0.85;
+  const body = part([box(w, 0.32, w, '#f29bd0', 0, y, 0), box(w * 0.7, 0.14, w * 0.7, '#f7c3e4', 0, y + 0.22, 0),
+    box(w + 0.06, 0.06, w + 0.06, '#e070b8', 0, y - 0.15, 0), box(0.05, 0.06, 0.02, EYE, -0.13, y + 0.02, -w / 2 - 0.01),
+    box(0.05, 0.06, 0.02, EYE, 0.13, y + 0.02, -w / 2 - 0.01)], 0, y, 0);
+  const head = part([box(0.2, 0.25, 0.2, '#f7c3e4', 0, y - 0.3, 0)], 0, y - 0.15, 0);
+  const legs = [];
+  for (let i = 0; i < 6; i++) {
+    const a = i / 6 * Math.PI * 2, x = Math.cos(a) * w * 0.3, z = Math.sin(a) * w * 0.3;
+    legs.push(part([box(0.05, 0.6, 0.05, i % 2 ? '#e070b8' : '#f7c3e4', x, y - 0.18 - 0.3, z)], x, y - 0.18, z));
+  }
+  return { parts: [body, head], body, head, wings: [], ears: [], legs, pattern: [1, -1, 1, -1, 1, -1] };
 }
 
 // Inktvis: een hoog lijf met acht tentakels eronder (die als "poten" bewegen)
@@ -196,6 +227,9 @@ export function buildMc(type, variant = 0) {
     case 'fish': return swimmer({ w: 0.18, h: 0.3, d: 0.55, body: v[0], stripe: v[1], tailColor: v[1] });
     case 'dolphin': return swimmer({ w: 0.48, h: 0.5, d: 1.6, body: '#7f96ab', belly: '#dfe6ec', fin: true, beak: true });
     case 'squid': return squid();
+    case 'jellyfish': return jellyfish();
+    case 'whale': return swimmer({ w: 1.5, h: 1.4, d: 4.2, body: '#3f5a78', belly: '#cfd8e0', tailColor: '#34506c', blowhole: true, fluke: true, eye: 0.12 });
+    case 'puffer': return swimmer({ w: 0.42, h: 0.42, d: 0.5, body: '#f2c230', stripe: '#e0a020', spikes: '#f7f1d8', tailColor: '#e0a020' });
     case 'villager': return villager(v);
     case 'golem': return golem();
     default: throw new Error('onbekend dier: ' + type);

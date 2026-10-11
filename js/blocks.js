@@ -625,6 +625,7 @@ export const ITEM = {
   // Dino's (fase 5A)
   TREX: 60058, BRACHIO: 60059, TRICERATOPS: 60060, STEGOSAURUS: 60061, PARASAUR: 60062, PTERANODON: 60063, RAPTOR: 60064,
   MINECART: 60065, BOAT: 60066, // fase 5D
+  JELLYFISH: 60067, WHALE: 60068, PUFFER: 60069, // meer zeedieren (5.5)
   WAND: 60104,         // toverstaf: steekt een portaal aan
   // Gereedschap en zaden (fase 4F)
   BUCKET: 60100, WHEAT_SEEDS: 60101, CARROT: 60102, POTATO: 60103,
@@ -687,6 +688,9 @@ export const SPECIALS = {
   [ITEM.FISH]: { name: 'Vis', kind: 'animal', animal: 'fish' },
   [ITEM.DOLPHIN]: { name: 'Dolfijn', kind: 'animal', animal: 'dolphin' },
   [ITEM.SQUID]: { name: 'Inktvis', kind: 'animal', animal: 'squid' },
+  [ITEM.JELLYFISH]: { name: 'Kwal', kind: 'animal', animal: 'jellyfish' },
+  [ITEM.WHALE]: { name: 'Walvis', kind: 'animal', animal: 'whale' },
+  [ITEM.PUFFER]: { name: 'Kogelvis', kind: 'animal', animal: 'puffer' },
   [ITEM.MINECART]: { name: 'Karretje', kind: 'vehicle', animal: 'minecart' },
   [ITEM.BOAT]: { name: 'Bootje', kind: 'vehicle', animal: 'boat' },
   [ITEM.TREX]: { name: 'T-rex', kind: 'animal', animal: 'trex' },
@@ -781,7 +785,7 @@ export const PALETTE_GROUPS = [
     { title: 'Toendra', icon: 'tundra', items: [ITEM.POLAR_BEAR, ITEM.PENGUIN, ITEM.REINDEER, ITEM.ARCTIC_FOX, ITEM.SEAL, ITEM.SNOWY_OWL] },
     { title: 'Vlakte en bos', icon: 'tree', items: [ITEM.COW, ITEM.HORSE, ITEM.DOG, ITEM.CAT, ITEM.RABBIT, ITEM.FOX, ITEM.BEE] },
     { title: 'Bergen', icon: 'bigWorld', items: [ITEM.GOAT, ITEM.LLAMA] },
-    { title: 'Zee', icon: 'worlds', items: [ITEM.FISH, ITEM.DOLPHIN, ITEM.SQUID] },
+    { title: 'Zee', icon: 'worlds', items: [ITEM.FISH, ITEM.DOLPHIN, ITEM.SQUID, ITEM.JELLYFISH, ITEM.WHALE, ITEM.PUFFER] },
     { title: 'Dorp', icon: 'house', items: [ITEM.VILLAGER, ITEM.GOLEM] },
     { title: "Dino's", icon: 'dino', items: [ITEM.TREX, ITEM.BRACHIO, ITEM.TRICERATOPS, ITEM.STEGOSAURUS, ITEM.PARASAUR, ITEM.PTERANODON, ITEM.RAPTOR] },
   ]),

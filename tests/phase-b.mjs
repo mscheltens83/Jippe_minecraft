@@ -36,7 +36,7 @@ export async function testPhaseB({ newPage, check, out }) {
   await run(() => { const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear(); j.scene.rebuildAll(j.world); });
   await page.locator('.slot.chest').tap();
   await page.locator('.pal-tab[aria-label="Dieren"]').tap();
-  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 48, 'dierenkist bevat de boerderijdieren, alle wilde dieren, de Minecraft-dieren, het dorp en de dino\'s');
+  check(await page.locator('.pal-items:not([hidden]) .pal-item').count() === 51, 'dierenkist bevat de boerderijdieren, alle wilde dieren, de Minecraft-dieren, het dorp en de dino\'s');
   check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-section')].map((e) => e.textContent).join(',') === 'Boerderij,Savanne,Jungle,Woestijn,Toendra,Vlakte en bos,Bergen,Zee,Dorp,Dino\'s'), 'dierenkist groepeert de plaatjes per wereld');
   check(await run(() => [...document.querySelectorAll('.pal-items:not([hidden]) .pal-item')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && e.querySelector('img').src.includes('svg');
@@ -172,12 +172,19 @@ export async function testPhaseB({ newPage, check, out }) {
     const low = wall(1), high = wall(2);
     const j = window.__jippecraft; j.freshWorld('flat', 7); j.animals.clear();
     const before = j.animals.list.length;
-    for (let x = 29; x <= 32; x++) for (let z = 29; z <= 32; z++) j.world.set(x, 52, z, 5);
+    for (let x = 22; x <= 38; x++) for (let z = 22; z <= 38; z++) j.world.set(x, 52, z, 5);
     j.placeAnimal({ x: 30, y: 49, z: 30, id: 1, nx: 0, ny: 1, nz: 0 }, 'giraffe');
-    return { low: low.z < 38 && low.y === 50, high: high.z > 41 && high.y === 50, roof: j.animals.list.length === before };
+    const roof = j.animals.list.length === before;
+    // Een klein afdakje: de giraf zoekt een vrije plek vlak ernaast
+    for (let x = 60; x <= 61; x++) for (let z = 60; z <= 61; z++) j.world.set(x, 52, z, 5);
+    j.placeAnimal({ x: 60, y: 49, z: 60, id: 1, nx: 0, ny: 1, nz: 0 }, 'giraffe');
+    const g = j.animals.list.at(-1);
+    const beside = j.animals.list.length === before + 1 && g.type === 'giraffe' && Math.hypot(g.x - 60.5, g.z - 60.5) <= 3 && g.clearAt(j.world, g.x, g.y, g.z);
+    return { low: low.z < 38 && low.y === 50, high: high.z > 41 && high.y === 50, roof, beside };
   });
   check(collision.low && collision.high, 'dieren huppelen over één blok en blijven voor een muur van twee blokken');
   check(collision.roof, 'een groot dier past niet door een laag dak en een mislukte plaatsing laat niets achter');
+  check(collision.beside, 'een groot dier onder een klein afdakje komt vlak ernaast te staan');
 
   const integration = await run(async (wild) => {
     const j = window.__jippecraft, { Sounds } = await import('./js/audio.js');

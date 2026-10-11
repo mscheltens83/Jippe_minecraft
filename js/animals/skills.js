@@ -160,6 +160,15 @@ export const SKILLS = {
     if (surface === null || surface - (a.y + a.def.h) > 0.8) return;
     if (a.happy || Math.random() < dt * 0.12) { a.vy = 8; a.leapt = a.happy > 0; a.walking = true; a.timer = 2; }
   },
+  // Een walvis spuit water uit zijn spuitgat: bij aaien, en af en toe vanzelf als hij bovenaan zwemt
+  blazen(a, dt, world, effects) {
+    const surface = a.waterSurface(world);
+    const high = surface !== null && surface - (a.y + a.def.h) < 1.2;
+    if (a.happy > 0.4 && !a.sprayed || !a.happy && high && Math.random() < dt * 0.06) {
+      a.sprayed = true;
+      effects?.waterAt?.(a.x, Math.max(a.y + a.def.h, surface ?? 0) + 0.1, a.z, 0, 0);
+    }
+  },
   bamboe(a, dt, world) {
     if ((a.skillWait -= dt) > 0 || a.happy || a.sleep) return;
     a.skillWait = 3;

@@ -2,4 +2,4 @@
 // iPad de nieuwste versie heeft. In sw.js moet CACHE precies 'jippecraft-' + VERSION zijn
 // (de test in tests/unit/versie.test.mjs controleert dat).
 
-export const VERSION = '5.4.1';
+export const VERSION = '5.5.0';

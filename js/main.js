@@ -21,7 +21,7 @@ import { Sounds } from './audio.js';
 import { Music } from './music.js';
 import { Particles } from './particles.js';
 import { Storage } from './storage.js';
-import { Animals, SPECIES } from './animals.js';
+import { Animals, SPECIES, MAX_ANIMALS } from './animals.js';
 import { Avatar } from './avatar.js';
 import { Album } from './album.js';
 import { buildStamp } from './stamps.js';
@@ -47,7 +47,8 @@ import { Hand } from './hand.js';
 
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
-const BREAK_TIME = 0.5;    // zo lang vasthouden om een blok te slopen (seconden)
+const BREAK_TIME = 0.5;
+const ANIMAL_HOLD = 1.2;   // zo lang een dier vasthouden (sloop-stand) om het naar huis te sturen    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
 const RIDE_BACK = 5;       // tijdens het rijden verder weg en hoger,
@@ -1271,6 +1272,7 @@ class Game {
       y -= SPECIES.boat.floatDepth; // het water houdt op bij y + 1: daar drijft het bootje op
     }
     const yaw = Math.round(p.yaw / (Math.PI / 2)) * (Math.PI / 2);
+    if (!this.animals.makeRoom(p)) { this.sounds.nope(); return; }
     const v = this.animals.spawn(type, x + 0.5, type === 'minecart' ? y : y + 1, z + 0.5, yaw);
     if (!v) { this.sounds.nope(); return; }
     this.sounds.place('metal');
@@ -1332,14 +1334,36 @@ class Game {
   placeAnimal(hit, type) {
     const w = this.world, p = this.player;
     const [x, y, z] = this.targetCell(hit, -1);
-    if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid || this.animals.full) { this.sounds.nope(); return; }
+    if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid) { this.sounds.nope(); return; }
     // Vissen, dolfijnen en inktvissen alleen in het water
     if (SPECIES[type].onderwater && !WATERY[w.get(x, y, z)]) { this.ui.say?.('Zet een waterdier in het water'); this.sounds.nope(); return; }
+    // Al heel veel dieren? Dan ruimen we een ver weg dier op. Lukt dat niet, dan zeggen we hoe het wel kan.
+    if (!this.animals.makeRoom(p)) {
+      this.ui.say?.(`Er zijn al ${MAX_ANIMALS} dieren. Houd in de sloopstand een dier vast om het naar huis te sturen.`, 'pig');
+      this.sounds.nope(); return;
+    }
     const yaw = Math.atan2(-(p.x - x - 0.5), -(p.z - z - 0.5));
     const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, yaw);
     if (!a) { this.sounds.nope(); return; }
-    // De kleine boerderijdieren houden de vertrouwde plaatsingsregel uit fase 2.
-    if (a.def.dieet !== 'boerderij' && !a.clearAt(w, a.x, a.y, a.z)) { this.animals.remove(a); this.sounds.nope(); return; }
+    // De kleine boerderijdieren houden de vertrouwde plaatsingsregel uit fase 2. Een groot dier dat
+    // net niet past (tussen bomen, tegen een muur), zoekt een vrije plek vlak ernaast.
+    if (a.def.dieet !== 'boerderij' && !a.clearAt(w, a.x, a.y, a.z)) {
+      let free = null;
+      for (let r = 1; r <= 2 && !free; r++) for (let dx = -r; dx <= r && !free; dx++) for (let dz = -r; dz <= r && !free; dz++) {
+        if (Math.max(Math.abs(dx), Math.abs(dz)) !== r) continue;
+        for (const dy of [0, 1, -1]) {
+          const fx = x + dx + 0.5, fz = z + dz + 0.5, fy = y + dy;
+          if (!a.def.onderwater && BLOCKS[w.get(x + dx, fy - 1, z + dz)]?.solid !== true) continue; // niet in de lucht
+          if (a.clearAt(w, fx, fy, fz)) { free = { x: fx, y: fy, z: fz }; break; }
+        }
+      }
+      if (!free) {
+        this.animals.remove(a);
+        this.ui.say?.(`Hier is niet genoeg plek voor een ${a.def.naam.toLowerCase()}`, 'pig');
+        this.sounds.nope(); return;
+      }
+      a.x = free.x; a.y = free.y; a.z = free.z; a.sync();
+    }
     this.sounds.animal(type);
     this.particles.heartsAt(x + 0.5, y + 1.1, z + 0.5);
     this.markDirty();
@@ -1512,7 +1536,7 @@ class Game {
     const kinds = [['triceratops', 'stegosaurus', 'parasaur'], ['brachio', 'pteranodon'], ['trex', 'raptor']][BLOCKS[hit.id].egg] || ['triceratops'];
     const type = kinds[Math.floor(Math.random() * kinds.length)];
     const { x, y, z } = hit;
-    if (this.animals.full) { this.sounds.nope(); return; }
+    if (!this.animals.makeRoom(this.player)) { this.sounds.nope(); return; }
     this.apply([{ x, y, z, from: hit.id, to: AIR }]);
     const a = this.animals.spawn(type, x + 0.5, y, z + 0.5, Math.atan2(-(this.player.x - x - 0.5), -(this.player.z - z - 0.5)));
     if (!a) return;
@@ -1652,7 +1676,19 @@ class Game {
     this.markDirty();
   }
 
-  // Vasthouden in de sloop-stand: het rondje loopt vol en het blok krijgt scheurtjes
+  // Een dier naar huis sturen (vasthouden in de sloop-stand): het verdwijnt met een poef
+  sendAnimalHome(a) {
+    if (a.riding) return;
+    this.particles.burst(a.x - 0.5, a.y + a.def.h * 0.4, a.z - 0.5, [[1, 1, 1], [0.95, 0.95, 1]], 30, true);
+    this.particles.heartsAt(a.x, a.y + a.def.h, a.z, 1);
+    this.sounds.pop();
+    this.ui.say?.(`Dag ${a.def.naam.toLowerCase()}!`, 'goHome');
+    this.animals.remove(a);
+    this.markDirty();
+  }
+
+  // Vasthouden in de sloop-stand: het rondje loopt vol en het blok krijgt scheurtjes.
+  // Hou je een dier vast, dan gaat dat dier naar huis.
   updateHold(dt) {
     const h = this.playing && !this.ui.paletteOpen && this.mode === 'break' ? this.input.hold : null;
     const stop = () => { this.ui.hideHoldRing(); this.scene.showCrack(null); };
@@ -1664,6 +1700,15 @@ class Game {
     const reach = this.reach();
     const hit = raycast(this.world, ray.origin, ray.direction, reach);
     const pet = this.animals.pick(ray, reach);
+    if (pet && this.animalInFront(pet, hit) && !pet.animal.riding) {
+      if (!this.breakState || this.breakState.animal !== pet.animal || this.breakState.ptr !== h) this.breakState = { animal: pet.animal, t: 0, ptr: h };
+      const st = this.breakState;
+      st.t += dt;
+      this.scene.showCrack(null);
+      if (st.t > 0.12) this.ui.holdRing(h.sx, h.sy, st.t / ANIMAL_HOLD);
+      if (st.t >= ANIMAL_HOLD) { this.sendAnimalHome(pet.animal); h.didBreak = true; this.breakState = null; stop(); }
+      return;
+    }
     const valid = hit && BLOCKS[hit.id].breakable && BLOCKS[hit.id].shape !== 'door' && hit.id !== B.FIREWORK &&
       !(pet && this.animalInFront(pet, hit));
     const key = valid ? hit.x + ',' + hit.y + ',' + hit.z : null;

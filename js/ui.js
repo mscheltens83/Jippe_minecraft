@@ -15,7 +15,7 @@ const SPECIAL_ICONS = {
   [ITEM.MONKEY]: 'monkey', [ITEM.PARROT]: 'parrot', [ITEM.PANDA]: 'panda', [ITEM.FROG]: 'frog', [ITEM.SLOTH]: 'sloth',
   [ITEM.CAMEL]: 'camel', [ITEM.FENNEC]: 'fennec', [ITEM.LIZARD]: 'lizard', [ITEM.TURTLE]: 'turtle',
   [ITEM.POLAR_BEAR]: 'polarBear', [ITEM.PENGUIN]: 'penguin', [ITEM.REINDEER]: 'reindeer', [ITEM.ARCTIC_FOX]: 'arcticFox', [ITEM.SEAL]: 'seal', [ITEM.SNOWY_OWL]: 'snowyOwl',
-  [ITEM.COW]: 'cow', [ITEM.HORSE]: 'horse', [ITEM.DOG]: 'dog', [ITEM.CAT]: 'cat', [ITEM.RABBIT]: 'rabbit', [ITEM.FOX]: 'fox', [ITEM.BEE]: 'bee', [ITEM.GOAT]: 'goat', [ITEM.LLAMA]: 'llama', [ITEM.FISH]: 'fish', [ITEM.DOLPHIN]: 'dolphin', [ITEM.SQUID]: 'squid',
+  [ITEM.COW]: 'cow', [ITEM.HORSE]: 'horse', [ITEM.DOG]: 'dog', [ITEM.CAT]: 'cat', [ITEM.RABBIT]: 'rabbit', [ITEM.FOX]: 'fox', [ITEM.BEE]: 'bee', [ITEM.GOAT]: 'goat', [ITEM.LLAMA]: 'llama', [ITEM.FISH]: 'fish', [ITEM.DOLPHIN]: 'dolphin', [ITEM.SQUID]: 'squid', [ITEM.JELLYFISH]: 'jellyfish', [ITEM.WHALE]: 'whale', [ITEM.PUFFER]: 'puffer',
   [ITEM.WAND]: 'wand', [ITEM.PORTAL_STAMP]: 'portal_green', [ITEM.PORTAL_STAMP + 1]: 'portal_yellow', [ITEM.PORTAL_STAMP + 2]: 'portal_white', [ITEM.PORTAL_STAMP + 3]: 'portal_orange', [ITEM.PORTAL_STAMP + 4]: 'portal_red',
   [ITEM.MINECART]: 'minecart', [ITEM.BOAT]: 'boat', [ITEM.TREX]: 'trex', [ITEM.BRACHIO]: 'brachio', [ITEM.TRICERATOPS]: 'triceratops', [ITEM.STEGOSAURUS]: 'stegosaurus', [ITEM.PARASAUR]: 'parasaur', [ITEM.PTERANODON]: 'pteranodon', [ITEM.RAPTOR]: 'raptor',
   [ITEM.VILLAGER]: 'villager', [ITEM.GOLEM]: 'golem', [ITEM.VILLAGE_HOUSE]: 'villageHouse', [ITEM.WELL]: 'well',

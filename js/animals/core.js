@@ -294,6 +294,8 @@ export class Animal {
     if (this.type === 'snowyOwl' && happy) this.head.rotation.y = Math.sin(this.time * 4) * Math.PI;
     if (this.type === 'villager' && happy) this.head.rotation.x = Math.sin(this.time * 12) * 0.3; // knikken: hmm!
     if (this.type === 'golem' && happy) this.legs[1].rotation.x = -1.3; // steekt de bloem naar je uit
+    if (this.type === 'jellyfish') { const s = 1 + Math.sin(this.time * 3) * 0.1; this.body.scale.set(1 / s, s, 1 / s); }
+    if (this.type === 'puffer' && happy) this.group.scale.multiplyScalar(1 + 0.9 * Math.sin(Math.PI * Math.min(1, this.happy / 1.8))); // opblazen!
   }
 
   pet(px, pz) {

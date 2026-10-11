@@ -158,6 +158,10 @@ export class Sounds {
       this.vibrato('sawtooth', 420 * p, 0.45, 0.1);
     } else if (sound === 'bubble') {
       for (let i = 0; i < 3; i++) this.tone('sine', (300 + i * 140) * p, (700 + i * 160) * p, 0.06, 0.1, i * 0.09);
+    } else if (sound === 'whale') {
+      // Een walvislied: lang, laag en glijdend
+      this.tone('sine', 160 * p, 320 * p, 0.9, 0.14); this.tone('sine', 300 * p, 140 * p, 1.1, 0.12, 0.8);
+      this.tone('triangle', 480 * p, 520 * p, 0.6, 0.04, 0.3);
     } else if (sound === 'click') {
       for (let i = 0; i < 5; i++) this.tone('square', 1800 * p, 1500 * p, 0.03, 0.06, i * 0.06);
       this.tone('sine', 900 * p, 1500 * p, 0.25, 0.08, 0.32);

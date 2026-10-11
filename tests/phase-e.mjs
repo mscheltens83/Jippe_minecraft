@@ -34,8 +34,8 @@ export async function testPhaseE({ newPage, check, out }) {
       uniqueItems: new Set(itemTypes).size, iconNamesOK: iconNames.every((s) => s?.startsWith('data:image/svg+xml')),
       saved: save.animals.length, loaded: j.animals.list.length, worlds };
   });
-  check(results.species === 48 && results.items === 48 && results.uniqueItems === 48,
-    '48 dieren in totaal (ook de Minecraft-dieren, het dorp en de dino\'s) en allemaal één keer in de kist');
+  check(results.species === 51 && results.items === 51 && results.uniqueItems === 51,
+    '51 dieren in totaal (ook de Minecraft-dieren, het dorp en de dino\'s) en allemaal één keer in de kist');
   check(results.iconNamesOK, 'alle dieren hebben een zichtbaar kisticoon');
   check(results.missing.length === 0, 'alle dieren verschijnen in jungle, woestijn, toendra en avontuur bij twee seeds' +
     (results.missing.length ? ` (${results.missing.join(', ')})` : ''));

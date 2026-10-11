@@ -16,7 +16,7 @@ const GROUPS = [
   { title: 'Toendra', icon: 'tundra', types: ['polarBear', 'penguin', 'reindeer', 'arcticFox', 'seal', 'snowyOwl'] },
   { title: 'Vlakte en bos', icon: 'tree', types: ['cow', 'horse', 'dog', 'cat', 'rabbit', 'fox', 'bee'] },
   { title: 'Bergen', icon: 'bigWorld', types: ['goat', 'llama'] },
-  { title: 'Zee', icon: 'worlds', types: ['fish', 'dolphin', 'squid'] },
+  { title: 'Zee', icon: 'worlds', types: ['fish', 'dolphin', 'squid', 'jellyfish', 'whale', 'puffer'] },
   { title: 'Dorp', icon: 'house', types: ['villager', 'golem'] },
   { title: "Dino's", icon: 'dino', types: ['trex', 'brachio', 'triceratops', 'stegosaurus', 'parasaur', 'pteranodon', 'raptor'] },
 ];

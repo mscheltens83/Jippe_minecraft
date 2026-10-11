@@ -99,10 +99,15 @@ export class Animals {
     const x0 = cx * CHUNK, z0 = cz * CHUNK;
     const village = this.spawnVillages(world, cx, cz, viewer);
     if (village) return village;
-    // Bij de bouwplek wonen al dieren; verderop af en toe een groepje (ongeveer 1 op de 14 chunks)
-    if (Math.hypot(x0 + 8 - HOME / 2, z0 + 8 - HOME / 2) < 80 || hash(world.seed, cx, cz, 701) > 0.07) return 0;
+    const home = Math.hypot(x0 + 8 - HOME / 2, z0 + 8 - HOME / 2);
     const biome = world.biomeAt ? world.biomeAt(x0 + 8, z0 + 8) : biomeAt(world.type, x0 + 8, z0 + 8);
-    const kinds = BIOMES[biome]?.dieren || [];
+    // Zee en rivier: waar diep water is, zwemt vaak een groepje (ongeveer in een op de drie chunks),
+    // in elke wereld (ook rond het eiland) en al vlak bij de bouwplek
+    const sea = this.waterColumn(world, x0 + 8, z0 + 8);
+    if (sea && sea.depth >= 2) return home < 20 ? 0 : this.spawnSea(world, cx, cz, biome, sea, viewer);
+    // Bij de bouwplek wonen al dieren; verderop af en toe een groepje (ongeveer 1 op de 14 chunks)
+    if (home < 80 || hash(world.seed, cx, cz, 701) > 0.07) return 0;
+    const kinds = (BIOMES[biome]?.dieren || []).filter(([t]) => !SPECIES[t].onderwater);
     if (!kinds.length) return 0;
     const [type] = kinds[Math.floor(hash(world.seed, cx, cz, 702) * kinds.length)];
     const n = type === 'zebra' ? 3 : SPECIES[type].onderwater ? 2 + Math.floor(hash(world.seed, cx, cz, 703) * 3) : 1 + Math.floor(hash(world.seed, cx, cz, 703) * 2);
@@ -147,17 +152,36 @@ export class Animals {
   }
 
   // Vissen, dolfijnen en inktvissen: in water van minstens 2 diep, ergens tussen bodem en oppervlak
-  spawnInWater(world, type, cx, cz, n, viewer) {
+  // Een of twee groepjes zeedieren in een waterchunk. De kans hangt af van hoe diep en open het water is.
+  spawnSea(world, cx, cz, biome, sea, viewer) {
+    const ocean = biome === 'ocean' || sea.depth >= 5;
+    if (hash(world.seed, cx, cz, 705) > (ocean ? 0.35 : 0.2)) return 0;
+    const own = (BIOMES[biome]?.dieren || []).filter(([t]) => SPECIES[t].onderwater);
+    const kinds = (own.length ? own : ocean ? BIOMES.ocean.dieren : BIOMES.river.dieren)
+      .filter(([t]) => SPECIES[t].h + 1 <= sea.depth); // een walvis alleen in diep water
+    if (!kinds.length) return 0;
+    const total = kinds.reduce((sum, [, w]) => sum + w, 0);
+    const pick = (r) => { for (const [t, w] of kinds) if ((r -= w / total) < 0) return t; return kinds[0][0]; };
+    let made = 0;
+    for (let g = 0; g < (ocean && hash(world.seed, cx, cz, 706) < 0.35 ? 2 : 1); g++) {
+      const type = pick(hash(world.seed, cx, cz, 707 + g)), r = hash(world.seed, cx, cz, 709 + g);
+      const n = type === 'whale' ? 1 : type === 'fish' ? 3 + Math.floor(r * 4) : 2 + Math.floor(r * 2);
+      made += this.spawnInWater(world, type, cx, cz, n, viewer, g * 300);
+    }
+    return made;
+  }
+
+  spawnInWater(world, type, cx, cz, n, viewer, salt = 0) {
     const x0 = cx * CHUNK, z0 = cz * CHUNK, def = SPECIES[type];
     let made = 0;
     for (let i = 0; i < n * 6 && made < n; i++) {
-      const x = x0 + 1 + Math.floor(hash(world.seed, cx, cz, 810 + i) * (CHUNK - 2));
-      const z = z0 + 1 + Math.floor(hash(world.seed, cx, cz, 860 + i) * (CHUNK - 2));
+      const x = x0 + 1 + Math.floor(hash(world.seed, cx, cz, 810 + salt + i) * (CHUNK - 2));
+      const z = z0 + 1 + Math.floor(hash(world.seed, cx, cz, 860 + salt + i) * (CHUNK - 2));
       const top = this.waterColumn(world, x, z);
       if (!top || top.depth < Math.max(2, def.h + 1)) continue;
       if (this.full && !this.recycle(viewer)) break;
-      const y = top.bottom + 0.2 + hash(world.seed, cx, cz, 900 + i) * Math.max(0, top.depth - def.h - 0.5);
-      const a = this.spawn(type, x + 0.5, y, z + 0.5, hash(world.seed, cx, cz, 950 + i) * Math.PI * 2);
+      const y = top.bottom + 0.2 + hash(world.seed, cx, cz, 900 + salt + i) * Math.max(0, top.depth - def.h - 0.5);
+      const a = this.spawn(type, x + 0.5, y, z + 0.5, hash(world.seed, cx, cz, 950 + salt + i) * Math.PI * 2);
       if (a) { a.wild = true; made++; }
     }
     return made;
@@ -172,10 +196,25 @@ export class Animals {
     return { bottom: floor + 1, surface: y + 1, depth: y - floor };
   }
 
-  // Haal het verste wilde dier weg (verder dan 100 blokken); tamme en zelf neergezette dieren nooit
-  recycle(viewer) {
+  // Plaats maken voor een dier dat Jippe zelf neerzet: eerst het verste wilde dier (hoe ver ook),
+  // anders het verste niet-tamme dier dat ver weg is (verder dan 32 blokken). Geeft true als het lukte.
+  makeRoom(viewer) {
+    if (!this.full) return true;
+    if (this.recycle(viewer, 0)) return true;
+    let far = null, best = 32;
+    for (const a of this.list) {
+      if (a.tame || a.riding || a.def.voertuig) continue;
+      const d = Math.hypot(a.x - viewer.x, a.z - viewer.z);
+      if (d > best) { best = d; far = a; }
+    }
+    if (far) this.remove(far);
+    return !!far;
+  }
+
+  // Haal het verste wilde dier weg (verder dan `min` blokken); tamme en zelf neergezette dieren nooit
+  recycle(viewer, min = 100) {
     if (!viewer) return false;
-    let far = null, best = 100;
+    let far = null, best = min;
     for (const a of this.list) {
       if (!a.wild || a.tame || a.riding) continue;
       const d = Math.hypot(a.x - viewer.x, a.z - viewer.z);

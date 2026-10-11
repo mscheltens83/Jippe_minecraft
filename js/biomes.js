@@ -137,8 +137,8 @@ export const BIOMES = {
     bomen: [{ soort: 'palm', dichtheid: 0.003 }], planten: [],
     bouwwerken: ['shipwreck'], dieren: [['turtle', 2]], achtergrond: 'wind', muziek: 'island',
   },
-  ocean: { naam: 'Zee', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 4], ['dolphin', 2], ['squid', 2]], achtergrond: 'wind', muziek: 'island' },
-  river: { naam: 'Rivier', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 3]], achtergrond: 'vogels', muziek: 'island' },
+  ocean: { naam: 'Zee', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 5], ['dolphin', 2], ['squid', 2], ['jellyfish', 2], ['puffer', 2], ['whale', 1]], achtergrond: 'wind', muziek: 'island' },
+  river: { naam: 'Rivier', lucht: oldSky, grond: { top: B.SAND, onder: B.SAND }, bomen: [], planten: [], dieren: [['fish', 3], ['puffer', 1]], achtergrond: 'vogels', muziek: 'island' },
 };
 
 // De soorten wereld die je kunt hebben (de rest zijn landschappen binnen een wereld)

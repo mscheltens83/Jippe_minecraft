@@ -147,3 +147,20 @@ Basalt, magmasteen (geeft licht), mos, varenstam en varenkruin, apenboomstam en 
 - Elke deel krijgt een eigen versie; de iPad-meetrit blijft werken.
 - Bewaarde werelden blijven werken: alleen nieuwe blokken en velden erbij.
 - Geen geweld, geen monsters, geen lava.
+
+## 9. Na fase 5: dieren plaatsen en meer zeedieren (versie 5.5.0)
+
+Jippe kon geen dieren meer neerzetten, en in de zee zwom weinig.
+
+**Waarom lukte plaatsen niet meer?** Er kunnen hoogstens 60 dieren tegelijk zijn (anders wordt de iPad traag). Bij het rondlopen komen er wilde dieren bij, en die werden pas opgeruimd als ze meer dan 100 blokken ver weg waren. Zat de teller vol met wilde dieren in de buurt (of met dieren die Jippe zelf had neergezet), dan deed een tik met een dier niets, op een "nee"-geluidje na. Een groot dier (giraf, olifant, dino) dat net niet paste tussen bomen of tegen een muur, ging ook zonder uitleg niet.
+
+Wat er veranderd is:
+- **Plaats maken** (`animals.makeRoom`): zit de teller vol, dan gaat eerst het verste wilde dier weg (hoe ver ook), anders het verste niet-tamme dier dat meer dan 32 blokken weg is. Tamme dieren, dieren waar je op rijdt en voertuigen blijven altijd. Dat geldt ook voor een ei uitbroeden en een karretje of bootje neerzetten.
+- **Uitleg**: lukt het toch niet, dan zegt het spel: "Er zijn al 60 dieren. Houd in de sloopstand een dier vast om het naar huis te sturen." Past een groot dier nergens, dan: "Hier is niet genoeg plek voor een giraf".
+- **Vrije plek ernaast**: past een groot dier niet precies waar je tikt, dan zoekt het spel binnen 2 blokken een plek waar het wel past (op de grond, niet in de lucht).
+- **Dier naar huis sturen**: in de sloopstand je vinger 1,2 seconde op een dier houden: het rondje loopt vol en het dier verdwijnt met een poef en "Dag schaap!". Een dier waar je op rijdt kan niet weg.
+
+**Meer zeedieren:**
+- Drie nieuwe soorten: **kwal** (roze, pulseert op en neer), **walvis** (groot, spuit een fontein bij aaien en soms vanzelf als hij bovenaan zwemt; met een walvislied) en **kogelvis** (blaast zich op als je hem aait). Ze staan in de dierenkist en in het album bij Zee. Nu zijn er 51 dieren.
+- Overal waar diep water is, zwemmen nu vaak zeedieren: in ongeveer een op de drie waterstukken (chunks) van de zee een of twee groepjes, in rivieren en meertjes een op de vijf. Dat geldt in elke wereld, dus ook in de zee rond het eiland, en al vanaf 20 blokken van de bouwplek (land-dieren pas vanaf 80). Een walvis komt alleen in water dat diep genoeg is. Eerder was het 1 op de 14, alleen in het landschap Zee van de Grote wereld en niet rond het eiland.
+- Test: `FASE=5f npm run test:browser`.
