@@ -21,6 +21,8 @@ export const CLIMBERS = new Set(['monkey']);                                    
 export const FLYERS = new Set(['parrot', 'snowyOwl', 'pteranodon']);                 // komen van boven
 // Slopers: hoe sterk een blok mag zijn dat ze kapot krijgen
 export const BASHERS = { pig: 2, cow: 2, polarBear: 2, hippo: 2, elephant: 4, triceratops: 4, trex: 10 };
+// Gravers: graven zich naar beneden door aarde, gras en zand (zoals in het echt), maar slopen geen muren
+export const DIGGERS = { rabbit: 2, fox: 2, meerkat: 2 };
 
 // ---------- je eigen bouwstenen (fase 6D) ----------
 // In de Wilde Nacht heb je alleen deze blokken, met een aantal. Sloop je iets, dan krijg je het
@@ -571,6 +573,19 @@ export class Storm {
       if ((a.lightT = (a.lightT || 0) - dt) <= 0) { a.lightT = 0.3; a.afraid = this.nearLight(front.x, Math.floor(a.y + 0.5), front.z); }
       if (a.afraid) { a.walking = false; a.targetYaw = Math.atan2(-dx, -dz); return; }
     }
+    // Zit Jippe onder de grond (een kelder, een gang), recht onder het dier? Dan graaft het naar beneden:
+    // slopers en gravers, door blokken die niet te sterk voor ze zijn
+    const digPower = BASHERS[a.type] || DIGGERS[a.type];
+    if (digPower && a.onGround && p.y < a.y - 1.2 && dist < Math.max(1.2, Math.max(a.def.w, a.def.d) * 0.4)) {
+      const cell = this.digCell(a, p, digPower);
+      // Boven een open gat, maar met een hoek op iets sterks (de rand van een stenen muur): opzij glijden
+      if (cell === 'slide') { a.walking = true; a.targetYaw = Math.atan2(-dx, -dz); return; }
+      if (cell) {
+        a.walking = false;
+        if ((a.bashT = (a.bashT ?? 0.6) - dt) <= 0) { a.bashT = 0.9 / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], 0, 0, true); }
+        return;
+      }
+    }
     // Slopers beuken op het blok dat in de weg staat (als ze er sterk genoeg voor zijn)
     const power = BASHERS[a.type];
     if (power && front.wall) {
@@ -608,6 +623,28 @@ export class Storm {
     return { x, z, y0, solid, wall };
   }
 
+  // Welk blok onder het dier graaft hij weg? Alle blokken onder zijn lijf moeten weg voordat hij valt;
+  // eerst het blok het dichtst bij Jippe. Blijft hij alleen nog met een hoek op iets te sterks staan terwijl
+  // onder zijn midden een gat is: 'slide' (opzij glijden). Staat hij midden op iets te sterks: null.
+  digCell(a, p, power) {
+    const w = this.g.world, r = a.def.w * 0.43, d = a.def.d * 0.3, sin = Math.sin(a.yaw), cos = Math.cos(a.yaw);
+    const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
+    let best = null, bestD = Infinity, strong = false;
+    // (ook de laag waar zijn voeten in staan: in een smal gat steunt een hoek van zijn lijf soms op de rand)
+    const levels = [...new Set([Math.floor(a.y - 0.5), Math.floor(a.y)])];
+    for (const by of levels) for (let bx = Math.floor(a.x - rx); bx <= Math.floor(a.x + rx); bx++) for (let bz = Math.floor(a.z - rz); bz <= Math.floor(a.z + rz); bz++) {
+      if (!blockBoxes(w, bx, by, bz, true).length) continue;
+      const strength = blockStrength(w.get(bx, by, bz));
+      if (!strength || strength > power) { strong = true; continue; }
+      const dd = Math.hypot(bx + 0.5 - p.x, bz + 0.5 - p.z);
+      if (dd < bestD) { bestD = dd; best = [bx, by, bz]; }
+    }
+    if (!strong) return best;
+    // Iets te sterks onder hem: alleen verder als er onder zijn midden al een gat is
+    const centerOpen = !blockBoxes(w, Math.floor(a.x), Math.floor(a.y - 0.5), Math.floor(a.z), true).length;
+    return centerOpen ? (best || 'slide') : null;
+  }
+
   // Vliegers vliegen recht op je af als dat kan; anders cirkelen ze boven je. Zonder dak duiken ze naar binnen.
   fly(a, p, dist) {
     const open = this.openAbove(p);
@@ -636,13 +673,14 @@ export class Storm {
   }
 
   // Eén beuk tegen een blok: scheurtjes, en bij genoeg beuken gaat het kapot
-  bash(a, x, y, z, ux, uz) {
+  bash(a, x, y, z, ux, uz, dig = false) {
     const g = this.g, w = g.world, id = w.get(x, y, z), strength = blockStrength(id), key = `${x},${y},${z}`;
     let d = this.damage.get(key);
     if (!d || d.id !== id) { if (d) this.dropCrack(d); d = { x, y, z, id, hits: 0, mesh: null }; this.damage.set(key, d); }
     d.hits++;
     const p = g.player, near = Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z);
-    g.sounds.bonk(this.pan(x + 0.5, z + 0.5), Math.max(0.3, 1 - near / 16));
+    if (dig) g.sounds.scratch(this.pan(x + 0.5, z + 0.5), Math.max(0.4, 1 - near / 12)); // graven: krabbelen
+    else g.sounds.bonk(this.pan(x + 0.5, z + 0.5), Math.max(0.3, 1 - near / 16));
     if (near < 7) this.shake = Math.max(this.shake, 0.15);
     g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 5);
     if (d.hits < strength) { this.showCrack(d, Math.min(3, Math.floor(d.hits / strength * 4))); return; }

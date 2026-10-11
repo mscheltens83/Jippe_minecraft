@@ -125,3 +125,14 @@ Voorheen stonden de dieren stil en liepen ze meteen op volle snelheid, kozen ze 
 - 's Nachts gaan kuddedieren slapen waar ze zijn (alleen een jong dier zoekt dan nog zijn moeder op), en een jong dier loopt iets sneller als het zijn moeder achterna gaat (versie 6.4.1).
 - De zware dingen (vooruit kijken, kudde zoeken) gebeuren een paar keer per seconde, niet elk beeldje; ver weg blijven de dieren één stuk (zoals voorheen).
 - Tests: `FASE=6e npm run test:browser`. De cheetah-test in fase B is aangepast: de sprint haalt 9 blokken per seconde na een korte aanloop, en daarna remt hij af tot hij weer stapt.
+
+## 13. Graven naar een kelder (versie 6.4.2)
+
+Op de iPad bleek een kelder onder de grond helemaal veilig: de dieren gingen er bovenop staan en konden niets. Nu graven ze naar beneden als Jippe recht onder ze zit (`digCell` in `storm.js`):
+
+- Slopers graven met dezelfde kracht als waarmee ze muren slopen: varken, koe, ijsbeer en nijlpaard door aarde, gras en zand, olifant en triceratops ook door hout, de T-rex zelfs door steen.
+- Nieuwe **gravers** (`DIGGERS`): konijn, vos en stokstaartje graven door aarde, gras en zand (maar slopen geen muren).
+- Een dier graaft alle blokken onder zijn lijf weg (eerst het blok het dichtst bij Jippe), tot het naar beneden valt. Hangt het met zijn midden boven een gat maar steunt een hoek nog op iets sterks (de rand van een stenen muur), dan glijdt het opzij. Staat het midden op iets dat te sterk is, dan lukt het niet.
+- Graven klinkt als krabbelen (links of rechts te horen), met brokjes en scheurtjes.
+- Zo is een kelder met een **stenen dak** veilig tegen bijna alles, behalve de T-rex; ijzer en obsidiaan houden alles tegen.
+- Test: `FASE=6c npm run test:browser` (kelder met een dak van aarde: varken en konijn komen erin; dak van steen: het varken niet).

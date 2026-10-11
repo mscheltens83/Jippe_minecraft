@@ -82,6 +82,28 @@ export async function testPhase6C({ newPage, check, out }) {
   });
   check(repair.damaged && repair.healed, 'een beschadigd blok vervangen maakt het weer helemaal heel');
 
+  // Onder de grond: een varken of konijn graaft zich door een dak van aarde naar Jippe toe, niet door steen
+  const dig = await run(() => {
+    const B = window.__B, j = window.__jippecraft, s = j.storm, p = j.player, w = j.world, out = {};
+    for (const [type, roof] of [['pig', B.DIRT], ['rabbit', B.DIRT], ['pig', B.COBBLE]]) {
+      const { x0, y0, z0 } = window.__field(0);
+      // een kelder van 3 x 3, 2 hoog, 2 blokken onder de grond (dak: gras met daaronder `roof`)
+      for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) {
+        w.set(x0 + dx, y0 - 2, z0 + dz, roof);
+        for (let dy = -4; dy <= -3; dy++) w.set(x0 + dx, y0 + dy, z0 + dz, Math.abs(dx) === 2 || Math.abs(dz) === 2 ? B.COBBLE : 0);
+        w.set(x0 + dx, y0 - 5, z0 + dz, B.COBBLE);
+      }
+      p.setPos({ x: x0 + 0.5, y: y0 - 4, z: z0 + 0.5 });
+      const a = j.animals.spawn(type, x0 + 3.5, y0, z0 + 0.5, 0); a.storm = true; // bovengronds, naast de kelder
+      for (let i = 0; i < 1200 && s.hearts === 5; i++) window.__sim(1);
+      out[`${type}-${roof}`] = s.hearts < 5;
+    }
+    return out;
+  });
+  const DIRT = await run(() => window.__B.DIRT), COBBLE = await run(() => window.__B.COBBLE);
+  check(dig[`pig-${DIRT}`] && dig[`rabbit-${DIRT}`], 'onder de grond: een varken en een konijn graven zich door aarde naar je toe');
+  check(!dig[`pig-${COBBLE}`], 'een kelder met een stenen dak houdt een varken tegen');
+
   // Een smalle toren valt om als een varken de onderkant kapot beukt; Jippe valt mee
   const tower = await run(() => {
     const B = window.__B, j = window.__jippecraft, s = j.storm, p = j.player, w = j.world;
