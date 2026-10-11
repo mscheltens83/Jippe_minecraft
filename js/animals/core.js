@@ -156,7 +156,7 @@ export class Animal {
         const d = Math.hypot(o.x - this.x, o.z - this.z);
         if (d < best) { best = d; mom = o; }
       }
-      if (mom) return best > 2.5 ? near(mom.x, mom.z, 1.2 + Math.random()) : null;
+      if (mom) return best > 2.5 ? { ...near(mom.x, mom.z, 1.2 + Math.random()), mom: true } : null;
     }
     if (!HERD.has(this.type)) return null;
     let n = 0, cx = 0, cz = 0;
@@ -317,7 +317,9 @@ export class Animal {
     // Een jong dier dat te ver van zijn moeder is, of een kuddedier ver van de kudde, gaat er snel weer heen
     if (free && dt > 0 && !this.walking && !this.sleep && !this.sitting && (this.groupT -= dt) <= 0) {
       this.groupT = 1 + Math.random();
-      if ((this.baby > 0 || HERD.has(this.type)) && this.timer > 0.5) {
+      // ('s nachts gaan kuddedieren slapen waar ze zijn; alleen een jong dier zoekt nog zijn moeder op)
+      const night = (this.def.nachtdier ? !Animal.night : Animal.night) && !this.tame;
+      if ((this.baby > 0 || (HERD.has(this.type) && !night)) && this.timer > 0.5) {
         const g = this.groupTarget();
         if (g && (this.baby > 0 || Math.hypot(g.x - this.x, g.z - this.z) > 7)) { this.lying = 0; this.walking = true; this.goal = g; this.timer = 6; }
       }
@@ -344,7 +346,7 @@ export class Animal {
     // chaseSpeed: in de Wilde Nacht rennen de dieren op je af (storm.js)
     this.speedNow = this.chaseSpeed ? this.chaseSpeed : this.hunt ? (this.hunt.phase === 'stalk' ? 0.6
       : this.type === 'cheetah' ? (this.hunt.elapsed % 3 < 2 ? 8 : 2.5) : this.def.rensnelheid)
-      : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed;
+      : this.fleeFrom ? 3.5 : this.sprint > 0 ? this.def.rensnelheid : this.def.speed * (this.goal?.mom ? 1.4 : 1); // een jong dier haalt zijn moeder in
     if (this.sliding) this.speedNow *= 2;
     if (this.dash > 0) this.speedNow = Math.max(this.speedNow, this.def.speed * 2.5);
     const moving = (this.walking && !this.happy || this.dash > 0) && !this.sleep && !this.lying;

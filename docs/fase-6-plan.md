@@ -122,5 +122,6 @@ Voorheen stonden de dieren stil en liepen ze meteen op volle snelheid, kozen ze 
 5. **Rustgedrag**: om zich heen kijken, de kop naar Jippe draaien als die binnen 6 blokken staat, de staart rustig laten zwiepen met af en toe een snelle zwiep, snuffelen tijdens het grazen, en af en toe even gaan liggen (6 tot 14 seconden).
 6. **Groepjes**: koeien, schapen, varkens, kippen, geiten, lama's, paarden, zebra's, rendieren, pinguïns, olifanten, giraffen, kamelen, stokstaartjes en plantenetende dino's lopen naar hun kudde als ze er te ver vandaan zijn (`HERD`). Een jong dier loopt achter zijn moeder aan (ook voordat het gaat slapen). Vissen zwemmen in een school: dezelfde kant op als de vissen om hen heen, en bij elkaar.
 
+- 's Nachts gaan kuddedieren slapen waar ze zijn (alleen een jong dier zoekt dan nog zijn moeder op), en een jong dier loopt iets sneller als het zijn moeder achterna gaat (versie 6.4.1).
 - De zware dingen (vooruit kijken, kudde zoeken) gebeuren een paar keer per seconde, niet elk beeldje; ver weg blijven de dieren één stuk (zoals voorheen).
 - Tests: `FASE=6e npm run test:browser`. De cheetah-test in fase B is aangepast: de sprint haalt 9 blokken per seconde na een korte aanloop, en daarna remt hij af tot hij weer stapt.

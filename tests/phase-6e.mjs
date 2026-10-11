@@ -79,8 +79,10 @@ export async function testPhase6E({ newPage, check }) {
     m.clear();
     const mom = m.spawn('cow', 40.5, y, 40.5, 0); mom.timer = 1000;
     const baby = m.spawn('cow', 52.5, y, 48.5, 0); baby.baby = 300; baby.timer = 0;
-    for (let i = 0; i < 10 * 30; i++) m.update(0.1, w, { x: 46, z: 44 });
-    out.baby = Math.hypot(baby.x - mom.x, baby.z - mom.z);
+    // (de moeder loopt zelf ook rond: we meten de gemiddelde afstand in de tweede helft)
+    let sum = 0, n = 0;
+    for (let i = 0; i < 10 * 40; i++) { m.update(0.1, w, { x: 46, z: 44 }); if (i >= 200) { sum += Math.hypot(baby.x - mom.x, baby.z - mom.z); n++; } }
+    out.baby = sum / n;
     m.clear();
     for (let x = 30; x <= 56; x++) for (let z = 30; z <= 56; z++) for (let dy = -5; dy < 0; dy++) w.set(x, y + dy, z, B.WATER);
     const fish = [];
@@ -99,7 +101,7 @@ export async function testPhase6E({ newPage, check }) {
   check(r.look < -0.5, 'een dier dat stilstaat kijkt naar Jippe als die dichtbij is');
   check(r.lie.state === 'liggen' && r.lie.legs, 'soms gaat een dier even liggen');
   check(r.herd.after < r.herd.before * 0.6, `een kudde schapen komt bij elkaar (${r.herd.before.toFixed(1)} → ${r.herd.after.toFixed(1)} blokken uit elkaar)`);
-  check(r.baby < 5, `een jong dier loopt achter zijn moeder aan (${r.baby.toFixed(1)} blokken)`);
+  check(r.baby < 4, `een jong dier loopt achter zijn moeder aan (gemiddeld ${r.baby.toFixed(1)} blokken)`);
   check(r.school.after > 0.6 && r.school.after > r.school.before, `vissen zwemmen in een school dezelfde kant op (${r.school.before.toFixed(2)} → ${r.school.after.toFixed(2)})`);
   await context.close();
 }
