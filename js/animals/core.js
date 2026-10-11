@@ -138,14 +138,15 @@ export class Animal {
   // Waar gaat hij heen? Een jong dier naar zijn moeder, een kuddedier naar zijn kudde, anders een plekje
   // een paar blokken verderop (meestal ongeveer vooruit, zodat hij niet ineens omdraait)
   pickGoal() {
-    const group = this.groupTarget();
+    const group = this.groupTarget(true);
     if (group) { this.goal = group; return; }
     const a = this.yaw + (Math.random() - 0.5) * Math.PI * 1.1, d = 3 + Math.random() * 6;
     this.goal = { x: this.x - Math.sin(a) * d, z: this.z - Math.cos(a) * d };
   }
 
-  // Een plek bij de moeder (jong dier) of bij de kudde, of null als hij daar al dichtbij is
-  groupTarget() {
+  // Een plek bij de moeder (jong dier) of bij de kudde, of null als hij daar al dichtbij is.
+  // wander: een jong dier dat al bij zijn moeder is, wandelt alleen een stukje om haar heen
+  groupTarget(wander = false) {
     const all = this.others;
     if (!all) return null;
     const near = (x, z, r) => { const a = Math.random() * Math.PI * 2; return { x: x + Math.cos(a) * r, z: z + Math.sin(a) * r }; };
@@ -157,7 +158,7 @@ export class Animal {
         const d = Math.hypot(o.x - this.x, o.z - this.z);
         if (d < best) { best = d; mom = o; }
       }
-      if (mom) return best > 2.5 ? { ...near(mom.x, mom.z, 1.2 + Math.random()), mom: true } : null;
+      if (mom) return best > 2.5 ? { ...near(mom.x, mom.z, 1.2 + Math.random()), mom: true } : wander ? near(mom.x, mom.z, 1.5 + Math.random() * 1.5) : null;
     }
     if (!HERD.has(this.type)) return null;
     let n = 0, cx = 0, cz = 0;

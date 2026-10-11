@@ -137,3 +137,4 @@ Op de iPad bleek een kelder onder de grond helemaal veilig: de dieren gingen er 
 - Zo is een kelder met een **stenen dak** veilig tegen bijna alles, behalve de T-rex; ijzer en obsidiaan houden alles tegen.
 - Test: `FASE=6c npm run test:browser` (kelder met een dak van aarde: varken en konijn komen erin; dak van steen: het varken niet).
 - 's Nachts gaan de dieren sneller slapen, ook midden in een wandeling (versie 6.4.3).
+- Een jong dier dat al bij zijn moeder is, wandelt alleen een stukje om haar heen (hoogstens 3 blokken), in plaats van tot 9 blokken weg (versie 6.4.4).
