@@ -15,6 +15,7 @@ export const QUEST_GROUPS = [
   { key: 'schatten', title: 'Schatten', icon: 'chest' },
   { key: 'rijden', title: 'Rails en water', icon: 'minecart' },
   { key: 'knoppen', title: 'Knoppen', icon: 'lever' },
+  { key: 'wildeNacht', title: 'Wilde Nacht', icon: 'wildNight' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -69,6 +70,12 @@ export const QUESTS = [
   { id: 'lampAan', groep: 'knoppen', icon: 'torch', tekst: 'Zet een schakellamp aan met een hendel of een knop.', on: 'signal', match: (d) => d.lamp },
   { id: 'drukplaat', groep: 'knoppen', icon: 'plate', tekst: 'Ga op een drukplaat staan.', on: 'plate' },
   { id: 'vulkaan', groep: 'dinos', icon: 'pteranodon', tekst: 'Ga naar een vulkaan in de Dinowereld.', on: 'biome', match: (d) => d.biome === 'volcano' },
+  // De Wilde Nacht (fase 6D)
+  { id: 'nacht1', groep: 'wildeNacht', icon: 'wildNight', tekst: 'Overleef je eerste Wilde Nacht.', on: 'stormNight', match: (d) => d.night >= 1 },
+  { id: 'nacht3', groep: 'wildeNacht', icon: 'wildNight', tekst: 'Overleef drie Wilde Nachten achter elkaar.', on: 'stormNight', match: (d) => d.night >= 3 },
+  { id: 'nacht5', groep: 'wildeNacht', icon: 'trex', tekst: 'Overleef vijf Wilde Nachten: de nacht van de T-rex!', on: 'stormNight', match: (d) => d.night >= 5 },
+  { id: 'boe', groep: 'wildeNacht', icon: 'torch', tekst: 'Jaag een dier weg met de BOE-knop.', on: 'boo' },
+  { id: 'repareren', groep: 'wildeNacht', icon: 'build', tekst: 'Vervang een kapot geslagen blok in de Wilde Nacht.', on: 'stormRepair' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));
 

@@ -31,7 +31,7 @@ import { iconURL } from './icons.js';
 import { placeState, neighbourChanges, startCart, stepCart, cartPose, isRail } from './rails.js';
 import { switchOn, signalChanges } from './switches.js';
 import { speech } from './speech.js';
-import { Storm } from './storm.js';
+import { Storm, STOCK_ITEMS } from './storm.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
@@ -615,12 +615,14 @@ class Game {
   }
 
   openChest() {
+    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht heb je alleen je eigen bouwstenen.', 'chest'); return; }
     this.input.releaseAll();
     this.ui.openPalette(this.hotbar[this.sel]);
     this.sounds.pop();
   }
 
   pick(id) {
+    if (this.storm && !STOCK_ITEMS.includes(id)) { this.sounds.nope(); return; }
     const i = this.hotbar.indexOf(id);
     if (i >= 0) this.sel = i;
     else this.hotbar[this.sel] = id;
@@ -941,6 +943,8 @@ class Game {
 
   placeBlock(hit, id) {
     const w = this.world, p = this.player;
+    // Wilde Nacht: alleen bouwen met wat je nog hebt
+    if (this.storm && !this.storm.hasStock(id)) { this.sounds.nope(); this.ui.say(`Je ${BLOCKS[id]?.name?.toLowerCase() || 'blokken'} zijn op!`, 'chest'); return; }
     const [x, y, z] = this.targetCell(hit, id);
     const existing = w.get(x, y, z);
     const nb = BLOCKS[id];
@@ -1676,7 +1680,7 @@ class Game {
 
   apply(changes) {
     for (const c of changes) this.world.set(c.x, c.y, c.z, c.to);
-    this.storm?.repaired(changes); // een gerepareerd blok in de Wilde Nacht is weer heel
+    this.storm?.edited(changes); // Wilde Nacht: gerepareerde blokken en de voorraad bouwstenen
     this.undoStack.push(changes);
     if (this.undoStack.length > MAX_UNDO) this.undoStack.shift();
     this.edits++;
@@ -1684,6 +1688,7 @@ class Game {
   }
 
   undo() {
+    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht kun je niets terugdoen!', 'wildNight'); return; }
     const changes = this.undoStack.pop();
     if (!changes) { this.sounds.nope(); return; }
     if (changes.snowman) this.snowmen.remove(changes.snowman);
@@ -1829,9 +1834,11 @@ class Game {
       this.daynight.alwaysDay = false;
       this.player.flying = false;
       this.mode = 'build';
+      this.hotbar = [...STOCK_ITEMS]; this.sel = 1; // je eigen bouwstenen (de echte onderbalk komt terug bij stoppen)
       this.scene.rebuildAll(this.world);
       this.refreshUI();
       this.ui.setStorm(true);
+      this.ui.setCounts(this.storm.counts());
       this.storm.begin();
       this.play();
     } finally {
@@ -1852,6 +1859,7 @@ class Game {
       this.daynight.alwaysDay = this.stormBack?.alwaysDay ?? !!this.settings.alwaysDay;
       this.animals.setPredators(this.settings.predators);
       this.ui.setStorm(false);
+      this.ui.setCounts(null);
       if (!(await this.loadSlot(this.slot))) this.freshWorld('world');
       this.scene.rebuildAll(this.world);
       this.refreshUI();

@@ -756,3 +756,18 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 .storm-boo svg { width: 44px; height: 44px; }
 .storm-boo.ready { animation: storm-boo-ready 1.2s ease-in-out infinite alternate; }
 @keyframes storm-boo-ready { from { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28), 0 0 0 rgba(255, 140, 30, 0); } to { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28), 0 0 22px rgba(255, 140, 30, 0.9); } }
+
+/* Wilde Nacht (6D): hoeveel bouwstenen je nog hebt; geen kist */
+body.storm .slot.chest { display: none; }
+.slot { position: relative; }
+.slot .count {
+  position: absolute; right: 2px; bottom: 1px; min-width: 22px; padding: 0 4px; border-radius: 10px;
+  background: rgba(20, 20, 30, 0.85); color: #fff; font-family: var(--font); font-size: 16px; font-weight: 700;
+  line-height: 20px; text-align: center; pointer-events: none;
+}
+.slot.empty img { filter: grayscale(1) brightness(0.6); opacity: 0.5; }
+.slot.empty .count { background: #c0392b; }
+.storm-reward-title { margin: 14px 0 6px !important; font-size: 20px !important; }
+.storm-reward { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; font-size: 24px; font-weight: 700; }
+.storm-reward span { display: flex; align-items: center; gap: 4px; }
+.storm-reward img { width: 40px; height: 40px; }

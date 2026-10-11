@@ -22,6 +22,36 @@ export const FLYERS = new Set(['parrot', 'snowyOwl', 'pteranodon']);            
 // Slopers: hoe sterk een blok mag zijn dat ze kapot krijgen
 export const BASHERS = { pig: 2, cow: 2, polarBear: 2, hippo: 2, elephant: 4, triceratops: 4, trex: 10 };
 
+// ---------- je eigen bouwstenen (fase 6D) ----------
+// In de Wilde Nacht heb je alleen deze blokken, met een aantal. Sloop je iets, dan krijg je het
+// terug (aarde van gras, planken van een boomstam, keien van steen). Elke overleefde nacht verdien je meer.
+export const STOCK_ITEMS = [B.DIRT, B.PLANKS, B.COBBLE, B.BRICK, B.GLASS, B.IRON_BLOCK, B.OBSIDIAN, B.DOOR, B.TORCH];
+export const START_STOCK = { [B.DIRT]: 24, [B.PLANKS]: 30, [B.COBBLE]: 10, [B.GLASS]: 4, [B.DOOR]: 1, [B.TORCH]: 3 };
+export function nightReward(n) {
+  if (n === 1) return { [B.PLANKS]: 20, [B.COBBLE]: 10, [B.GLASS]: 4, [B.TORCH]: 4 };
+  if (n === 2) return { [B.COBBLE]: 15, [B.BRICK]: 8, [B.IRON_BLOCK]: 2, [B.DOOR]: 1 };
+  if (n === 3) return { [B.BRICK]: 12, [B.IRON_BLOCK]: 4, [B.TORCH]: 4, [B.PLANKS]: 10 };
+  if (n === 4) return { [B.IRON_BLOCK]: 6, [B.OBSIDIAN]: 2, [B.COBBLE]: 20 };
+  return { [B.IRON_BLOCK]: 6, [B.OBSIDIAN]: 3, [B.BRICK]: 10 };
+}
+// Bij welk vakje van je voorraad hoort dit blok? (een deur telt één keer, een fakkel tegen de muur is ook een fakkel)
+export function stockKey(id) {
+  const b = BLOCKS[id];
+  if (!b) return null;
+  if (b.shape === 'door') return b.upper ? null : B.DOOR;
+  if (id === B.TORCH || b.family === B.TORCH) return B.TORCH;
+  return STOCK_ITEMS.includes(id) ? id : null;
+}
+// Wat je terugkrijgt als je dit blok sloopt: [vakje, aantal] of null
+export function gainFor(id) {
+  const key = stockKey(id);
+  if (key) return [key, 1];
+  if (id === B.GRASS || id === B.DIRT) return [B.DIRT, 1];
+  if (id === B.STONE) return [B.COBBLE, 1];
+  if (BLOCKS[id]?.sound === 'wood' && /stam/i.test(BLOCKS[id].name)) return [B.PLANKS, 2];
+  return null;
+}
+
 // Hoe vaak je erop moet beuken voordat een blok kapot is (Infinity = nooit)
 export function blockStrength(id) {
   const b = BLOCKS[id];
@@ -68,6 +98,7 @@ export function nightPlan(n) {
     count: Math.min(20, 8 + (n - 1) * 2),
     kinds,
     speed: 1 + Math.min(0.5, (n - 1) * 0.08),
+    waves: 3, // de dieren komen in drie golven, elke golf feller
   };
 }
 
@@ -170,6 +201,8 @@ export class Storm {
     this.look = 0;
     this.booLeft = 0;
     this.damage = new Map(); // beschadigde blokken: "x,y,z" -> { x, y, z, id, hits, mesh }
+    this.stock = { ...START_STOCK };
+    this.wave = 1;
     this.checkAt = 0;
     this.buildHud();
   }
@@ -211,7 +244,8 @@ export class Storm {
 
   render() {
     const phase = this.phase === 'dag' ? `${ICONS.sun}<b>Nacht ${this.night}</b> bouw een huis!`
-      : this.phase === 'nacht' || this.phase === 'gepakt' ? `${ICONS.wildNight}<b>Nacht ${this.night}</b>` : `${ICONS.sun}<b>Nacht ${this.night}</b>`;
+      : this.phase === 'nacht' ? `${ICONS.wildNight}<b>Nacht ${this.night}</b> golf ${this.wave}/${this.plan.waves}`
+        : this.phase === 'gepakt' ? `${ICONS.wildNight}<b>Nacht ${this.night}</b>` : `${ICONS.sun}<b>Nacht ${this.night}</b>`;
     const secs = Math.max(0, Math.ceil(this.left));
     const time = this.phase === 'dag' || this.phase === 'nacht' ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : '';
     if (this.shown.phase !== phase) { this.phaseEl.innerHTML = phase; this.shown.phase = phase; }
@@ -232,6 +266,8 @@ export class Storm {
     this.endEl.innerHTML = `<div class="storm-card"><h2>${caught ? 'Je bent gepakt!' : `Je hebt nacht ${this.night} overleefd!`}</h2>
       <p>${caught ? `Je hield het vol tot nacht ${this.night}.` : 'De zon komt op. De dieren rennen weg.'}</p>
       <div class="storm-stars">${Array.from({ length: HEARTS }, (_, i) => `<i class="${i < this.hearts ? 'full' : 'empty'}">${ICONS.heart}</i>`).join('')}</div>
+      ${!caught && this.reward ? `<p class="storm-reward-title">Je verdient nieuwe bouwstenen:</p><div class="storm-reward">${Object.entries(this.reward)
+    .map(([id, n]) => `<span><img src="${g.ui.icons[id]}" alt="">+${n}</span>`).join('')}</div>` : ''}
       <div class="storm-buttons"></div></div>`;
     const buttons = this.endEl.querySelector('.storm-buttons');
     const add = (cls, icon, label, fn) => {
@@ -263,6 +299,10 @@ export class Storm {
     this.total = this.left = this.opts.build ?? this.plan.build;
     this.lastTick = Math.ceil(this.left);
     this.endEl.hidden = true;
+    // De golven: de eerste staat al te wachten, de tweede en derde komen tijdens de nacht
+    const n1 = Math.ceil(this.plan.count * 0.4), n2 = Math.ceil((this.plan.count - n1) / 2);
+    this.waveSizes = [n1, n2, this.plan.count - n1 - n2];
+    this.wave = 1;
     this.spawnRing();
     const text = this.night === 1 ? 'Bouw snel een huis! Als het donker wordt, komen de dieren.' : `Nacht ${this.night}. Maak je huis sterker!`;
     speech.say(text);
@@ -291,6 +331,11 @@ export class Storm {
     for (let i = 0; i < 5; i++) setTimeout(() => g.particles.firework(p.x + (Math.random() - 0.5) * 8, p.y + 2, p.z + (Math.random() - 0.5) * 8), i * 350);
     g.sounds.magic();
     speech.say(`Hoera! Je hebt nacht ${this.night} overleefd!`);
+    // Beloning: nieuwe bouwstenen
+    this.reward = nightReward(this.night);
+    for (const [id, n] of Object.entries(this.reward)) this.stock[id] = (this.stock[id] || 0) + n;
+    g.ui.setCounts?.(this.counts());
+    g.note('stormNight', { night: this.night });
     const best = g.settings.wildeNacht?.record || 0;
     if (this.night > best) { g.settings.wildeNacht = { ...(g.settings.wildeNacht || {}), record: this.night }; g.saveSettings(); }
   }
@@ -311,23 +356,46 @@ export class Storm {
     this.beginDay();
   }
 
-  // Elke nacht staan de dieren eerst in een kring om je heen (ver weg) en kijken naar je
+  // Elke nacht staat de eerste golf dieren eerst in een kring om je heen (ver weg) en kijkt naar je
   spawnRing() {
-    const g = this.g, w = g.world, c = this.center, plan = this.plan;
-    for (const a of this.animals()) g.animals.remove(a);
+    for (const a of this.animals()) this.g.animals.remove(a);
+    return this.spawnGroup(this.waveSizes[0], 0);
+  }
+
+  // Een groepje dieren aan de rand. offset: waar in de lijst met soorten we beginnen (latere golven
+  // krijgen de nieuwere, gevaarlijkere soorten van deze nacht)
+  spawnGroup(count, offset) {
+    const g = this.g, w = g.world, c = this.center, plan = this.plan, made = [];
     w.ensureArea(Math.floor(c.x) - 36, Math.floor(c.z) - 36, Math.floor(c.x) + 36, Math.floor(c.z) + 36);
-    for (let i = 0, tries = 0; i < plan.count && tries < plan.count * 8; tries++) {
-      const type = plan.kinds[(i + this.night) % plan.kinds.length];
-      const angle = (tries / plan.count) * Math.PI * 2 + Math.random() * 0.4, r = 24 + Math.random() * 7;
+    for (let i = 0, tries = 0; i < count && tries < count * 8; tries++) {
+      const type = plan.kinds[(offset + i + this.night) % plan.kinds.length];
+      const angle = (tries / count) * Math.PI * 2 + Math.random() * 0.4, r = 24 + Math.random() * 7;
       const x = Math.floor(c.x + Math.cos(angle) * r), z = Math.floor(c.z + Math.sin(angle) * r);
       const y = w.surfaceY(x, z) + 1;
       const a = g.animals.spawn(type, x + 0.5, y, z + 0.5, Math.atan2(-(c.x - x), -(c.z - z)));
       if (!a) break;
       if (!a.clearAt(w, a.x, a.y, a.z) || w.get(x, y, z) !== 0) { g.animals.remove(a); continue; }
-      a.storm = true; a.wild = false;
+      a.storm = true; a.wild = false; a.waveBoost = 1 + 0.12 * (this.wave - 1);
       addEyes(a);
+      made.push(a);
       i++;
     }
+    return made;
+  }
+
+  // Een nieuwe golf: er komen er meer aan, en ze zijn feller
+  nextWave() {
+    const g = this.g, p = g.player;
+    this.wave++;
+    const offset = this.waveSizes.slice(0, this.wave - 1).reduce((m, v) => m + v, 0);
+    const made = this.spawnGroup(this.waveSizes[this.wave - 1], offset);
+    g.sounds.roar(0, 0.9);
+    this.shake = Math.max(this.shake, 0.3);
+    speech.say(this.wave === this.plan.waves ? 'De laatste golf! Hou vol!' : 'Er komen er meer aan!');
+    g.ui.say(`Golf ${this.wave}!`, 'wildNight');
+    for (const a of made) this.stare(a, p);
+    this.render();
+    return made.length;
   }
 
   animals() { return this.g.animals.list.filter((a) => a.storm); }
@@ -361,6 +429,8 @@ export class Storm {
     } else if (this.phase === 'nacht') {
       this.left -= dt;
       g.daynight.set(NIGHT);
+      const total = this.opts.night ?? this.plan.night;
+      if (this.wave < this.plan.waves && total - this.left >= total * this.wave / this.plan.waves) this.nextWave();
       for (const a of this.animals()) this.chase(a, dt, p);
       this.setLook(1);
       this.scary(p);
@@ -490,7 +560,7 @@ export class Storm {
     const dx = p.x - a.x, dz = p.z - a.z, dist = Math.hypot(dx, dz), ux = dx / (dist || 1), uz = dz / (dist || 1);
     a.sleep = 0; a.happy = 0; a.graze = false; a.timer = 5; a.hunt = null; a.hiding = false;
     if (a.scare > 0) { a.scare -= dt; a.walking = false; a.targetYaw = Math.atan2(-dx, -dz); return; } // staat voor het raam te staren
-    a.chaseSpeed = Math.min(6.2, Math.max(3.2, a.def.speed * 2.6)) * this.plan.speed;
+    a.chaseSpeed = Math.min(6.2, Math.max(3.2, a.def.speed * 2.6)) * this.plan.speed * (a.waveBoost || 1);
     a.stormCool = Math.max(0, (a.stormCool || 0) - dt);
     // BOE! Even weg van je af
     if (a.boo > 0) { a.boo -= dt; a.walking = true; a.flight = null; a.chaseSpeed = 5.5; a.targetYaw = Math.atan2(ux, uz); return; }
@@ -624,13 +694,26 @@ export class Storm {
     d.mesh = null;
   }
 
-  // Jippe heeft gebouwd of gesloopt: een beschadigd blok op die plek is weer heel
-  repaired(changes) {
+  // Jippe heeft gebouwd of gesloopt: een beschadigd blok op die plek is weer heel, en de voorraad
+  // bouwstenen wordt bijgewerkt (bouwen kost een blok, slopen geeft er een terug)
+  edited(changes) {
     for (const c of changes) {
       const key = `${c.x},${c.y},${c.z}`, d = this.damage.get(key);
-      if (d) { this.dropCrack(d); this.damage.delete(key); }
+      if (d) { this.dropCrack(d); this.damage.delete(key); this.g.note('stormRepair'); }
+      if (c.to) { const k = stockKey(c.to); if (k) this.stock[k] = Math.max(0, (this.stock[k] || 0) - 1); }
+      if (c.from && !c.to) { const gain = gainFor(c.from); if (gain) this.stock[gain[0]] = (this.stock[gain[0]] || 0) + gain[1]; }
     }
+    this.g.ui.setCounts?.(this.counts());
   }
+
+  // Heb je nog zo'n blok?
+  hasStock(id) {
+    const k = stockKey(id);
+    return !!k && (this.stock[k] || 0) > 0;
+  }
+
+  // Aantallen voor de onderbalk (in de volgorde van de vakjes)
+  counts() { return this.g.hotbar.map((id) => this.stock[stockKey(id)] ?? 0); }
 
   // Een beschadigd blok dat (op een andere manier) veranderd is, is weer heel
   checkDamage() {
@@ -653,6 +736,7 @@ export class Storm {
     speech.say('Boe!');
     g.ui.say(n ? 'BOE! Weg jullie!' : 'BOE!', 'torch');
     this.boos = (this.boos || 0) + 1;
+    if (n) g.note('boo', { n });
     this.render();
     return n;
   }

@@ -420,6 +420,11 @@ export class UI {
       b.type = 'button';
       b.setAttribute('aria-label', itemName(id));
       b.innerHTML = `<img src="${this.icons[id]}" alt="">`;
+      if (this.counts) { // Wilde Nacht: hoeveel heb je er nog?
+        const n = this.counts[i] ?? 0;
+        b.insertAdjacentHTML('beforeend', `<b class="count">${n}</b>`);
+        b.classList.toggle('empty', n <= 0);
+      }
       onPress(b, () => this.h.onSelect(i));
       this.hotbar.appendChild(b);
     });
@@ -479,6 +484,18 @@ export class UI {
     this.downBtn.hidden = this.riding;
     this.downBtn.setAttribute('aria-label', swim ? 'Duiken' : 'Sluipen');
     this.jumpBtn.innerHTML = on && swim ? ICONS.up : ICONS.jump;
+  }
+
+  // Wilde Nacht: aantallen bij de vakjes van de onderbalk (null = geen aantallen)
+  setCounts(counts) {
+    this.counts = counts;
+    [...this.hotbar.querySelectorAll('.slot:not(.chest)')].forEach((b, i) => {
+      b.querySelector('.count')?.remove();
+      b.classList.remove('empty');
+      if (!counts) return;
+      b.insertAdjacentHTML('beforeend', `<b class="count">${counts[i] ?? 0}</b>`);
+      b.classList.toggle('empty', (counts[i] ?? 0) <= 0);
+    });
   }
 
   // Tijdens de Wilde Nacht: geen huisknop (dat zou te makkelijk zijn)

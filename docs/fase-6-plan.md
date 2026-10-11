@@ -62,7 +62,7 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 | **6A** | Aparte wereld, dag- en nachtronde, hartjes, dieren jagen, raken, wegduwen, gepakt of overleefd, vallen kost een hartje, vliegen/stempels/rijden uit, controle of het huis dicht is, record | **6.0.0 (klaar)** |
 | **6B** | Eng maken: ogen, gezichten, rode maan, mist, geluid, hartslag, schrikmomenten | **6.1.0 (klaar)** |
 | **6C** | Slopen: blokken met kracht en scheurtjes, beukers, rammers, instortende torens, vliegers, klimmers, BOE-knop | **6.2.0 (klaar)** |
-| 6D | Steeds moeilijker: golven, de T-rex, beperkte bouwstenen als beloning, stickers | 6.3.0 |
+| **6D** | Steeds moeilijker: golven, de T-rex, beperkte bouwstenen als beloning, stickers | **6.3.0 (klaar)** |
 
 ## 7. Zo is 6A gebouwd (versie 6.0.0)
 
@@ -97,3 +97,12 @@ Binnen een nacht komen de dieren in golven die steeds feller worden.
 - **Sluipers** (kip, konijn, vos, kat, stokstaartje) durven niet binnen 3 blokken van een fakkel, lantaarn of lamp te komen.
 - **BOE-knop** (links, boven de stuurknop): alle dieren binnen 7 blokken schrikken en rennen 4 seconden weg, met vuurvonkjes en "Boe!". Daarna moet de knop 15 seconden opladen (je ziet een klok rondlopen; als hij klaar is, gloeit hij).
 - Tests: `tests/unit/wildenacht.test.mjs` (sterkte, wie wat sloopt, omvallende torens) en `FASE=6c npm run test:browser` (slopen, repareren, toren, geit en aap, vliegers, fakkel, BOE).
+
+## 10. Zo is 6D gebouwd (versie 6.3.0)
+
+- **Golven**: de dieren van een nacht komen in drie golven. De eerste (40%) staat overdag al in de kring te staren; de tweede komt na een derde van de nacht, de derde na twee derde. Elke golf is 12% sneller dan de vorige, en latere golven krijgen de nieuwere, gevaarlijkere soorten van die nacht. Bij een nieuwe golf: een brul, het beeld schudt, "Golf 2!", en de balk bovenin zegt "golf 2/3".
+- **Je eigen bouwstenen** (`STOCK_ITEMS`, `START_STOCK`): in de Wilde Nacht staat in de onderbalk alleen aarde, planken, keien, bakstenen, glas, ijzer, obsidiaan, een deur en fakkels, met hoeveel je er hebt. Je begint met 24 aarde, 30 planken, 10 keien, 4 glas, 1 deur en 3 fakkels. Bouwen kost een blok; is een soort op, dan wordt het vakje grijs en kun je er niet meer mee bouwen. Slopen geeft het blok terug (gras of aarde geeft aarde, steen geeft keien, een boomstam 2 planken). De kist met alle blokken, blok kopiëren en de terug-knop doen niet mee.
+- **Beloning** (`nightReward`): na elke overleefde nacht verdien je nieuwe bouwstenen, en het bord laat zien welke. Nacht 1: planken, keien, glas en fakkels; nacht 2: keien, bakstenen, 2 ijzer en een deur; nacht 3: bakstenen, 4 ijzer, fakkels en planken; nacht 4: 6 ijzer, 2 obsidiaan en keien; daarna steeds ijzer, obsidiaan en bakstenen. Zo kun je je huis elke nacht sterker maken, net op tijd voor de rammers (nacht 4) en de T-rex (nacht 5).
+- **Stickers** (groep Wilde Nacht, 46 stickers in totaal): je eerste nacht overleefd, drie nachten, vijf nachten (de T-rex), een dier weggejaagd met de BOE-knop, en een kapot geslagen blok vervangen.
+- Niet gedaan: dieren die bewust de zwakste plek in je muur zoeken. Een sloper die tegen een te sterk blok aanloopt, probeert het wel vanzelf even opzij, en komt zo vaak bij een zwakkere plek.
+- Tests: `FASE=6d npm run test:browser`.

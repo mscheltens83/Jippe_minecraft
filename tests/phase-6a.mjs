@@ -27,7 +27,7 @@ export async function testPhase6A({ newPage, check, out }) {
       hearts: s.hearts, left: s.left, far: s.animals().every((a) => Math.hypot(a.x - j.player.x, a.z - j.player.z) > 18) };
   });
   check(day.bar && day.home && day.hearts === 5 && day.left > 60, 'balk met klok en 5 hartjes; geen huisknop');
-  check(day.animals >= 6 && day.far, `nacht 1: dieren (${day.animals}) staan ver weg in een kring`);
+  check(day.animals >= 3 && day.far, `nacht 1: de eerste golf dieren (${day.animals}) staat ver weg in een kring`);
   await page.screenshot({ path: out + '/6a-dag.png' });
 
   // Niet vals spelen: geen vliegen, geen stempels, geen dieren neerzetten, niet bewaren
@@ -112,7 +112,7 @@ export async function testPhase6A({ newPage, check, out }) {
   check(await waitTrue(page, () => document.querySelector('.storm-end').textContent.includes('overleefd')), 'de nacht overleefd: de zon komt op');
   check(await run(() => window.__jippecraft.settings.wildeNacht?.record >= 1), 'het record (aantal nachten) wordt onthouden');
   await page.locator('.storm-btn.next').tap();
-  check(await run(() => { const s = window.__jippecraft.storm; return s.night === 2 && s.phase === 'dag' && s.plan.count > 8 && s.animals().length >= 8 && s.plan.build < 90; }),
+  check(await run(() => { const s = window.__jippecraft.storm; return s.night === 2 && s.phase === 'dag' && s.plan.count > 8 && s.animals().length >= 3 && s.plan.build < 90; }),
     'volgende nacht: meer dieren en minder tijd om te bouwen');
 
   // Stoppen: terug naar de eigen wereld, die niet veranderd is
