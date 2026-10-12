@@ -138,3 +138,24 @@ Op de iPad bleek een kelder onder de grond helemaal veilig: de dieren gingen er 
 - Test: `FASE=6c npm run test:browser` (kelder met een dak van aarde: varken en konijn komen erin; dak van steen: het varken niet).
 - 's Nachts gaan de dieren sneller slapen, ook midden in een wandeling (versie 6.4.3).
 - Een jong dier dat al bij zijn moeder is, wandelt alleen een stukje om haar heen (hoogstens 3 blokken), in plaats van tot 9 blokken weg (versie 6.4.4).
+
+## 14. Niet wegvegen in Safari (versie 6.4.5)
+
+In Safari ging je terug naar de vorige website als je vanaf de rand van het scherm veegde, en de joystick verschijnt juist waar de duim neerkomt. `js/guard.js`: een aanraking die bij de rand van het speelveld begint, wordt geen veeggebaar meer, en lukt terugvegen toch, dan blijf je in het spel (een extra stap in de geschiedenis). Als app op het beginscherm kan het helemaal niet; het ouderscherm laat zien hoe het spel geopend is. Test: `FASE=6f npm run test:browser`.
+
+## 15. Sneller slopen en graven, en vlotter op een oudere tablet (versie 6.5.0)
+
+**Slopen en graven.** Een sloper sloeg alleen het blok recht voor zijn neus kapot. Daarna was het gat te klein voor zijn lijf, en kwam hij nooit binnen. Nu (`blocker` in `storm.js`):
+
+- Een sloper kijkt welke blokken zijn hele lijf tegenhouden als hij een stapje naar Jippe toe zet, en beukt die één voor één weg (eerst onderaan, dan het dichtst bij de lijn naar Jippe), tot hij erdoor past. Zit er iets tussen dat te sterk voor hem is, dan probeert hij eromheen te lopen. Een opstapje van één blok beukt hij niet weg: daar springt hij op.
+- Gravers (konijn, vos, stokstaartje) graven zo ook **opzij** een gang door aarde, gras en zand, niet door hout, steen of glas.
+- Sneller: om de 0,45 seconde een beuk tegen een muur, om de 0,3 seconde graven in de grond (nacht 1; latere nachten sneller). Grote dieren beuken harder (`hitPower`): een olifant heeft 2 beuken nodig voor hout, de T-rex 3 voor steen. Door aarde graaf je in één keer.
+- Gemeten in de testbrowser: een varken komt in 3 s door een huis van aarde (voorheen nooit), een olifant in 10 s door hout, de T-rex in 23 s door steen; naar een kelder met een dak van aarde: varken 4 s (was 17 s), konijn 2,6 s (was 10 s).
+
+**Vlotter.** Gemeten: het rekenwerk van de Wilde Nacht is klein (minder dan 0,3 ms per beeldje), het tekenen kost het meest. Daarom:
+
+- De zichtafstand is in de Wilde Nacht hoogstens 3 chunks (48 blokken): verder kijk je door de dichte mist toch niet heen. Na het stoppen komt de oude zichtafstand terug.
+- Dieren verder dan 14 blokken worden als één stuk getekend (gewoon pas na 28 blokken); in het donker en de mist zie je vooral hun ogen.
+- Ogen en wenkbrauwen zijn samen één vorm, met één gloed om beide ogen: 2 tekenopdrachten per dier in plaats van 6.
+- De rode rand bij de hartslag verandert alleen nog van doorzichtigheid (eerst werd de wazige rand elke keer helemaal opnieuw getekend), en de klok op de BOE-knop wordt alleen bijgewerkt als hij echt verder is.
+- Samen: ongeveer 125 tot 145 tekenopdrachten in plaats van 160 tot 210.

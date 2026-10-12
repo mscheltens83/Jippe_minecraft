@@ -6,6 +6,7 @@ import * as THREE from '../lib/three.module.min.js';
 import { B, BLOCKS, blockBoxes } from './blocks.js';
 import { ICONS } from './icons.js';
 import { speech } from './speech.js';
+import { merge } from './models.js';
 
 export const HEARTS = 5;          // zoveel hartjes heb je
 export const ARENA = 44;          // zo ver mag je van het midden (daarna is de mist te dik)
@@ -21,8 +22,14 @@ export const CLIMBERS = new Set(['monkey']);                                    
 export const FLYERS = new Set(['parrot', 'snowyOwl', 'pteranodon']);                 // komen van boven
 // Slopers: hoe sterk een blok mag zijn dat ze kapot krijgen
 export const BASHERS = { pig: 2, cow: 2, polarBear: 2, hippo: 2, elephant: 4, triceratops: 4, trex: 10 };
-// Gravers: graven zich naar beneden door aarde, gras en zand (zoals in het echt), maar slopen geen muren
+// Gravers: graven zich door aarde, gras en zand (naar beneden en opzij), maar slopen geen muren
 export const DIGGERS = { rabbit: 2, fox: 2, meerkat: 2 };
+export const HIT_TIME = 0.45;     // zoveel seconden tussen twee beuken tegen een muur (nacht 1)
+export const DIG_TIME = 0.3;      // zoveel seconden tussen twee keer graven in de grond (nacht 1)
+// Hoe hard een dier beukt: grote dieren hebben minder beuken nodig
+export function hitPower(power) { return power >= 10 ? 3 : power >= 4 ? 2 : 1; }
+// Aarde, gras, zand (en bladeren): daar graaf je zo doorheen
+export function isSoil(id) { const b = BLOCKS[id]; return !!b?.solid && (b.sound === 'grass' || b.sound === 'sand'); }
 
 // ---------- je eigen bouwstenen (fase 6D) ----------
 // In de Wilde Nacht heb je alleen deze blokken, met een aantal. Sloop je iets, dan krijg je het
@@ -135,8 +142,10 @@ export function houseCheck(world, px, py, pz, R = 10, H = 8) {
 }
 
 // Gloeiende rode ogen met een rode gloed eromheen, en boze wenkbrauwen (fase 6B).
-// Ze zijn ook in het donker en door de mist heen te zien. Eén keer gemaakt, gedeeld door alle dieren.
+// Ze zijn ook in het donker en door de mist heen te zien. Per dier maar twee tekenopdrachten:
+// ogen en wenkbrauwen samen in één vorm (per soort één keer gemaakt), en één gloed om beide ogen.
 let EYES = null;
+const EYE_SHAPES = new Map();
 function eyeParts() {
   if (EYES) return EYES;
   const c = document.createElement('canvas');
@@ -145,34 +154,53 @@ function eyeParts() {
   grad.addColorStop(0, 'rgba(255,60,30,0.9)'); grad.addColorStop(0.35, 'rgba(255,20,10,0.35)'); grad.addColorStop(1, 'rgba(255,0,0,0)');
   ctx.fillStyle = grad; ctx.fillRect(0, 0, 64, 64);
   EYES = {
-    eye: new THREE.MeshBasicMaterial({ color: 0xff2a12, fog: false }),
-    brow: new THREE.MeshBasicMaterial({ color: 0x120404 }),
+    mat: new THREE.MeshBasicMaterial({ vertexColors: true, fog: false }),
     glow: new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(c), fog: false, depthWrite: false, blending: THREE.AdditiveBlending, transparent: true }),
-    box: new THREE.BoxGeometry(1, 1, 1),
   };
   return EYES;
 }
 
-export function addEyes(a) {
-  if (a.eyes || !a.head?.geometry) return;
-  const E = eyeParts(), head = a.head;
+// Eén blokje met één kleur, geschaald, gedraaid en verplaatst
+function eyeBox(color, sx, sy, sz, x, y, z, rz = 0) {
+  const g = new THREE.BoxGeometry(sx, sy, sz);
+  if (rz) g.rotateZ(rz);
+  g.translate(x, y, z);
+  const col = new THREE.Color(color), n = g.attributes.position.count, arr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) { arr[i * 3] = col.r; arr[i * 3 + 1] = col.g; arr[i * 3 + 2] = col.b; }
+  g.setAttribute('color', new THREE.BufferAttribute(arr, 3));
+  g.deleteAttribute('normal'); g.deleteAttribute('uv');
+  return g;
+}
+
+// Waar de ogen zitten en hoe groot ze zijn, voor deze kop
+function eyeShape(a) {
+  const key = a.type + ':' + a.variant;
+  if (EYE_SHAPES.has(key)) return EYE_SHAPES.get(key);
+  const head = a.head;
   head.geometry.computeBoundingBox();
   const bb = head.geometry.boundingBox, hp = head.position;
   const w = bb.max.x - bb.min.x, h = bb.max.y - bb.min.y;
   const s = Math.max(0.05, Math.min(0.16, w * 0.17));
   const cx = hp.x + (bb.min.x + bb.max.x) / 2, y = hp.y + bb.min.y + h * 0.62, z = hp.z + bb.min.z - 0.015;
-  const eyes = new THREE.Group();
+  const apart = Math.max(s * 0.9, w * 0.24), parts = [];
   for (const side of [-1, 1]) {
-    const x = cx + side * Math.max(s * 0.9, w * 0.24);
-    const eye = new THREE.Mesh(E.box, E.eye);
-    eye.scale.set(s, s * 0.75, 0.03); eye.position.set(x, y, z);
-    const brow = new THREE.Mesh(E.box, E.brow);
-    brow.scale.set(s * 1.5, s * 0.32, 0.04); brow.position.set(x - side * s * 0.1, y + s * 0.62, z - 0.005);
-    brow.rotation.z = side * 0.45; // naar binnen omlaag: boos
-    const glow = new THREE.Sprite(E.glow);
-    glow.scale.setScalar(s * 6); glow.position.set(x, y, z - 0.05);
-    eyes.add(eye, brow, glow);
+    const x = cx + side * apart;
+    parts.push(eyeBox(0xff2a12, s, s * 0.75, 0.03, x, y, z));
+    // wenkbrauw: naar binnen omlaag, boos
+    parts.push(eyeBox(0x120404, s * 1.5, s * 0.32, 0.04, x - side * s * 0.1, y + s * 0.62, z - 0.005, side * 0.45));
   }
+  const shape = { geo: merge(parts), cx, y, z, s, apart };
+  EYE_SHAPES.set(key, shape);
+  return shape;
+}
+
+export function addEyes(a) {
+  if (a.eyes || !a.head?.geometry) return;
+  const E = eyeParts(), sh = eyeShape(a);
+  const eyes = new THREE.Group();
+  const glow = new THREE.Sprite(E.glow);
+  glow.scale.set(sh.apart * 2 + sh.s * 6, sh.s * 6, 1); glow.position.set(sh.cx, sh.y, sh.z - 0.05);
+  eyes.add(new THREE.Mesh(sh.geo, E.mat), glow);
   a.group.add(eyes);
   a.eyes = eyes;
 }
@@ -228,6 +256,8 @@ export class Storm {
     this.flashEl = el('div', 'storm-flash');
     root.appendChild(this.flashEl);
     this.vignette = el('div', 'storm-vignette');
+    this.beatEl = el('div', 'storm-beat');
+    this.vignette.appendChild(this.beatEl);
     root.insertBefore(this.vignette, this.g.ui.hud); // onder de knoppen, boven het spelbeeld
     this.endEl = el('div', 'storm-end');
     this.endEl.hidden = true;
@@ -412,8 +442,13 @@ export class Storm {
     this.knockStep(dt, p);
     this.fall(p);
     this.booLeft = Math.max(0, this.booLeft - dt);
-    this.booBtn.style.setProperty('--cool', String(this.booLeft / BOO_COOL));
-    this.booBtn.classList.toggle('ready', this.booLeft <= 0);
+    // (alleen bijwerken als de klok echt een stukje verder is: anders tekent de browser de knop elk beeldje opnieuw)
+    const cool = Math.ceil(this.booLeft / BOO_COOL * 60) / 60;
+    if (cool !== this.shownCool) {
+      this.shownCool = cool;
+      this.booBtn.style.setProperty('--cool', String(cool));
+      this.booBtn.classList.toggle('ready', cool <= 0);
+    }
     if (this.t >= this.checkAt) { this.checkAt = this.t + 0.5; this.checkDamage(); }
     if (this.phase === 'dag') {
       this.left -= dt;
@@ -483,7 +518,7 @@ export class Storm {
       const k = nearest / 10;
       g.sounds.heartbeat(0.3 + 0.7 * (1 - k));
       this.beatAt = this.t + 0.35 + k * 0.75;
-      this.vignette.classList.remove('beat'); void this.vignette.offsetWidth; this.vignette.classList.add('beat');
+      this.beatEl.animate?.([{ opacity: 1 }, { opacity: 0 }], { duration: 350, easing: 'ease-out' });
     }
     this.growls(p, 16, 2.2);
     if (this.t >= this.scrapeAt) {
@@ -582,17 +617,17 @@ export class Storm {
       if (cell === 'slide') { a.walking = true; a.targetYaw = Math.atan2(-dx, -dz); return; }
       if (cell) {
         a.walking = false;
-        if ((a.bashT = (a.bashT ?? 0.6) - dt) <= 0) { a.bashT = 0.9 / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], 0, 0, true); }
+        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = DIG_TIME / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], 0, 0, true); }
         return;
       }
     }
-    // Slopers beuken op het blok dat in de weg staat (als ze er sterk genoeg voor zijn)
-    const power = BASHERS[a.type];
-    if (power && front.wall) {
-      const strength = blockStrength(w.get(front.x, front.wall, front.z));
-      if (strength && strength <= power) {
+    // Slopers beuken een gat in de muur dat groot genoeg is voor hun hele lijf (als ze er sterk genoeg
+    // voor zijn); gravers graven zo een gang door de aarde
+    if (digPower && dist > Math.max(a.def.w, a.def.d) / 2 + 0.5) {
+      const cell = this.blocker(a, ux, uz, digPower, !BASHERS[a.type]);
+      if (cell) {
         a.walking = false; a.targetYaw = Math.atan2(-dx, -dz);
-        if ((a.bashT = (a.bashT ?? 0.6) - dt) <= 0) { a.bashT = 0.9 / this.plan.speed; this.bash(a, front.x, front.wall, front.z, ux, uz); }
+        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = (BASHERS[a.type] ? HIT_TIME : DIG_TIME) / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], ux, uz, !BASHERS[a.type]); }
         return;
       }
     }
@@ -621,6 +656,32 @@ export class Storm {
     let wall = null;
     for (let y = y0; y < a.y + Math.min(a.def.h, 2.6); y++) if (blockBoxes(w, x, y, z, true).length) { wall = y; break; }
     return { x, z, y0, solid, wall };
+  }
+
+  // Wat houdt het dier tegen als hij een stapje naar Jippe toe zet? Alle blokken waar zijn lijf dan
+  // tegenaan komt (niet als hij er gewoon op kan stappen). Eén daarvan geeft hij terug om kapot te
+  // beuken (eerst het laagste, dan het dichtst bij de lijn naar Jippe). Zit er iets te sterks tussen
+  // (voor gravers: alles wat geen aarde of zand is), dan null: dan moet hij eromheen.
+  blocker(a, ux, uz, power, soilOnly = false) {
+    const w = this.g.world, step = 0.45, cx = a.x + ux * step, cz = a.z + uz * step;
+    if (a.clearAt(w, cx, a.y, cz) || (a.onGround && a.clearAt(w, cx, a.y + 1.05, cz))) return null;
+    const r = a.def.w * 0.43, d = a.def.d * 0.3, sin = Math.sin(a.yaw), cos = Math.cos(a.yaw);
+    const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
+    let best = null, bestScore = Infinity;
+    for (let by = Math.floor(a.y + 0.05); by <= Math.floor(a.y + a.def.h - 0.05); by++) {
+      for (let bx = Math.floor(cx - rx); bx <= Math.floor(cx + rx); bx++) for (let bz = Math.floor(cz - rz); bz <= Math.floor(cz + rz); bz++) {
+        const boxes = blockBoxes(w, bx, by, bz, true);
+        if (!boxes.some((q) => bx + q[0] < cx + rx && bx + q[3] > cx - rx && bz + q[2] < cz + rz && bz + q[5] > cz - rz &&
+          by + q[1] < a.y + a.def.h - 0.05 && by + q[4] > a.y + 0.05)) continue;
+        const id = w.get(bx, by, bz), strength = blockStrength(id);
+        if (!strength || strength > power || (soilOnly && !isSoil(id))) return null;
+        // laagste eerst, dan het dichtst bij de lijn van het dier naar Jippe
+        const off = Math.abs((bx + 0.5 - a.x) * uz - (bz + 0.5 - a.z) * ux);
+        const score = (by - a.y) * 10 + off;
+        if (score < bestScore) { bestScore = score; best = [bx, by, bz]; }
+      }
+    }
+    return best;
   }
 
   // Welk blok onder het dier graaft hij weg? Alle blokken onder zijn lijf moeten weg voordat hij valt;
@@ -674,7 +735,10 @@ export class Storm {
 
   // Eén beuk tegen een blok: scheurtjes, en bij genoeg beuken gaat het kapot
   bash(a, x, y, z, ux, uz, dig = false) {
-    const g = this.g, w = g.world, id = w.get(x, y, z), strength = blockStrength(id), key = `${x},${y},${z}`;
+    const g = this.g, w = g.world, id = w.get(x, y, z), key = `${x},${y},${z}`;
+    // zoveel beuken zijn nodig: sterke dieren beuken harder, en door aarde graaf je in één keer
+    const per = dig && isSoil(id) ? 2 : hitPower(BASHERS[a.type] || DIGGERS[a.type] || 1);
+    const strength = Math.ceil(blockStrength(id) / per);
     let d = this.damage.get(key);
     if (!d || d.id !== id) { if (d) this.dropCrack(d); d = { x, y, z, id, hits: 0, mesh: null }; this.damage.set(key, d); }
     d.hits++;
@@ -686,7 +750,7 @@ export class Storm {
     if (d.hits < strength) { this.showCrack(d, Math.min(3, Math.floor(d.hits / strength * 4))); return; }
     this.dropCrack(d); this.damage.delete(key);
     this.breakBlock(x, y, z, ux, uz);
-    a.bashT = 0.4;
+    a.bashT = Math.min(a.bashT ?? 0, 0.2);
   }
 
   breakBlock(x, y, z, ux = 0, uz = 0) {

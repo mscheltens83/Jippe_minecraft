@@ -55,8 +55,12 @@ export async function testPhase6C({ newPage, check, out }) {
       window.__animal(type, 6, 0);
       const before = s.broken || 0;
       let cracked = false;
-      for (let i = 0; i < steps && (s.broken || 0) === before; i++) { window.__sim(1); if ([...s.damage.values()].some((d) => d.mesh)) cracked = true; }
-      out[`${type}-${block}`] = { broke: (s.broken || 0) > before, cracked, hearts: s.hearts };
+      let i = 0;
+      for (; i < steps && (s.broken || 0) === before; i++) { window.__sim(1); if ([...s.damage.values()].some((d) => d.mesh)) cracked = true; }
+      const broke = (s.broken || 0) > before;
+      // daarna: maakt hij het gat groot genoeg voor zijn hele lijf en komt hij binnen?
+      for (; broke && i < steps && s.hearts === 5; i++) window.__sim(1);
+      out[`${type}-${block}`] = { broke, cracked, hearts: s.hearts, inside: s.hearts < 5 ? i / 30 : null };
     }
     return out;
   });
@@ -65,6 +69,9 @@ export async function testPhase6C({ newPage, check, out }) {
   check(!bash[`pig-${B.PLANKS}`].broke && bash[`pig-${B.PLANKS}`].hearts === 5, 'een muur van hout houdt een varken tegen');
   check(bash[`elephant-${B.PLANKS}`].broke && !bash[`elephant-${B.COBBLE}`].broke, 'een olifant sloopt hout, maar geen steen');
   check(bash[`trex-${B.COBBLE}`].broke, 'de T-rex sloopt zelfs steen');
+  const pigIn = bash[`pig-${B.DIRT}`].inside, eleIn = bash[`elephant-${B.PLANKS}`].inside;
+  check(pigIn !== null && pigIn < 6 && eleIn !== null && eleIn < 15,
+    `een sloper beukt een gat waar hij helemaal doorheen past en komt snel binnen (varken ${pigIn?.toFixed(1)} s, olifant ${eleIn?.toFixed(1)} s)`);
 
   // Jippe repareert: een beschadigd blok vervangen maakt het weer heel
   const repair = await run(() => {
@@ -95,14 +102,34 @@ export async function testPhase6C({ newPage, check, out }) {
       }
       p.setPos({ x: x0 + 0.5, y: y0 - 4, z: z0 + 0.5 });
       const a = j.animals.spawn(type, x0 + 3.5, y0, z0 + 0.5, 0); a.storm = true; // bovengronds, naast de kelder
-      for (let i = 0; i < 1200 && s.hearts === 5; i++) window.__sim(1);
+      let i = 0;
+      for (; i < 1200 && s.hearts === 5; i++) window.__sim(1);
       out[`${type}-${roof}`] = s.hearts < 5;
+      out[`${type}-${roof}-t`] = i / 30;
     }
     return out;
   });
   const DIRT = await run(() => window.__B.DIRT), COBBLE = await run(() => window.__B.COBBLE);
   check(dig[`pig-${DIRT}`] && dig[`rabbit-${DIRT}`], 'onder de grond: een varken en een konijn graven zich door aarde naar je toe');
   check(!dig[`pig-${COBBLE}`], 'een kelder met een stenen dak houdt een varken tegen');
+  check(dig[`pig-${DIRT}-t`] < 8 && dig[`rabbit-${DIRT}-t`] < 6,
+    `door aarde graven gaat snel (varken ${dig[`pig-${DIRT}-t`].toFixed(1)} s, konijn ${dig[`rabbit-${DIRT}-t`].toFixed(1)} s)`);
+  // Een gang onder de grond: een konijn graaft van opzij door de aarde naar je toe (een varken ook)
+  const tunnel = await run(() => {
+    const B = window.__B, j = window.__jippecraft, s = j.storm, p = j.player, w = j.world, out = {};
+    for (const type of ['rabbit', 'pig']) {
+      const { x0, y0, z0 } = window.__field(0);
+      for (let dx = -8; dx <= 8; dx++) for (let dz = -3; dz <= 3; dz++) for (let dy = -6; dy <= -1; dy++) w.set(x0 + dx, y0 + dy, z0 + dz, B.DIRT);
+      for (let dy = -4; dy <= -3; dy++) w.set(x0, y0 + dy, z0, 0);
+      p.setPos({ x: x0 + 0.5, y: y0 - 4, z: z0 + 0.5 });
+      const a = j.animals.spawn(type, x0 + 6.5, y0, z0 + 0.5, 0); a.storm = true;
+      let i = 0;
+      for (; i < 600 && s.hearts === 5; i++) window.__sim(1);
+      out[type] = s.hearts < 5 ? i / 30 : null;
+    }
+    return out;
+  });
+  check(tunnel.rabbit !== null && tunnel.pig !== null, `ook een gang diep onder de grond is niet veilig voor gravers (konijn ${tunnel.rabbit?.toFixed(1)} s, varken ${tunnel.pig?.toFixed(1)} s)`);
 
   // Een smalle toren valt om als een varken de onderkant kapot beukt; Jippe valt mee
   const tower = await run(() => {

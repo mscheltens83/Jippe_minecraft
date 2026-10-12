@@ -55,3 +55,5 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 6C | Wilde Nacht: muren slopen (niet elk dier), instortende torens, springers, klimmers, vliegers, bang voor fakkels, BOE-knop | Klaar (versie 6.2.0) |
 | Beweging | Dieren bewegen natuurlijker: optrekken en afremmen, in bochten, om muren heen, deinen en knikken, rondkijken en naar Jippe kijken, liggen, kuddes, jong bij de moeder, scholen vissen ([plan, §12](fase-6-plan.md)) | Klaar (versie 6.4.0) |
 | 6D | Wilde Nacht: drie golven per nacht, je eigen bouwstenen met aantallen en een beloning per nacht, 5 stickers | Klaar (versie 6.3.0) |
+| Niet wegvegen | In Safari niet per ongeluk naar de vorige website vegen ([plan, §14](fase-6-plan.md)) | Klaar (versie 6.4.5) |
+| Slopen en vlotter | Slopers beuken een gat waar ze helemaal doorheen passen, gravers graven ook opzij, alles sneller; Wilde Nacht vlotter op een oudere tablet ([plan, §15](fase-6-plan.md)) | Klaar (versie 6.5.0) |

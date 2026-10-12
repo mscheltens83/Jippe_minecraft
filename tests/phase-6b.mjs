@@ -21,7 +21,7 @@ export async function testPhase6B({ newPage, check, out }) {
       const inp = { move: { x: 0, y: 0 }, jump: false, down: false, sprint: false };
       for (let i = 0; i < n; i++) { window.__now = (window.__now || 100) + 1 / 30; p.update(1 / 30, inp, w, window.__now); s.update(1 / 30); j.animals.update(1 / 30, w, p); }
     };
-    const eyes = s.animals().every((a) => a.eyes && a.eyes.children.length === 6);
+    const eyes = s.animals().every((a) => a.eyes && a.eyes.children.length === 2);
     const musicOff = !j.music.timer;
     s.left = 5; window.__sim(30);
     const dusk = j.scene.stormLevel > 0 && j.scene.stormLevel < 0.5;

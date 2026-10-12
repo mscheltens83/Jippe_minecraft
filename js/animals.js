@@ -242,8 +242,10 @@ export class Animals {
         continue;
       }
       const dist = viewer ? Math.hypot(a.x - viewer.x, a.z - viewer.z) : 0, far = dist > 40;
-      // Verder dan ±28 blokken: als één stuk tekenen (met een beetje speling, zodat het niet knippert)
-      if (viewer) a.setFar(a.lodOn ? dist > 26 : dist > 30);
+      // Verder dan ±28 blokken (in de Wilde Nacht eerder): als één stuk tekenen
+      // (met een beetje speling, zodat het niet knippert)
+      const lod = this.lodDist || 28;
+      if (viewer) a.setFar(a.lodOn ? dist > lod - 2 : dist > lod + 2);
       a.elapsed += dt;
       a.clockElapsed += clockDt;
       // Wie in een dorp woont, blijft in de buurt van de waterput

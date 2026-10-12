@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../../js/world.js';
 import { B, doorId } from '../../js/blocks.js';
-import { houseCheck, nightPlan, blockStrength, looseBlocks, BASHERS } from '../../js/storm.js';
+import { houseCheck, nightPlan, blockStrength, looseBlocks, BASHERS, DIGGERS, hitPower, isSoil } from '../../js/storm.js';
 
 function flat() { const w = new World(); w.generate('flat', 3); return w; }
 
@@ -90,4 +90,14 @@ test('een smalle toren valt om als de onderkant weg is; een muur of brede toren 
   for (let x = 30; x <= 36; x++) for (let i = 0; i < 3; i++) w.set(x, y + i, 30, B.COBBLE);
   w.set(33, y, 30, 0);
   assert.equal(looseBlocks(w, 33, y + 1, 30).length, 0, 'muur staat nog');
+});
+
+test('grote dieren beuken harder; gravers graven alleen door aarde en zand', () => {
+  const need = (type, id) => Math.ceil(blockStrength(id) / hitPower(BASHERS[type]));
+  assert.equal(need('pig', B.DIRT), 2);
+  assert.equal(need('elephant', B.PLANKS), 2);
+  assert.ok(need('trex', B.COBBLE) <= 3, 'de T-rex heeft maar een paar beuken nodig voor steen');
+  assert.ok(isSoil(B.DIRT) && isSoil(B.GRASS) && isSoil(B.SAND));
+  assert.ok(!isSoil(B.GLASS) && !isSoil(B.PLANKS) && !isSoil(B.COBBLE) && !isSoil(0));
+  assert.ok(DIGGERS.rabbit && !BASHERS.rabbit, 'een konijn graaft, maar beukt geen muren');
 });

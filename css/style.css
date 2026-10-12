@@ -704,7 +704,7 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 
 /* Geraakt: rood aan de randen van het scherm */
 .storm-flash {
-  position: absolute; inset: 0; pointer-events: none; z-index: 20; opacity: 0;
+  position: absolute; inset: 0; pointer-events: none; z-index: 20; opacity: 0; will-change: opacity;
   box-shadow: inset 0 0 120px 40px rgba(220, 0, 0, 0.85);
 }
 .storm-flash.on { animation: storm-flash 0.6s ease-out; }
@@ -736,13 +736,13 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 
 /* Wilde Nacht (6B): donkere rand om het beeld; bij elke hartslag even rood */
 .storm-vignette {
-  position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  position: absolute; inset: 0; pointer-events: none; opacity: 0; will-change: opacity;
   background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 75%, rgba(0, 0, 0, 0.92) 100%);
 }
-.storm-vignette.beat { animation: storm-beat 0.35s ease-out; }
-@keyframes storm-beat {
-  0% { box-shadow: inset 0 0 90px 30px rgba(170, 0, 0, 0.7); }
-  100% { box-shadow: inset 0 0 90px 30px rgba(170, 0, 0, 0); }
+/* (de rode rand staat vast; alleen de doorzichtigheid verandert: dat kan ook een oudere tablet makkelijk) */
+.storm-beat {
+  position: absolute; inset: 0; opacity: 0; will-change: opacity;
+  box-shadow: inset 0 0 90px 30px rgba(170, 0, 0, 0.7);
 }
 
 /* Wilde Nacht (6C): de BOE-knop boven de stuurknop; tijdens het opladen loopt een klok rond */
