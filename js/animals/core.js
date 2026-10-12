@@ -70,6 +70,7 @@ export class Animal {
     for (const p of this.parts) p.visible = !on;
     for (const l of this.legs) l.visible = !on;
     this.lod.visible = on;
+    if (this.eyes) { this.eyes.visible = !on; this.eyesFar.visible = on; } // rode ogen (Wilde Nacht): aan de kop, of los als de kop weg is
     if (!on) { // zadel en tong staan alleen aan als dat hoort
       if (this.saddle) this.saddle.visible = this.tame;
       if (this.tongue) this.tongue.visible = this.state === 'eten';

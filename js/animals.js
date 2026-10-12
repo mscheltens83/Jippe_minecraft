@@ -15,6 +15,7 @@ export class Animals {
   constructor(scene, effects = null) {
     this.scene = scene; this.effects = effects; this.list = []; this.frame = 0;
     this.predators = true; this.caught = []; this.onCatch = null;
+    this.lodDist = null; // vanaf welke afstand een dier als één stuk wordt getekend (null = gewoon 28 blokken)
     this.tmp = new THREE.Vector3(); this.frustum = new THREE.Frustum(); this.matrix = new THREE.Matrix4();
   }
   get full() { return this.list.length >= MAX_ANIMALS; }

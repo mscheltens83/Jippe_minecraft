@@ -231,6 +231,7 @@ export async function testPhase6C({ newPage, check, out }) {
   check(boo.again === 0 && boo.busy && boo.ready, 'daarna moet de BOE-knop eerst opladen');
   await page.screenshot({ path: out + '/6c-boe.png' });
   await run(() => window.__jippecraft.openMenu());
+  await page.locator('.storm-end.pauze .storm-btn.stop').tap();
   check(await waitTrue(page, () => !window.__jippecraft.storm && !document.querySelector('.storm-boo'), null, 20000), 'stoppen haalt de BOE-knop weg');
   await context.close();
 }

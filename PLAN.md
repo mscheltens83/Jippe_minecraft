@@ -8,7 +8,7 @@ Een eigen Minecraft-achtig bouwspel voor Jippe (6 jaar), speelbaar op de iPad.
 |---|---|
 | **Makkelijk bouwen** | Tik op een blok en er komt een nieuw blok tegenaan. Geen menu's, geen crafting. |
 | **Geen lezen nodig** | Alle knoppen zijn plaatjes. Jippe hoeft niets te kunnen lezen. |
-| **Veilig en rustig** | Geen monsters, geen schade, geen honger, geen doodgaan. Altijd dag. |
+| **Veilig en rustig** | Geen monsters, geen schade, geen honger, geen doodgaan. Altijd dag. (Eén bewuste uitzondering, later toegevoegd: de **Wilde Nacht**, een eigen enge spelstand die je zelf start via het menu, op een los eiland. Je eigen werelden blijven heel; zie `docs/fase-6-plan.md`.) |
 | **Werkt op iPad** | Grote knoppen, bediening met vingers, draait in Safari. Kan ook als app-icoon op het beginscherm. |
 | **Niets kwijtraken** | De wereld wordt automatisch bewaard. Er is een knop om iets terug te zetten. |
 

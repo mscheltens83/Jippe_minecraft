@@ -501,6 +501,7 @@ export class UI {
   // Tijdens de Wilde Nacht: geen huisknop (dat zou te makkelijk zijn)
   setStorm(on) {
     this.homeBtn.hidden = on;
+    this.albumHudBtn.hidden = on; // het boek opent via het menu: dat stopt de Wilde Nacht
     this.compass.hidden = on || this.compass.hidden;
     document.body.classList.toggle('storm', on);
   }

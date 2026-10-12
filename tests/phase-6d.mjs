@@ -101,6 +101,7 @@ export async function testPhase6D({ newPage, check, out }) {
 
   // Stoppen: je eigen onderbalk komt terug
   await run(() => window.__jippecraft.openMenu());
+  await page.locator('.storm-end.pauze .storm-btn.stop').tap();
   check(await waitTrue(page, (want) => !window.__jippecraft.storm && JSON.stringify(window.__jippecraft.hotbar) === want && !document.querySelector('.hotbar .count'), own, 20000),
     'na het stoppen heb je je eigen onderbalk weer (zonder aantallen)');
   await context.close();

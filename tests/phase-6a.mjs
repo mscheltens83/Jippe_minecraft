@@ -116,9 +116,17 @@ export async function testPhase6A({ newPage, check, out }) {
     'volgende nacht: meer dieren en minder tijd om te bouwen');
 
   // Stoppen: terug naar de eigen wereld, die niet veranderd is
+  // (eerst vragen, want per ongeluk op de knop tikken mag niet het einde van je ronde zijn)
   await run(() => window.__jippecraft.openMenu());
-  check(await waitTrue(page, () => { const j = window.__jippecraft; return !j.storm && j.ui.menuOpen && !document.querySelector('.storm-bar'); }, null, 20000),
-    'naar het menu = stoppen met de Wilde Nacht');
+  check(await run(() => { const j = window.__jippecraft; return !!j.storm && !j.playing && !!document.querySelector('.storm-end.pauze') && j.ui.albumHudBtn.hidden; }),
+    'op het menu tikken vraagt eerst "Stoppen?" (het spel staat dan stil, het boek is niet te zien)');
+  await page.locator('.storm-end.pauze .storm-btn.again').tap();
+  check(await run(() => { const j = window.__jippecraft; return !!j.storm && j.playing && j.input.enabled && !document.querySelector('.storm-end.pauze'); }),
+    '"Doorgaan" zet het spel weer aan');
+  await run(() => window.__jippecraft.openMenu());
+  await page.locator('.storm-end.pauze .storm-btn.stop').tap();
+  check(await waitTrue(page, () => { const j = window.__jippecraft; return !j.storm && j.ui.menuOpen && !document.querySelector('.storm-bar') && !document.querySelector('.storm-end.pauze'); }, null, 20000),
+    '"Stoppen" stopt de Wilde Nacht');
   const back = await run(() => { const j = window.__jippecraft; return { type: j.world.type, seed: j.world.seed, x: j.player.x, z: j.player.z, home: !document.querySelector('.home-btn').hidden }; });
   check(back.type === before.type && back.seed === before.seed && Math.hypot(back.x - before.x, back.z - before.z) < 2 && back.home,
     'daarna ben je weer in je eigen wereld, op dezelfde plek');

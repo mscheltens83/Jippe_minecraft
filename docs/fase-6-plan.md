@@ -169,3 +169,10 @@ Op de iPad groef Jippe snel 5 tot 10 blokken naar beneden. Onder 4 blokken aarde
 - Naar beneden door aarde gaat in één keer; een muur of gang van aarde eerst met scheurtjes; steen in 2 tot 4 keer.
 - Gemeten (schacht van 9 diep: aarde en dan steen, bovenop dicht): varken nacht 1 en 2 komt er niet bij, nacht 3 in 18 s, nacht 5 in 13 s; een konijn past door een smalle schacht en is er nog sneller.
 - Tests: `FASE=6c npm run test:browser` (nacht 1 veilig in de steen, nacht 4 niet, een dak van keien houdt het varken tegen) en de unit-tests.
+
+## 17. Controle van de code (versie 6.6.1)
+
+Gedaan: strenge ESLint-regels (geen fouten), TypeScript-controle op de JavaScript (alleen ruis van three.js en eigenschappen die pas tijdens het spelen worden gezet), en een lange proef (3 nachten, 12 grote dieren, een huis met een bunker; geen fouten, geen NaN-posities, geen lekken). Gevonden en gerepareerd:
+
+- **De rode ogen zaten niet aan de kop.** Sinds 6.4.0 draait en knikt de kop (kijken naar Jippe, rondkijken), maar de ogen zaten aan het hele dier vast en bleven dus staan. Nu zitten ze aan de kop. Ver weg, als het dier één stuk is en de losse kop niet getekend wordt, staat er een tweede setje ogen op de plek van de kop (`eyesFar`).
+- **Per ongeluk stoppen.** Tikken op het menu (of het dierenboek) midden in de Wilde Nacht stopte de ronde meteen. Nu staat het spel stil en vraagt een bord "Stoppen?" met twee grote knoppen: Doorgaan en Stoppen. Het boek is tijdens de Wilde Nacht niet te zien (het opent via het menu).

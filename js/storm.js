@@ -178,16 +178,16 @@ function eyeBox(color, sx, sy, sz, x, y, z, rz = 0) {
   return g;
 }
 
-// Waar de ogen zitten en hoe groot ze zijn, voor deze kop
+// Waar de ogen zitten en hoe groot ze zijn, in de ruimte van de kop (de kop draait en knikt, de ogen gaan mee)
 function eyeShape(a) {
   const key = a.type + ':' + a.variant;
   if (EYE_SHAPES.has(key)) return EYE_SHAPES.get(key);
   const head = a.head;
   head.geometry.computeBoundingBox();
-  const bb = head.geometry.boundingBox, hp = head.position;
+  const bb = head.geometry.boundingBox;
   const w = bb.max.x - bb.min.x, h = bb.max.y - bb.min.y;
   const s = Math.max(0.05, Math.min(0.16, w * 0.17));
-  const cx = hp.x + (bb.min.x + bb.max.x) / 2, y = hp.y + bb.min.y + h * 0.62, z = hp.z + bb.min.z - 0.015;
+  const cx = (bb.min.x + bb.max.x) / 2, y = bb.min.y + h * 0.62, z = bb.min.z - 0.015;
   const apart = Math.max(s * 0.9, w * 0.24), parts = [];
   for (const side of [-1, 1]) {
     const x = cx + side * apart;
@@ -200,15 +200,26 @@ function eyeShape(a) {
   return shape;
 }
 
+// De ogen zitten aan de kop, dus ze draaien en knikken mee. Ver weg wordt het dier als één stuk
+// getekend (zonder losse kop): dan staat er een tweede setje ogen op de plek van de kop.
 export function addEyes(a) {
   if (a.eyes || !a.head?.geometry) return;
   const E = eyeParts(), sh = eyeShape(a);
-  const eyes = new THREE.Group();
-  const glow = new THREE.Sprite(E.glow);
-  glow.scale.set(sh.apart * 2 + sh.s * 6, sh.s * 6, 1); glow.position.set(sh.cx, sh.y, sh.z - 0.05);
-  eyes.add(new THREE.Mesh(sh.geo, E.mat), glow);
-  a.group.add(eyes);
-  a.eyes = eyes;
+  const make = () => {
+    const eyes = new THREE.Group();
+    const glow = new THREE.Sprite(E.glow);
+    glow.scale.set(sh.apart * 2 + sh.s * 6, sh.s * 6, 1); glow.position.set(sh.cx, sh.y, sh.z - 0.05);
+    eyes.add(new THREE.Mesh(sh.geo, E.mat), glow);
+    return eyes;
+  };
+  a.eyes = make();
+  a.head.add(a.eyes);
+  a.eyesFar = make();
+  const at = new THREE.Vector3(); // waar de kop in rust zit, vanuit het hele dier gezien
+  for (let o = a.head; o && o !== a.group; o = o.parent) at.add(a.rest.get(o)?.p || o.position);
+  a.eyesFar.position.copy(at);
+  a.group.add(a.eyesFar);
+  a.eyes.visible = !a.lodOn; a.eyesFar.visible = !!a.lodOn;
 }
 
 function el(tag, cls, html) {
@@ -272,7 +283,7 @@ export class Storm {
   }
 
   destroy() {
-    for (const e of [this.bar, this.booBtn, this.flashEl, this.vignette, this.endEl]) e.remove();
+    for (const e of [this.bar, this.booBtn, this.flashEl, this.vignette, this.endEl, this.pauseEl]) e?.remove();
     for (const d of this.damage.values()) this.dropCrack(d);
     this.damage.clear();
     for (const a of this.animals()) this.g.animals.remove(a);
@@ -320,6 +331,33 @@ export class Storm {
     this.endEl.hidden = false;
     this.phase = kind;
     this.render();
+  }
+
+  // Naar het menu midden in de Wilde Nacht: eerst vragen. Stoppen is het einde van je ronde, en een
+  // kind tikt makkelijk per ongeluk op de knop linksboven. Het spel staat stil zolang het bordje er is.
+  askStop(then) {
+    const g = this.g;
+    if (this.pauseEl) return;
+    if (this.phase !== 'dag' && this.phase !== 'nacht' && this.phase !== 'ochtend') { then(); return; }
+    g.playing = false; g.input.enabled = false; g.input.releaseAll();
+    g.sounds.drone(0);
+    speech.say('Wil je stoppen?');
+    this.pauseEl = el('div', 'storm-end pauze', '<div class="storm-card"><h2>Stoppen?</h2><div class="storm-buttons"></div></div>');
+    const buttons = this.pauseEl.querySelector('.storm-buttons');
+    const add = (cls, icon, label, fn) => {
+      const b = el('button', 'btn storm-btn ' + cls, `${ICONS[icon]}<span>${label}</span>`);
+      b.type = 'button';
+      b.addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); fn(); });
+      buttons.appendChild(b);
+    };
+    add('again', 'play', 'Doorgaan', () => { this.closePause(); g.playing = true; g.input.enabled = true; });
+    add('stop', 'close', 'Stoppen', () => { this.closePause(); then(); });
+    this.g.ui.hud.parentNode.appendChild(this.pauseEl);
+  }
+
+  closePause() {
+    this.pauseEl?.remove();
+    this.pauseEl = null;
   }
 
   // ---------- het verloop ----------

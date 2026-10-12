@@ -592,7 +592,7 @@ class Game {
   }
 
   openMenu() {
-    if (this.storm) { this.stopStorm(); return; } // naar het menu = stoppen met de Wilde Nacht
+    if (this.storm) { this.storm.askStop(() => this.stopStorm()); return; } // naar het menu = stoppen met de Wilde Nacht (na een vraag)
     this.playing = false;
     this.input.enabled = false;
     this.input.releaseAll();

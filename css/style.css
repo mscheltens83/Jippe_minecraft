@@ -717,6 +717,8 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 }
 .storm-end[hidden] { display: none; }
 .storm-end.gepakt { background: radial-gradient(circle, rgba(60, 0, 0, 0.88), rgba(0, 0, 0, 0.97)); animation: storm-dark 0.8s ease-out; }
+.storm-end.pauze { background: rgba(8, 10, 32, 0.82); }
+.storm-end.pauze h2 { color: #fff; }
 .storm-end.overleefd { background: radial-gradient(circle, rgba(255, 214, 120, 0.35), rgba(20, 30, 60, 0.7)); }
 @keyframes storm-dark { from { opacity: 0; } to { opacity: 1; } }
 .storm-card { text-align: center; padding: 26px 34px; max-width: 90vw; }
