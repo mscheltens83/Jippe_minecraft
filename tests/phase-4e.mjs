@@ -140,9 +140,8 @@ export async function testPhase4E({ newPage, check, out }) {
     for (let x = 43; x <= 45; x++) for (let z = 43; z <= 45; z++) for (let yy = y; yy <= y + 2; yy++) w.set(x, yy, z, 0);
     p.flying = true; p.setPos({ x: 44.5, y, z: 44.5 });
     j.nextAmbient = 0;
-    await new Promise((r) => setTimeout(r, 400));
-    return j.weather.context.cave;
   });
-  check(cave, 'in een grot hoor je druppels in plaats van vogels');
+  // (de testbrowser is traag: even wachten tot het geluid van de omgeving is bijgewerkt)
+  check(cave === undefined && await waitTrue(page, () => window.__jippecraft.weather.context.cave, null, 10000), 'in een grot hoor je druppels in plaats van vogels');
   await context.close();
 }
