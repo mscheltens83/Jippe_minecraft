@@ -39,6 +39,7 @@ import { Snowmen } from './snowman.js';
 import { PerfMeter } from './perf.js';
 import { Bench } from './bench.js';
 import { VERSION } from './version.js';
+import { guardNavigation } from './guard.js';
 import { DayNight, NOON, sunAmount, glowAmount, sunAngle } from './daynight.js';
 import { TINT_KIND } from './engine/tint.js';
 import { Physics } from './engine/physics.js';
@@ -2107,6 +2108,9 @@ async function start() {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 }
+
+// Niet per ongeluk naar de vorige website vegen
+guardNavigation();
 
 // Geen zoomen, scrollen of selecteren op de iPad
 document.addEventListener('gesturestart', (e) => e.preventDefault());

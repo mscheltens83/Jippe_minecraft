@@ -146,6 +146,8 @@ Zelf ergens anders neerzetten kan ook:
 2. Open de website op de iPad in **Safari**.
 3. Tik op **Deel** (vierkantje met pijl) → **Zet op beginscherm**.
 4. Nu staat er een JippeCraft-icoon. Het opent schermvullend en werkt ook zonder internet.
+   Zo kan je kind ook niet per ongeluk naar een andere website vegen (in Safari houdt het spel
+   dat zo goed mogelijk tegen, maar als app op het beginscherm kan het helemaal niet).
 
 > Tip voor ouders: met **Begeleide toegang** (Instellingen → Toegankelijkheid) kun je de
 > iPad vastzetten in het spel.
@@ -208,6 +210,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/errors.js` | Foutenlogboek: de laatste 20 fouten |
 | `js/perf.js`, `js/bench.js` | Meetscherm (`?fps`) en meetrit (`?meet`) |
 | `js/parent.js` | Het ouderscherm |
+| `js/guard.js` | Niet per ongeluk naar de vorige website vegen in Safari |
 | `js/storage.js` | Instellingen en de oude werelden van vóór versie 4 (localStorage) |
 | `sw.js`, `manifest.webmanifest` | Offline spelen en "zet op beginscherm" |
 | `tests/` | Browsertests per fase (`smoke.mjs`, `phase-*.mjs`) en unit-tests (`unit/`) |

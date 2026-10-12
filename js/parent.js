@@ -6,6 +6,7 @@ import { VERSION } from './version.js';
 import { getErrors, clearErrors } from './errors.js';
 import { deviceInfo } from './perf.js';
 import { loadMeasurements, benchText, copyText } from './bench.js';
+import { standalone } from './guard.js';
 
 export class ParentPanel {
   constructor(h) {
@@ -66,6 +67,7 @@ export class ParentPanel {
       ['Opstarten', this.h.bootTime() ? (this.h.bootTime() / 1000).toFixed(1).replace('.', ',') + ' s' : '…'],
       ['Werelden bewaard', String(this.h.savedWorlds())],
       ['Opslag', this.storage || '…'],
+      ['Geopend', standalone() ? 'als app op het beginscherm' : 'in Safari (tip: Deel → Zet op beginscherm; dan kun je niet per ongeluk wegvegen)'],
     ];
   }
 
