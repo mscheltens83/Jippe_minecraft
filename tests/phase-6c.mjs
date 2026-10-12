@@ -114,6 +114,32 @@ export async function testPhase6C({ newPage, check, out }) {
   check(!dig[`pig-${COBBLE}`], 'een kelder met een stenen dak houdt een varken tegen');
   check(dig[`pig-${DIRT}-t`] < 8 && dig[`rabbit-${DIRT}-t`] < 6,
     `door aarde graven gaat snel (varken ${dig[`pig-${DIRT}-t`].toFixed(1)} s, konijn ${dig[`rabbit-${DIRT}-t`].toFixed(1)} s)`);
+  // Diep in de grond (een schacht door aarde en steen, bovenop dicht): nacht 1 veilig voor een varken;
+  // vanaf nacht 3 graaft hij ook door steen. Een dak van keien (zelf gebouwd) houdt hem nog steeds tegen.
+  const deep = await run(async () => {
+    const { nightPlan } = await import('./js/storm.js');
+    const B = window.__B, j = window.__jippecraft, s = j.storm, p = j.player, w = j.world, out = {};
+    for (const [n, cap] of [[1, B.GRASS], [4, B.GRASS], [4, B.COBBLE]]) {
+      const { x0, y0, z0 } = window.__field(0);
+      s.night = n; s.plan = nightPlan(n);
+      const top = y0 - 1;
+      for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (let k = 0; k <= 11; k++) w.set(x0 + dx, top - k, z0 + dz, k === 0 ? B.GRASS : k <= 3 ? B.DIRT : B.STONE);
+      for (let k = 1; k <= 9; k++) w.set(x0, top - k, z0, 0);
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) w.set(x0 + dx, top, z0 + dz, cap);
+      p.setPos({ x: x0 + 0.5, y: top - 9, z: z0 + 0.5 });
+      const a = j.animals.spawn('pig', x0 + 3.5, y0, z0 + 0.5, 0); a.storm = true;
+      let i = 0;
+      for (; i < 900 && s.hearts === 5; i++) window.__sim(1);
+      out[`${n}-${cap}`] = s.hearts < 5 ? i / 30 : null;
+    }
+    s.night = 1; s.plan = nightPlan(1);
+    return out;
+  });
+  const GRASS = await run(() => window.__B.GRASS);
+  check(deep[`1-${GRASS}`] === null, 'nacht 1: diep in de steen ben je veilig voor een varken');
+  check(deep[`4-${GRASS}`] !== null, `nacht 4: het varken graaft zich ook door steen naar je toe (${deep[`4-${GRASS}`]?.toFixed(1)} s)`);
+  check(deep[`4-${COBBLE}`] === null, 'maar een dak van keien die je zelf bouwt houdt hem nog steeds tegen');
+
   // Een gang onder de grond: een konijn graaft van opzij door de aarde naar je toe (een varken ook)
   const tunnel = await run(() => {
     const B = window.__B, j = window.__jippecraft, s = j.storm, p = j.player, w = j.world, out = {};

@@ -30,6 +30,10 @@ export const DIG_TIME = 0.3;      // zoveel seconden tussen twee keer graven in 
 export function hitPower(power) { return power >= 10 ? 3 : power >= 4 ? 2 : 1; }
 // Aarde, gras, zand (en bladeren): daar graaf je zo doorheen
 export function isSoil(id) { const b = BLOCKS[id]; return !!b?.solid && (b.sound === 'grass' || b.sound === 'sand'); }
+// De grond zelf: aarde en zand, maar ook steen en ertsen (niet de keien en stenen die Jippe zelf bouwt)
+const GROUND_STONE = new Set([B.STONE, B.GRANITE, B.DIORITE, B.ANDESITE]);
+export function isGround(id) { return isSoil(id) || GROUND_STONE.has(id) || /erts$/i.test(BLOCKS[id]?.name || ''); }
+export const DEEP_NIGHT = 3;      // vanaf deze nacht graven de dieren ook door de steen in de grond
 
 // ---------- je eigen bouwstenen (fase 6D) ----------
 // In de Wilde Nacht heb je alleen deze blokken, met een aantal. Sloop je iets, dan krijg je het
@@ -107,6 +111,8 @@ export function nightPlan(n) {
     count: Math.min(20, 8 + (n - 1) * 2),
     kinds,
     speed: 1 + Math.min(0.5, (n - 1) * 0.08),
+    dig: Math.min(3, 1 + (n - 1) * 0.4), // graven gaat elke nacht sneller (nacht 5: 2,6 keer zo snel)
+    deep: n >= DEEP_NIGHT,               // en vanaf nacht 3 graven ze ook door steen in de grond
     waves: 3, // de dieren komen in drie golven, elke golf feller
   };
 }
@@ -336,9 +342,11 @@ export class Storm {
     this.waveSizes = [n1, n2, this.plan.count - n1 - n2];
     this.wave = 1;
     this.spawnRing();
-    const text = this.night === 1 ? 'Bouw snel een huis! Als het donker wordt, komen de dieren.' : `Nacht ${this.night}. Maak je huis sterker!`;
+    const deep = this.night === DEEP_NIGHT; // vanaf nu graven ze ook door steen: even waarschuwen
+    const text = this.night === 1 ? 'Bouw snel een huis! Als het donker wordt, komen de dieren.'
+      : deep ? `Nacht ${this.night}. Pas op: nu graven ze ook door steen! Bouw met keien of ijzer.` : `Nacht ${this.night}. Maak je huis sterker!`;
     speech.say(text);
-    g.ui.say(this.night === 1 ? 'Bouw snel een huis!' : `Nacht ${this.night}: maak je huis sterker!`, 'home');
+    g.ui.say(this.night === 1 ? 'Bouw snel een huis!' : deep ? `Nacht ${this.night}: ze graven nu ook door steen!` : `Nacht ${this.night}: maak je huis sterker!`, 'home');
     g.daynight.set(DUSK_FROM);
     this.render();
   }
@@ -612,22 +620,24 @@ export class Storm {
     // slopers en gravers, door blokken die niet te sterk voor ze zijn
     const digPower = BASHERS[a.type] || DIGGERS[a.type];
     if (digPower && a.onGround && p.y < a.y - 1.2 && dist < Math.max(1.2, Math.max(a.def.w, a.def.d) * 0.4)) {
-      const cell = this.digCell(a, p, digPower);
+      const cell = this.digCell(a, p);
       // Boven een open gat, maar met een hoek op iets sterks (de rand van een stenen muur): opzij glijden
       if (cell === 'slide') { a.walking = true; a.targetYaw = Math.atan2(-dx, -dz); return; }
       if (cell) {
         a.walking = false;
-        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = DIG_TIME / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], 0, 0, true); }
+        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = DIG_TIME / this.plan.dig; this.bash(a, cell[0], cell[1], cell[2], 0, 0, true); }
         return;
       }
     }
     // Slopers beuken een gat in de muur dat groot genoeg is voor hun hele lijf (als ze er sterk genoeg
     // voor zijn); gravers graven zo een gang door de aarde
     if (digPower && dist > Math.max(a.def.w, a.def.d) / 2 + 0.5) {
-      const cell = this.blocker(a, ux, uz, digPower, !BASHERS[a.type]);
+      const cell = this.blocker(a, ux, uz);
       if (cell) {
         a.walking = false; a.targetYaw = Math.atan2(-dx, -dz);
-        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = (BASHERS[a.type] ? HIT_TIME : DIG_TIME) / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], ux, uz, !BASHERS[a.type]); }
+        // door de grond graven (een gang), of beuken tegen een muur
+        const dig = !BASHERS[a.type] || isGround(w.get(cell[0], cell[1], cell[2]));
+        if ((a.bashT = (a.bashT ?? 0.3) - dt) <= 0) { a.bashT = dig ? DIG_TIME / this.plan.dig : HIT_TIME / this.plan.speed; this.bash(a, cell[0], cell[1], cell[2], ux, uz, dig); }
         return;
       }
     }
@@ -658,11 +668,22 @@ export class Storm {
     return { x, z, y0, solid, wall };
   }
 
+  // Krijgt dit dier dit blok kapot? Slopers: alles wat niet te sterk voor ze is; gravers: alleen aarde,
+  // gras en zand. Vanaf nacht 3 graven ze allemaal ook door de steen en ertsen in de grond
+  // (maar niet door wat Jippe zelf bouwt). IJzer en obsidiaan houden altijd alles tegen.
+  canDig(a, id) {
+    const power = BASHERS[a.type] || DIGGERS[a.type], strength = blockStrength(id);
+    if (!power || !strength || strength === Infinity) return false;
+    if (this.plan.deep && isGround(id)) return true;
+    if (!BASHERS[a.type] && !isSoil(id)) return false;
+    return strength <= power;
+  }
+
   // Wat houdt het dier tegen als hij een stapje naar Jippe toe zet? Alle blokken waar zijn lijf dan
   // tegenaan komt (niet als hij er gewoon op kan stappen). Eén daarvan geeft hij terug om kapot te
   // beuken (eerst het laagste, dan het dichtst bij de lijn naar Jippe). Zit er iets te sterks tussen
   // (voor gravers: alles wat geen aarde of zand is), dan null: dan moet hij eromheen.
-  blocker(a, ux, uz, power, soilOnly = false) {
+  blocker(a, ux, uz) {
     const w = this.g.world, step = 0.45, cx = a.x + ux * step, cz = a.z + uz * step;
     if (a.clearAt(w, cx, a.y, cz) || (a.onGround && a.clearAt(w, cx, a.y + 1.05, cz))) return null;
     const r = a.def.w * 0.43, d = a.def.d * 0.3, sin = Math.sin(a.yaw), cos = Math.cos(a.yaw);
@@ -673,8 +694,7 @@ export class Storm {
         const boxes = blockBoxes(w, bx, by, bz, true);
         if (!boxes.some((q) => bx + q[0] < cx + rx && bx + q[3] > cx - rx && bz + q[2] < cz + rz && bz + q[5] > cz - rz &&
           by + q[1] < a.y + a.def.h - 0.05 && by + q[4] > a.y + 0.05)) continue;
-        const id = w.get(bx, by, bz), strength = blockStrength(id);
-        if (!strength || strength > power || (soilOnly && !isSoil(id))) return null;
+        if (!this.canDig(a, w.get(bx, by, bz))) return null;
         // laagste eerst, dan het dichtst bij de lijn van het dier naar Jippe
         const off = Math.abs((bx + 0.5 - a.x) * uz - (bz + 0.5 - a.z) * ux);
         const score = (by - a.y) * 10 + off;
@@ -687,7 +707,7 @@ export class Storm {
   // Welk blok onder het dier graaft hij weg? Alle blokken onder zijn lijf moeten weg voordat hij valt;
   // eerst het blok het dichtst bij Jippe. Blijft hij alleen nog met een hoek op iets te sterks staan terwijl
   // onder zijn midden een gat is: 'slide' (opzij glijden). Staat hij midden op iets te sterks: null.
-  digCell(a, p, power) {
+  digCell(a, p) {
     const w = this.g.world, r = a.def.w * 0.43, d = a.def.d * 0.3, sin = Math.sin(a.yaw), cos = Math.cos(a.yaw);
     const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
     let best = null, bestD = Infinity, strong = false;
@@ -695,8 +715,7 @@ export class Storm {
     const levels = [...new Set([Math.floor(a.y - 0.5), Math.floor(a.y)])];
     for (const by of levels) for (let bx = Math.floor(a.x - rx); bx <= Math.floor(a.x + rx); bx++) for (let bz = Math.floor(a.z - rz); bz <= Math.floor(a.z + rz); bz++) {
       if (!blockBoxes(w, bx, by, bz, true).length) continue;
-      const strength = blockStrength(w.get(bx, by, bz));
-      if (!strength || strength > power) { strong = true; continue; }
+      if (!this.canDig(a, w.get(bx, by, bz))) { strong = true; continue; }
       const dd = Math.hypot(bx + 0.5 - p.x, bz + 0.5 - p.z);
       if (dd < bestD) { bestD = dd; best = [bx, by, bz]; }
     }
@@ -737,7 +756,10 @@ export class Storm {
   bash(a, x, y, z, ux, uz, dig = false) {
     const g = this.g, w = g.world, id = w.get(x, y, z), key = `${x},${y},${z}`;
     // zoveel beuken zijn nodig: sterke dieren beuken harder, en door aarde graaf je in één keer
-    const per = dig && isSoil(id) ? 2 : hitPower(BASHERS[a.type] || DIGGERS[a.type] || 1);
+    const power = hitPower(BASHERS[a.type] || DIGGERS[a.type] || 1);
+    // (naar beneden door aarde: in één keer; een muur of gang van aarde: eerst scheurtjes)
+    const down = !ux && !uz;
+    const per = dig && down && isSoil(id) ? 2 : dig && isGround(id) && !isSoil(id) ? Math.max(2, power) : power;
     const strength = Math.ceil(blockStrength(id) / per);
     let d = this.damage.get(key);
     if (!d || d.id !== id) { if (d) this.dropCrack(d); d = { x, y, z, id, hits: 0, mesh: null }; this.damage.set(key, d); }

@@ -57,3 +57,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 6D | Wilde Nacht: drie golven per nacht, je eigen bouwstenen met aantallen en een beloning per nacht, 5 stickers | Klaar (versie 6.3.0) |
 | Niet wegvegen | In Safari niet per ongeluk naar de vorige website vegen ([plan, §14](fase-6-plan.md)) | Klaar (versie 6.4.5) |
 | Slopen en vlotter | Slopers beuken een gat waar ze helemaal doorheen passen, gravers graven ook opzij, alles sneller; Wilde Nacht vlotter op een oudere tablet ([plan, §15](fase-6-plan.md)) | Klaar (versie 6.5.0) |
+| Dieper graven | Elke nacht sneller graven, vanaf nacht 3 ook door de steen in de grond (niet door wat je zelf bouwt) ([plan, §16](fase-6-plan.md)) | Klaar (versie 6.6.0) |

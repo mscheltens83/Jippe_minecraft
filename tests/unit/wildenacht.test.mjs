@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { World } from '../../js/world.js';
 import { B, doorId } from '../../js/blocks.js';
-import { houseCheck, nightPlan, blockStrength, looseBlocks, BASHERS, DIGGERS, hitPower, isSoil } from '../../js/storm.js';
+import { houseCheck, nightPlan, blockStrength, looseBlocks, BASHERS, DIGGERS, hitPower, isSoil, isGround, DEEP_NIGHT } from '../../js/storm.js';
 
 function flat() { const w = new World(); w.generate('flat', 3); return w; }
 
@@ -100,4 +100,13 @@ test('grote dieren beuken harder; gravers graven alleen door aarde en zand', () 
   assert.ok(isSoil(B.DIRT) && isSoil(B.GRASS) && isSoil(B.SAND));
   assert.ok(!isSoil(B.GLASS) && !isSoil(B.PLANKS) && !isSoil(B.COBBLE) && !isSoil(0));
   assert.ok(DIGGERS.rabbit && !BASHERS.rabbit, 'een konijn graaft, maar beukt geen muren');
+});
+
+test('graven gaat elke nacht sneller, en vanaf nacht 3 ook door steen in de grond', () => {
+  for (let n = 1; n < 6; n++) assert.ok(nightPlan(n + 1).dig > nightPlan(n).dig, `nacht ${n + 1} graaft sneller dan nacht ${n}`);
+  assert.equal(nightPlan(1).deep, false);
+  assert.equal(nightPlan(DEEP_NIGHT).deep, true);
+  assert.equal(DEEP_NIGHT, 3);
+  assert.ok(isGround(B.STONE) && isGround(B.DIRT) && isGround(B.IRON_ORE), 'steen, aarde en erts horen bij de grond');
+  assert.ok(!isGround(B.COBBLE) && !isGround(B.BRICK) && !isGround(B.IRON_BLOCK), 'wat Jippe zelf bouwt niet');
 });

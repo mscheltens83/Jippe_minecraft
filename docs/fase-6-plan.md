@@ -159,3 +159,13 @@ In Safari ging je terug naar de vorige website als je vanaf de rand van het sche
 - Ogen en wenkbrauwen zijn samen één vorm, met één gloed om beide ogen: 2 tekenopdrachten per dier in plaats van 6.
 - De rode rand bij de hartslag verandert alleen nog van doorzichtigheid (eerst werd de wazige rand elke keer helemaal opnieuw getekend), en de klok op de BOE-knop wordt alleen bijgewerkt als hij echt verder is.
 - Samen: ongeveer 125 tot 145 tekenopdrachten in plaats van 160 tot 210.
+
+## 16. Elke nacht sneller graven, en vanaf nacht 3 door steen (versie 6.6.0)
+
+Op de iPad groef Jippe snel 5 tot 10 blokken naar beneden. Onder 4 blokken aarde zit steen, en daar kwam (behalve de T-rex) geen dier doorheen: diep in de grond was je dus altijd veilig. Nu:
+
+- **Elke nacht sneller graven** (`plan.dig` in `nightPlan`): nacht 1 gewoon, nacht 2 1,4 keer zo snel, nacht 3 1,8, nacht 4 2,2, nacht 5 2,6, daarna 3 keer zo snel.
+- **Vanaf nacht 3 door de steen in de grond** (`DEEP_NIGHT`, `isGround`, `canDig`): alle slopers en gravers graven dan ook door steen, graniet, dioriet, andesiet en ertsen. Niet door wat Jippe zelf bouwt (keien, bakstenen, planken voor de kleine dieren); ijzer en obsidiaan houden altijd alles tegen. Aan het begin van nacht 3 zegt het spel: "Pas op: nu graven ze ook door steen! Bouw met keien of ijzer."
+- Naar beneden door aarde gaat in één keer; een muur of gang van aarde eerst met scheurtjes; steen in 2 tot 4 keer.
+- Gemeten (schacht van 9 diep: aarde en dan steen, bovenop dicht): varken nacht 1 en 2 komt er niet bij, nacht 3 in 18 s, nacht 5 in 13 s; een konijn past door een smalle schacht en is er nog sneller.
+- Tests: `FASE=6c npm run test:browser` (nacht 1 veilig in de steen, nacht 4 niet, een dak van keien houdt het varken tegen) en de unit-tests.
