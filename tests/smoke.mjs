@@ -112,7 +112,11 @@ const pickFromChest = async (label) => {
   await page.locator(`.pal-item[aria-label="${label}"]`).tap();
 };
 const edits = () => g(() => window.__jippecraft.edits);
-const lookAt = (pitch, yaw = 0) => g(([p, y]) => { const j = window.__jippecraft; j.player.pitch = p; j.player.yaw = y; }, [pitch, yaw]);
+// (de camera draait pas mee bij het volgende getekende beeldje: eerst twee beeldjes afwachten, anders tik je nog op de oude plek)
+const lookAt = (pitch, yaw = 0) => g(([p, y]) => {
+  const j = window.__jippecraft; j.player.pitch = p; j.player.yaw = y;
+  return new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+}, [pitch, yaw]);
 // Alleen rond de speler tellen en zoeken (verderop kan een dorp met deuren liggen)
 const countIds = (lo, hi) => g(([a, b]) => window.nearBlocks(a, b).length, [lo, hi]);
 const NEAR = `window.nearBlocks = (a, b, max = Infinity) => {
@@ -242,8 +246,7 @@ await page.touchscreen.tap(cx, cy + 40);
 check(await until(() => !!window.nearBlocks(45, 60, 1)[0]), 'deur geplaatst');
 const doorOpen = () => g(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; });
 await lookAt(-0.35);
-// (de camera draait pas mee bij het volgende beeldje; op een drukke testcomputer duurt dat even)
-await page.waitForTimeout(800);
+await page.waitForTimeout(200);
 await page.touchscreen.tap(cx, cy);
 check(await until(() => { const d = window.nearBlocks(45, 60, 1)[0]; return !!d && (d.id - 45) % 2 === 1; }), 'tikken op de deur doet hem open');
 check(await doorOpen(), 'deur staat open');
