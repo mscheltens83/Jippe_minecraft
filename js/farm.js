@@ -158,16 +158,22 @@ export class Farm {
     g.ui.hud.appendChild(this.booBtn);
   }
 
-  render() {
+  render(throttle = false) {
     const g = this.g;
-    const n = g.animals.list.filter((a) => FARM_PREY.has(a.type) && !a.raider).length, back = this.pending.length;
-    const count = `${ICONS.cow}<b>${n}</b>${back ? `<i class="farm-back">+${back}</i>` : ''}${this.gold ? ICONS.star : ''}`;
-    if (this.shown.count !== count) { this.countEl.innerHTML = count; this.shown.count = count; }
-    const first = this.active[0];
-    let time;
-    if (first) time = `${ICONS[first.type] || ICONS.lion}<b class="alert">!</b>`;
-    else { const s = Math.max(0, Math.ceil(this.cool)); time = `${ICONS.lion}<b>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</b>`; }
-    if (this.shown.time !== time) { this.timeEl.innerHTML = time; this.shown.time = time; this.bar.classList.toggle('alarm', !!first); }
+    // De tellers en de klok veranderen langzaam: vier keer per seconde is genoeg (scheelt op een oude tablet)
+    if (!throttle || (this.hudT = (this.hudT || 0) - 1) <= 0) {
+      this.hudT = 8;
+      let n = 0;
+      for (const a of g.animals.list) if (FARM_PREY.has(a.type) && !a.raider) n++;
+      const back = this.pending.length;
+      const count = `${ICONS.cow}<b>${n}</b>${back ? `<i class="farm-back">+${back}</i>` : ''}${this.gold ? ICONS.star : ''}`;
+      if (this.shown.count !== count) { this.countEl.innerHTML = count; this.shown.count = count; }
+      const first = this.active[0];
+      let time;
+      if (first) time = `${ICONS[first.type] || ICONS.lion}<b class="alert">!</b>`;
+      else { const s = Math.max(0, Math.ceil(this.cool)); time = `${ICONS.lion}<b>${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}</b>`; }
+      if (this.shown.time !== time) { this.timeEl.innerHTML = time; this.shown.time = time; this.bar.classList.toggle('alarm', !!first); }
+    }
     // De pijl naar het roofdier dat eraan komt
     const near = this.active.find((r) => r.phase === 'aantocht' || r.phase === 'sluipen' || r.phase === 'jacht');
     this.arrow.hidden = !near;
@@ -221,7 +227,7 @@ export class Farm {
       const lured = g.animals.list.filter((a) => a.lured).length;
       if (lured >= 5) g.note('lure', { n: lured });
     }
-    if (g.playing) this.render();
+    if (g.playing) this.render(true);
   }
 
   // Een dier dat dit roofdier mag pakken, bij voorkeur dichtbij Jippe (dan ziet hij het gebeuren)
@@ -581,7 +587,7 @@ export class Farm {
       this.escapeCool = 8; // niets gevonden: over een tijdje nog eens kijken
       const cands = g.animals.list.filter((a) => FARM_PREY.has(a.type) && !a.raider && !a.baby && !a.tame && !a.lured && !a.fleeFrom && !a.riding
         && Math.hypot(a.x - p.x, a.z - p.z) < 40);
-      for (let tries = 0; tries < 6 && cands.length; tries++) {
+      for (let tries = 0; tries < 3 && cands.length; tries++) { // hoogstens drie dieren per keer bekijken: het zoeken kost op een oude tablet tijd
         const a = cands.splice(Math.floor(Math.random() * cands.length), 1)[0];
         const enc = enclosure(w, a.x, a.y, a.z, a.def.h, 10);
         if (!enc.closed) continue;

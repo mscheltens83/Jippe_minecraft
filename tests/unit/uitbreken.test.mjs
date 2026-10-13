@@ -89,3 +89,15 @@ test('de T-rex beukt hout, aarde en steen kapot, maar geen ijzer; een raptor spr
   assert.equal(passKind(abilityOf('raptor'), column(w, 48, 48, y, 1)), 'jump');
   assert.equal(passKind(abilityOf('pteranodon'), column(w, 48, 48, y, 1)), null, 'een vlieger heeft geen hek nodig: hij komt van boven');
 });
+
+test('een open weide wordt snel afgewezen, een groot hok met een muur op tien blokken nog wel gezien', () => {
+  const w = flat(), y = w.surfaceY(48, 48) + 1;
+  for (let dx = -12; dx <= 12; dx++) for (let dz = -12; dz <= 12; dz++) for (let dy = 0; dy < 4; dy++) w.set(48 + dx, y + dy, 48 + dz, 0);
+  // geen muur: de voorcontrole ziet dat meteen (en rekent dus bijna niets)
+  const t0 = performance.now();
+  for (let i = 0; i < 200; i++) assert.equal(enclosure(w, 48.5, y, 48.5, 1).closed, false);
+  assert.ok(performance.now() - t0 < 200, 'een open weide kost bijna niets');
+  // een muur van hout op precies 10 blokken (en 11 in de hoek): dat is nog een hok
+  for (let d = -10; d <= 10; d++) for (const [dx, dz] of [[d, -10], [d, 10], [-10, d], [10, d]]) w.set(48 + dx, y, 48 + dz, B.PLANKS);
+  assert.equal(enclosure(w, 48.5, y, 48.5, 1).closed, true);
+});

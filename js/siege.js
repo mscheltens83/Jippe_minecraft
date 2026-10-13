@@ -68,6 +68,13 @@ const DIRS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
 export function enclosure(world, x, y, z, height, radius = 10, maxCells = 600) {
   const sx = Math.floor(x), sz = Math.floor(z), y0 = Math.floor(y + 0.05);
   const free = (cx, cz) => !column(world, cx, cz, y0, height).solid;
+  // Een hok heeft in alle vier de richtingen iets staan. Zo niet (een open weide), dan hoeven we niet te zoeken:
+  // dit scheelt veel rekenwerk op een oude tablet
+  for (const [dx, dz] of DIRS) {
+    let hit = false;
+    for (let i = 1; i <= radius + 1 && !hit; i++) hit = !free(sx + dx * i, sz + dz * i);
+    if (!hit) return { closed: false, cells: [], edges: [] };
+  }
   const key = (cx, cz) => cx + ',' + cz;
   const seen = new Set([key(sx, sz)]), cells = [[sx, sz]], edges = [];
   for (let i = 0; i < cells.length; i++) {

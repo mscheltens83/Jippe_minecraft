@@ -159,3 +159,14 @@ Jippe kan nog niet alles lezen, dus het spel zegt het hardop (Nederlandse stem v
 **Wilde Nacht en Dag** (`storm.js`): bij elke ronde een tip over wat nu komt (`NIGHT_TIPS`: 1 dak en deur, 2 geiten en apen, 3 vliegers, 4 olifant en triceratops: bouw met keien, 5 en verder de T-rex: alleen ijzer en obsidiaan), de BOE-knop in ronde 1, en onderweg "Ze slaan je muur kapot!", "Ze graven naar je toe!" en "Nog maar twee hartjes!" (elk één keer per ronde of na een minuut).
 
 Tests: `spraak.test.mjs` (wachtrij, afkappen, niet zeuren, tipteksten, lidwoorden) en gesproken tekst in `FASE=6a` en `FASE=7b`.
+
+## 9. Vlotter op een oude Android (versie 7.4.1)
+
+Gemeten in de Boerderij (op een snelle computer, dus op een oude tablet is alles een paar keer zo traag):
+
+- De controle of een dier wil ontsnappen (`updateEscape`, elke 8 seconden) kostte op een open weide 7 tot 14 ms: een hapering die je op een oude tablet voelt. `enclosure` kijkt nu eerst in de vier richtingen of er überhaupt iets staat (een hok heeft in alle richtingen een rand); zo niet, dan stopt hij meteen (0,1 ms). Er worden ook hoogstens drie dieren per keer bekeken (was zes).
+- Op een tablet (aanraakscherm) kijkt de Boerderij hoogstens 4 chunks ver (64 blokken, de roofdieren komen van 30 blokken) en dieren verder dan 24 blokken worden als één stuk getekend (`FARM_VIEW`, `FARM_LOD`, `viewLimit()` in `main.js`). Verlaat je de Boerderij, dan krijg je je eigen zichtafstand terug.
+- De tellers en de klok van de Boerderij worden vier keer per seconde ververst in plaats van elk beeldje.
+- `adaptQuality` (de automatische kwaliteit) zakt twee stappen tegelijk als het spel onder de 20 beeldjes per seconde komt, zodat het niet minuten duurt voor het vlot loopt.
+- Nog te doen: een meetrit op de echte Android-tablet (ouderscherm, Meetrit, Kopieer) om te zien of dit genoeg is.
+

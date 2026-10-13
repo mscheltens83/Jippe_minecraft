@@ -57,6 +57,7 @@ const FOOD_ITEMS = [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO];
 const STORM_VIEW = 3;      // zichtafstand (chunks) in de Wilde Nacht: verder zie je door de mist toch niet
 const STORM_LOD = 14;      // in de Wilde Nacht: dieren verder dan dit (blokken) als één stuk tekenen
 const DAY_VIEW = 4, DAY_LOD = 22; // de Wilde Dag heeft geen mist: iets verder kijken
+const FARM_VIEW = 4, FARM_LOD = 24; // de Boerderij is een vlakke weide: op een tablet 4 chunks (64 blokken) kijken is genoeg
 const ANIMAL_HOLD = 1.2;   // zo lang een dier vasthouden (sloop-stand) om het naar huis te sturen    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
@@ -231,6 +232,7 @@ class Game {
     };
     this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
+    this.touch = !!touch;
     this.maxView = touch ? 7 : 10;
     this.setViewDistance(touch ? 6 : 8);
     // ?zicht=3: vaste zichtafstand (de test-browser zonder videokaart is anders erg traag)
@@ -346,8 +348,18 @@ class Game {
     this.farm?.destroy();
     this.farm = null;
     if (this.storm) return;
-    if (this.world.type === 'farm') this.farm = new Farm(this, saved || {});
-    else { this.animals.preyTypes = null; this.animals.setPredators(this.settings.predators); }
+    if (this.world.type === 'farm') {
+      this.farm = new Farm(this, saved || {});
+      // Op een tablet minder wereld tekenen: de weide is vlak en de roofdieren komen van 30 blokken
+      if (this.touch) {
+        this.animals.lodDist = FARM_LOD;
+        if (this.viewDistance > FARM_VIEW) { this.farmBack = this.viewDistance; this.setViewDistance(FARM_VIEW); }
+      }
+    } else {
+      this.animals.preyTypes = null; this.animals.setPredators(this.settings.predators);
+      this.animals.lodDist = null;
+      if (this.farmBack) { this.setViewDistance(Math.max(this.viewDistance, this.farmBack)); this.farmBack = null; }
+    }
   }
 
   makeSave() {
@@ -2086,6 +2098,13 @@ class Game {
     }
   }
 
+  // Hoever mag er hoogstens gekeken worden in deze wereld?
+  viewLimit() {
+    if (this.storm) return Math.min(this.maxView, this.storm.sunny ? DAY_VIEW : STORM_VIEW);
+    if (this.farm && this.touch) return Math.min(this.maxView, FARM_VIEW);
+    return this.maxView;
+  }
+
   // Houdt de iPad het niet bij, dan tekenen we minder scherp; is hij snel, dan juist scherper
   adaptQuality(dt) {
     if (this.fixedQuality) return;
@@ -2096,16 +2115,19 @@ class Game {
     if (this.warmup > 0) { this.warmup--; return; }
     const sc = this.scene;
     if (avg > 1 / 42) {
-      // Te traag: eerst minder scherp, daarna minder ver kijken
-      if (sc.pixelRatio > 1) { sc.setPixelRatio(sc.pixelRatio - 0.25); this.resize(); }
-      else if (this.viewDistance > 4) this.setViewDistance(this.viewDistance - 1);
-      else if (sc.pixelRatio > 0.75) { sc.setPixelRatio(0.75); this.resize(); }
-      else if (this.viewDistance > 3) this.setViewDistance(3);
+      // Te traag: eerst minder scherp, daarna minder ver kijken. Gaat het echt langzaam (onder de 20 beeldjes
+      // per seconde, een oude tablet), dan twee stappen tegelijk: anders duurt het minuten voor het vlot loopt
+      for (let step = avg > 1 / 20 ? 2 : 1; step > 0; step--) {
+        if (sc.pixelRatio > 1) { sc.setPixelRatio(sc.pixelRatio - 0.25); this.resize(); }
+        else if (this.viewDistance > 4) this.setViewDistance(this.viewDistance - 1);
+        else if (sc.pixelRatio > 0.75) { sc.setPixelRatio(0.75); this.resize(); }
+        else if (this.viewDistance > 3) this.setViewDistance(3);
+      }
       this.lowered = true;
     } else if (avg < 1 / 57 && !this.lowered) {
       // Snel genoeg: eerst scherper, daarna verder kijken
       if (sc.pixelRatio < sc.maxPixelRatio) { sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25)); this.resize(); }
-      else if (this.viewDistance < (this.storm ? Math.min(this.maxView, this.storm.sunny ? DAY_VIEW : STORM_VIEW) : this.maxView)) this.setViewDistance(this.viewDistance + 1);
+      else if (this.viewDistance < this.viewLimit()) this.setViewDistance(this.viewDistance + 1);
     }
   }
 }
