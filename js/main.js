@@ -32,6 +32,7 @@ import { placeState, neighbourChanges, startCart, stepCart, cartPose, isRail } f
 import { switchOn, signalChanges } from './switches.js';
 import { speech } from './speech.js';
 import { Storm, STOCK_ITEMS } from './storm.js';
+import { Farm } from './farm.js';
 import { findPortal, portalCells, portalAt, PORTAL_THEMES } from './portal.js';
 import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
@@ -50,6 +51,9 @@ import { Hand } from './hand.js';
 const REACH = 12;          // hoe ver weg je nog kunt bouwen
 const MAX_UNDO = 300;
 const BREAK_TIME = 0.5;
+// Boerderij in Gevaar (fase 7B): hek, poort, hooi, planken, keien, zaadjes, wortel, fakkel en deur
+const FARM_HOTBAR = [B.FENCE, B.GATE, B.HAY, B.PLANKS, B.COBBLE, ITEM.WHEAT_SEEDS, ITEM.CARROT, B.TORCH, B.DOOR];
+const FOOD_ITEMS = [ITEM.WHEAT_SEEDS, ITEM.CARROT, ITEM.POTATO];
 const STORM_VIEW = 3;      // zichtafstand (chunks) in de Wilde Nacht: verder zie je door de mist toch niet
 const STORM_LOD = 14;      // in de Wilde Nacht: dieren verder dan dit (blokken) als één stuk tekenen
 const DAY_VIEW = 4, DAY_LOD = 22; // de Wilde Dag heeft geen mist: iets verder kijken
@@ -91,6 +95,7 @@ class Game {
     this.hotbar = [...DEFAULT_HOTBAR];
     this.sel = 0;
     this.mode = 'build';
+    this.farm = null; // Boerderij in Gevaar (alleen in een boerderij-wereld)
     this.undoStack = [];
     this.playing = false;
     this.edits = 0;
@@ -300,7 +305,7 @@ class Game {
     this.physics.scanChunk(c);
     if (this.spawned.has(c.key)) return;
     this.spawned.add(c.key);
-    if (!this.worldReady || c.edited || this.readOnly || this.storm) return;
+    if (!this.worldReady || c.edited || this.readOnly || this.storm || this.farm) return; // (in de Boerderij komen dieren alleen terug of op bezoek)
     if (this.animals.spawnInChunk(this.world, c.cx, c.cz, this.player)) this.markDirty();
   }
 
@@ -333,6 +338,16 @@ class Game {
     this.animals.clear();
     this.animals.populate(this.world);
     this.updateBiome(true);
+    this.syncFarm();
+  }
+
+  // In een boerderij-wereld loopt de Boerderij in Gevaar; in elke andere wereld niet
+  syncFarm(saved = null) {
+    this.farm?.destroy();
+    this.farm = null;
+    if (this.storm) return;
+    if (this.world.type === 'farm') this.farm = new Farm(this, saved || {});
+    else { this.animals.preyTypes = null; this.animals.setPredators(this.settings.predators); }
   }
 
   makeSave() {
@@ -358,6 +373,7 @@ class Game {
       spawned: [...this.spawned],
       thumb: this.thumb,
       ...(this.portalPos ? { portal: this.portalPos } : {}),
+      ...(this.farm ? { farm: this.farm.save() } : {}),
     };
   }
 
@@ -397,6 +413,7 @@ class Game {
       this.thumb = typeof s.thumb === 'string' ? s.thumb : null;
       this.undoStack = [];
       this.updateBiome(true);
+      this.syncFarm(s.farm);
       return true;
     } catch (e) {
       console.warn('Kon wereld niet laden', e);
@@ -566,6 +583,7 @@ class Game {
       this.extra = null;
       this.setActiveWorld();
       this.freshWorld(type);
+      if (type === 'farm') { this.hotbar = [...FARM_HOTBAR]; this.sel = 0; this.mode = 'build'; } // de spullen voor een boerderij
       this.scene.rebuildAll(this.world);
       this.saveNow();
       this.refreshUI();
@@ -1914,6 +1932,7 @@ class Game {
       this.questTick(now);
       this.switchTick(now);
       this.storm?.update(dt);
+      if (this.farm) { this.animals.lure = FOOD_ITEMS.includes(this.hotbar[this.sel]) ? this.hotbar[this.sel] : null; this.farm.update(dt); }
       if (wasClimbing !== p.climbing) this.ui.setFlying(p.flying, p.climbing);
     } else {
       this.input.takeLook();

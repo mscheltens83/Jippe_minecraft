@@ -23,7 +23,7 @@ export const TINTS = {
   ocean: [0x8eb971, 0x71a74d, 0x3f76e4],
   river: [0x8eb971, 0x71a74d, 0x3f76e4],
 };
-TINTS.island = TINTS.flat = TINTS.world = TINTS.adventure = TINTS.plains;
+TINTS.island = TINTS.farm = TINTS.flat = TINTS.world = TINTS.adventure = TINTS.plains;
 TINTS.bamboo = TINTS.jungle;
 // Dinowereld (fase 5A): fris oergroen, in het oerbos donkerder
 TINTS.dino = TINTS.dinoPlains = [0x7cc44e, 0x5aae2e, 0x3a8fd0];

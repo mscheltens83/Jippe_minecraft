@@ -103,3 +103,13 @@ De Wilde Dag is dezelfde `Storm` als de Wilde Nacht, met `opts.mode = 'dag'` (`s
 - Iets verder kijken dan in de Wilde Nacht (4 chunks, dieren pas na 22 blokken als één stuk), want er is geen mist.
 - Menu: knop "Wilde Dag" naast "Wilde Nacht". "Nog een keer" begint weer een Wilde Dag.
 - Test: `FASE=7a npm run test:browser`.
+
+## 5. Zo is 7B gebouwd (versie 7.1.0)
+
+- **De wereld**: `farm` is een wereldsoort (`biomes.js`, kaart "Boerderij" bij Nieuwe wereld). Voor de generator is het een **vlakke weide** (`gen.js`): zo vinden roofdieren hun weg; op het eiland liepen ze vast tegen heuvels (maar de helft ving zijn prooi). Op de vlakte vangt een roofdier (zonder hek) altijd. De wereld wordt bewaard, met de stand van de boerderij (`makeSave().farm`).
+- **De regie** (`farm.js`, `Farm`): een klok tot het volgende bezoek (eerste na 70 s, daarna steeds korter, 's nachts nog korter, minimaal ±55 s). Een bezoek is een roofdier (`RAIDERS`, na meer bezoeken grotere) met een doel (een dier dat hij lust, bij voorkeur dichtbij Jippe).
+- **Een bezoek**: `aantocht` (zacht naderen vanaf 30 tot 36 blokken, met pijl, grom en uitroepteken) → `sluipen` (2 s, het doel krijgt een !) → `jacht` (het doel rent weg; de jacht-code en het wegrennen komen uit `animals/hunt.js`) → `eten` (poef, het dier is weg) → eventueel een tweede dier → `weg` (naar de rand, dan verdwijnt hij). Is er een hek tussen, dan raakt hij zijn prooi niet (`reachable`) en geeft hij het na 22 s op. Komt Jippe binnen 6 blokken (of BOE), dan `verjaagd`.
+- **Terugkomen**: elk opgegeten dier komt na 40 tot 70 seconden terug bij de weide (`pending`, ook bewaard).
+- **Lokken** (`animals.js`): houd je zaadjes of een wortel vast, dan lopen dieren die dat lusten (`FARM_PREY`) binnen 14 blokken achter je aan en blijven op ±2 blokken staan.
+- **Stickers**: Jaag een roofdier weg, Houd een roofdier tegen met een hek, Zie een opgegeten dier terugkomen, Lok vijf dieren tegelijk.
+- Tests: `FASE=7b npm run test:browser` en `npm run test:unit` (`boerderij.test.mjs`).

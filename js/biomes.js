@@ -14,6 +14,11 @@ export const BIOMES = {
     grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 }, achtergrond: 'vogels', muziek: 'island',
   },
   island: { naam: 'Eiland', icon: 'island', kies: true, lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 } },
+  // Boerderij in Gevaar (fase 7B): een eiland met een boerderij; roofdieren komen dieren halen (js/farm.js)
+  farm: {
+    naam: 'Boerderij', icon: 'farm', kies: true, lucht: oldSky, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 13, heuvels: 4, schaal: 18 },
+    dieren: [['cow', 3], ['pig', 3], ['sheep', 3], ['chicken', 4], ['rabbit', 2]],
+  },
   flat: { naam: 'Plat', icon: 'flat', kies: true, lucht: oldSky, dieren: farmAnimals, grond: { top: B.GRASS, onder: B.DIRT }, hoogte: { basis: 11, heuvels: 0, schaal: 18 } },
   jungle: {
     naam: 'Jungle', icon: 'jungle', zee: true, kies: true,
@@ -142,13 +147,14 @@ export const BIOMES = {
 };
 
 // De soorten wereld die je kunt hebben (de rest zijn landschappen binnen een wereld)
-export const WORLD_TYPES = ['world', 'island', 'flat', 'jungle', 'desert', 'tundra', 'savanna', 'dino', 'adventure'];
+export const WORLD_TYPES = ['world', 'island', 'farm', 'flat', 'jungle', 'desert', 'tundra', 'savanna', 'dino', 'adventure'];
 export const worldType = (t) => (WORLD_TYPES.includes(t) ? t : 'island');
 
 const smooth = (t) => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
 
 // De weide in het midden blijft vrij om te bouwen en voor de boerderijdieren.
 export function biomeWeights(type, x = 48, z = 48) {
+  if (type === 'farm') type = 'flat'; // de boerderij is een vlakke weide
   if (type !== 'adventure') return [{ type: BIOMES[type] ? type : 'island', weight: 1 }];
   const east = smooth((x - 44) / 8), south = smooth((z - 44) / 8);
   const wild = smooth((Math.hypot(x - 48, z - 48) - 8) / 6);

@@ -61,3 +61,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Dieper graven | Elke nacht sneller graven, vanaf nacht 3 ook door de steen in de grond (niet door wat je zelf bouwt) ([plan, §16](fase-6-plan.md)) | Klaar (versie 6.6.0) |
 | Controle | Ogen aan de kop, een vraag voor je de Wilde Nacht stopt ([plan, §17](fase-6-plan.md)) | Klaar (versie 6.6.1) |
 | 7A | Wilde Dag: de Wilde Nacht in de zon, met gele ogen, eigen record en stickers ([plan](fase-7-plan.md)) | Klaar (versie 7.0.0) |
+| 7B | Boerderij in Gevaar: een bewaarde wereld waarin roofdieren (vos, leeuwin, leeuw, cheetah, tijger) dieren pakken en weer weggaan, opgegeten dieren komen terug, lokken met eten, BOE, hekken houden ze tegen ([plan](fase-7-plan.md)) | Klaar (versie 7.1.0) |

@@ -17,6 +17,7 @@ export const QUEST_GROUPS = [
   { key: 'knoppen', title: 'Knoppen', icon: 'lever' },
   { key: 'wildeNacht', title: 'Wilde Nacht', icon: 'wildNight' },
   { key: 'wildeDag', title: 'Wilde Dag', icon: 'wildDay' },
+  { key: 'boerderij', title: 'Boerderij', icon: 'farm' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -81,6 +82,11 @@ export const QUESTS = [
   { id: 'dag1', groep: 'wildeDag', icon: 'wildDay', tekst: 'Overleef je eerste Wilde Dag.', on: 'stormDay', match: (d) => d.night >= 1 },
   { id: 'dag3', groep: 'wildeDag', icon: 'wildDay', tekst: 'Overleef drie Wilde Dagen achter elkaar.', on: 'stormDay', match: (d) => d.night >= 3 },
   { id: 'dag5', groep: 'wildeDag', icon: 'trex', tekst: 'Overleef vijf Wilde Dagen: de dag van de T-rex!', on: 'stormDay', match: (d) => d.night >= 5 },
+  // Boerderij in Gevaar (fase 7B)
+  { id: 'farmWeg', groep: 'boerderij', icon: 'torch', tekst: 'Jaag een roofdier weg: ga erheen of roep BOE.', on: 'farmScare' },
+  { id: 'farmOpgeven', groep: 'boerderij', icon: 'lion', tekst: 'Houd een roofdier tegen met een hek, zodat hij het opgeeft.', on: 'farmRepel' },
+  { id: 'farmTerug', groep: 'boerderij', icon: 'cow', tekst: 'Zie een opgegeten dier terugkomen.', on: 'farmBack' },
+  { id: 'farmLok', groep: 'boerderij', icon: 'carrot', tekst: 'Lok vijf dieren tegelijk achter je aan met eten.', on: 'lure' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));
 

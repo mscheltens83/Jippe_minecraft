@@ -15,6 +15,8 @@ export class Animals {
   constructor(scene, effects = null) {
     this.scene = scene; this.effects = effects; this.list = []; this.frame = 0;
     this.predators = true; this.caught = []; this.onCatch = null;
+    this.preyTypes = null; // welke soorten prooi zijn (null = varken, kip en schaap); de Boerderij-wereld maakt het meer
+    this.lure = null;      // Boerderij-wereld: het eten dat Jippe vasthoudt; dieren die dat lusten lopen achter hem aan
     this.lodDist = null; // vanaf welke afstand een dier als één stuk wordt getekend (null = gewoon 28 blokken)
     this.tmp = new THREE.Vector3(); this.frustum = new THREE.Frustum(); this.matrix = new THREE.Matrix4();
   }
@@ -262,6 +264,15 @@ export class Animals {
             a.targetYaw = Math.atan2(-(viewer.x - a.x), -(viewer.z - a.z));
           } else if (dist < 3) a.walking = false;
         }
+        // Boerderij-wereld: dieren die het eten lusten dat Jippe vasthoudt, lopen achter hem aan
+        if (this.lure && viewer && a.clockElapsed > 0 && !a.tame && !a.raider && !a.fleeFrom && this.preyTypes?.has(a.type) && a.def.eten?.includes(this.lure)) {
+          const d = Math.hypot(a.x - viewer.x, a.z - viewer.z);
+          if (d > 2.3 && d <= 14) {
+            a.lured = true; a.following = true; a.walking = true; a.sleep = 0; a.graze = false; a.lying = 0; a.goal = null;
+            a.timer = Math.max(a.timer, 0.3);
+            a.targetYaw = Math.atan2(-(viewer.x - a.x), -(viewer.z - a.z));
+          } else if (a.lured && d <= 2.3) { a.walking = false; a.following = false; a.timer = Math.max(a.timer, 0.5); }
+        } else if (a.lured) { a.lured = false; a.following = false; }
         updateHunt(a, a.clockElapsed, world, this);
         a.update(a.elapsed, world, visible ? this.effects : null, this.list, visible, a.clockElapsed);
         a.elapsed = 0; a.clockElapsed = 0;
@@ -324,7 +335,7 @@ export class Animals {
     return best;
   }
 
-  serialize() { return this.list.map((a) => this.serializeOne(a)); }
+  serialize() { return this.list.filter((a) => !a.raider).map((a) => this.serializeOne(a)); } // een roofdier op bezoek wordt niet bewaard
 
   // Eén dier als gewone gegevens (ook om mee te nemen door een portaal)
   serializeOne(a) {

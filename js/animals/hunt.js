@@ -1,7 +1,7 @@
 // Alleen boerderijdieren zijn prooi; alle tijden tellen uitsluitend tijdens het spelen.
 import { B, blockBoxes } from '../blocks.js';
 
-const PREY = new Set(['pig', 'chicken', 'sheep']);
+export const PREY = new Set(['pig', 'chicken', 'sheep']);
 const hungryAgain = () => 180 + Math.random() * 180;
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const toward = (a, x, z) => Math.atan2(-(x - a.x), -(z - a.z));
@@ -15,11 +15,13 @@ function pointBlocked(world, x, y, z) {
 }
 
 // Een prooi vlak achter een hek telt niet als gevangen.
-function reachable(world, hunter, prey) {
+export function reachable(world, hunter, prey, level = false) {
   const n = Math.ceil(distance(hunter, prey) * 5);
+  // level: langs een vlakke lijn op de hoogte van de hoogste van de twee (een opstapje tussen hen telt dan niet als muur)
+  const top = Math.max(hunter.y, prey.y);
   for (let i = 1; i < n; i++) {
     const t = i / n, x = hunter.x + (prey.x - hunter.x) * t, z = hunter.z + (prey.z - hunter.z) * t;
-    const y = hunter.y + (prey.y - hunter.y) * t + 0.55;
+    const y = (level ? top : hunter.y + (prey.y - hunter.y) * t) + 0.55;
     if (pointBlocked(world, x, y, z)) return false;
   }
   return true;
@@ -28,7 +30,8 @@ function reachable(world, hunter, prey) {
 export function updateHunt(a, dt, world, manager) {
   if (dt <= 0) return;
   a.huntPause = Math.max(0, a.huntPause - dt);
-  if (PREY.has(a.type)) {
+  const preyTypes = manager.preyTypes || PREY; // in de Boerderij-wereld zijn alle boerderijdieren prooi
+  if (preyTypes.has(a.type)) {
     // De hooibaal wordt om de twee seconden gezocht; bij verwijderen verdwijnt het anker.
     a.hayCheck -= dt;
     if (a.hayCheck <= 0) {
@@ -50,6 +53,7 @@ export function updateHunt(a, dt, world, manager) {
     }
     return;
   }
+  if (a.raider) return; // een roofdier uit de Boerderij-wereld wordt door farm.js bestuurd
   if (a.def.dieet !== 'roofdier') return;
   if (!manager.predators || a.tame) {
     if (a.hunt) manager.stopHunt(a);
@@ -58,7 +62,7 @@ export function updateHunt(a, dt, world, manager) {
   if (!a.hunt) {
     a.hunger = Math.max(0, a.hunger - dt);
     if (a.hunger > 0 || a.huntPause > 0) return;
-    const prey = manager.list.filter((b) => PREY.has(b.type) && !b.baby && distance(a, b) <= 16) // nooit een jong dier
+    const prey = manager.list.filter((b) => preyTypes.has(b.type) && !b.baby && distance(a, b) <= 16) // nooit een jong dier
       .sort((b, c) => distance(a, b) - distance(a, c))[0];
     if (!prey) return;
     a.hunt = { target: prey, phase: 'stalk', elapsed: 0, blocked: 0, sidestep: 0 };

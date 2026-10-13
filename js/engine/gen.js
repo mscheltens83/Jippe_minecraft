@@ -44,6 +44,9 @@ export class Generator {
   // classic: een omgezette oude wereld. Het oude eiland ligt dan in een ring van zee.
   constructor(type, seed, { classic = false, gv = GEN_VERSION } = {}) {
     this.type = worldType(type);
+    // De boerderij (fase 7B) is voor de generator gewoon een vlakke weide: de roofdieren vinden zo hun weg,
+    // en het verschil zit in het spel (farm.js)
+    if (this.type === 'farm') this.type = 'flat';
     this.gv = gv;
     this.seed = seed | 0;
     this.classic = classic;
