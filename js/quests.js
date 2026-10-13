@@ -87,6 +87,8 @@ export const QUESTS = [
   { id: 'farmOpgeven', groep: 'boerderij', icon: 'lion', tekst: 'Houd een roofdier tegen met een hek, zodat hij het opgeeft.', on: 'farmRepel' },
   { id: 'farmTerug', groep: 'boerderij', icon: 'cow', tekst: 'Zie een opgegeten dier terugkomen.', on: 'farmBack' },
   { id: 'farmLok', groep: 'boerderij', icon: 'carrot', tekst: 'Lok vijf dieren tegelijk achter je aan met eten.', on: 'lure' },
+  { id: 'farmDicht', groep: 'boerderij', icon: 'build', tekst: 'Maak de zwakke plek in een hok dicht, voordat een dier ontsnapt.', on: 'farmDicht' },
+  { id: 'farmLicht', groep: 'boerderij', icon: 'fox', tekst: 'Zet een fakkel bij je dieren: een vos durft er niet langs.', on: 'farmLicht' },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));
 

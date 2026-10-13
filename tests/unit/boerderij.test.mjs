@@ -14,10 +14,9 @@ test('het eerste roofdier is een vos, later komen er grotere', () => {
 });
 
 test('de nieuwste roofdieren komen vaker', () => {
-  let n = 0;
   const rnd = (() => { let i = 0; return () => ((i++ * 0.6180339887) % 1); })();
   const counts = {};
-  for (let i = 0; i < 4000; i++) { const t = pickRaider(11, rnd); counts[t] = (counts[t] || 0) + 1; n++; }
+  for (let i = 0; i < 4000; i++) { const t = pickRaider(11, rnd); counts[t] = (counts[t] || 0) + 1; }
   assert.ok(counts.tiger > counts.fox, `tijger (${counts.tiger}) vaker dan vos (${counts.fox}) na 11 bezoeken`);
   assert.equal(pickRaider(0, () => 0.99), 'fox', 'bij het begin alleen de vos');
 });

@@ -2,7 +2,7 @@
 // Eerst proberen we het internet (altijd de nieuwste versie), anders de opgeslagen kopie.
 
 // Moet precies 'jippecraft-' + VERSION uit js/version.js zijn (de unit-test controleert dat)
-const CACHE = 'jippecraft-7.1.0';
+const CACHE = 'jippecraft-7.2.0';
 const FILES = [
   './', 'index.html', 'manifest.webmanifest', 'css/style.css',
   'lib/three.module.min.js',
@@ -16,7 +16,7 @@ const FILES = [
   'js/animals/core.js', 'js/animals/species.js', 'js/animals/skills.js',
   'js/animals/farm.js', 'js/animals/cats.js', 'js/animals/savanna.js', 'js/animals/hunt.js',
   'js/animals/extras.js',
-  'js/version.js', 'js/errors.js', 'js/perf.js', 'js/bench.js', 'js/parent.js', 'js/guard.js', 'js/farm.js',
+  'js/version.js', 'js/errors.js', 'js/perf.js', 'js/bench.js', 'js/parent.js', 'js/guard.js', 'js/farm.js', 'js/siege.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'icons/apple-touch-icon.png',
 ];
 

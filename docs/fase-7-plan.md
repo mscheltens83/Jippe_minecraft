@@ -47,8 +47,8 @@ Hoe verder de boerderij (dagen die je volhoudt), hoe groter het roofdier. Elke s
 
 | Vanaf | Roofdier | Eet | Zo komt hij binnen | Zo houd je hem tegen |
 |---|---|---|---|---|
-| dag 1 | **Vos** | kip, konijn | graaft onder een hek door (door aarde, gras, zand) | een vloer of fundering van steen of planken; een fakkel (bang voor licht) |
-| dag 2 | **Leeuwin** | varken, schaap | springt over een laag hek (tot 1,5 hoog) | een muur van 3 hoog; BOE |
+| dag 1 | **Vos** | kip, konijn | graaft door een muur van aarde, gras of zand | een hek of muur van hout of steen; een fakkel (bang voor licht, binnen 4 blokken) |
+| dag 2 | **Leeuwin** (na 3 bezoeken) | varken, schaap, koe | springt over een laag hek (tot 1,7 hoog) | een dubbel hek (2,5) of een muur van 2 of 3 hoog; BOE |
 | dag 4 | **Tijger** | koe, varken, schaap | springt tot 2 blokken hoog en is snel | een muur van 3 hoog en een dichte poort |
 | dag 6 | **Velociraptor** (twee tegelijk) | kip, konijn, schaap | springt, sluipt door gaatjes (1 blok) | geen gaatjes, een poort die dicht is |
 | dag 8 | **Pteranodon** | kip, schaap | vliegt van boven | een dak (ook van hek of gaas mag niet: een echt dak) |
@@ -113,3 +113,24 @@ De Wilde Dag is dezelfde `Storm` als de Wilde Nacht, met `opts.mode = 'dag'` (`s
 - **Lokken** (`animals.js`): houd je zaadjes of een wortel vast, dan lopen dieren die dat lusten (`FARM_PREY`) binnen 14 blokken achter je aan en blijven op ±2 blokken staan.
 - **Stickers**: Jaag een roofdier weg, Houd een roofdier tegen met een hek, Zie een opgegeten dier terugkomen, Lok vijf dieren tegelijk.
 - Tests: `FASE=7b npm run test:browser` en `npm run test:unit` (`boerderij.test.mjs`).
+
+## 6. Zo is 7C gebouwd (versie 7.2.0)
+
+Wat een dier kan staat in `siege.js` (`ABILITIES`); dezelfde regels gelden voor een roofdier dat naar binnen wil en voor een dier dat uit zijn hok wil:
+
+| Dier | Kan | Dus houdt je hem tegen met |
+|---|---|---|
+| vos, konijn | graaft door aarde, gras en zand; springt tot 1,1 | een muur van hout, steen of hek; een fakkel (vos) |
+| kip | springt tot 1,7 | een dubbel hek |
+| geit | springt tot 2,3 | een muur van 3 hoog (of een dubbel hek van 2,5) |
+| varken | beukt aarde, gras, zand, wol en glas kapot | planken of steen |
+| koe, schaap | niets (alleen een open poort of een gat) | een dichte poort |
+| leeuwin, cheetah | springt tot 1,7 | een dubbel hek of hoger |
+| leeuw | springt tot 1,8 | een dubbel hek of hoger |
+| tijger | springt tot 2,3 | een dubbel hek (2,5) of een muur van 3 |
+
+- Een hek is 1,5 hoog; twee hekken op elkaar zijn 2,5. Een open hekdeur of deur is een gat.
+- **Roofdieren** (`Farm.cross`): loopt het roofdier tegen een hek of muur, dan springt hij eroverheen (als hij hoog genoeg springt), of graaft hij erdoorheen (vos, zijn blok na blok kapot met krabbelen en brokjes), mits er achter de muur weer lucht is. Anders loopt hij rondjes en geeft het op. Een **fakkel** (of ander licht, 12 of meer) binnen 4 blokken jaagt een vos weg.
+- **Uitbrekers** (`Farm.updateEscape`): om de 45 tot 85 seconden kijkt de regie of een dier (binnen 40 blokken van Jippe) in een dicht hok zit (`enclosure`: een vlakke zoektocht van ±10 blokken die nergens uitkomt) met een zwakke plek (`bestExit`). Zo ja: het dier loopt erheen, krijgt een uitroepteken en jij hoort "De kip wil ontsnappen!". Na 4 seconden probeert hij het: springen, graven of beuken. Maakt Jippe de zwakke plek eerst sterker, dan blijft hij erin ("Gelukkig, het hok is dicht!", sticker). Een ontsnapt dier staat buiten het hok: lok hem terug met eten. Een hok zonder zwakke plek (of geen hok) geeft nooit uitbrekers.
+- Nieuwe stickers: Maak de zwakke plek dicht, Zet een fakkel bij je dieren.
+- Tests: `FASE=7c npm run test:browser` en `uitbreken.test.mjs`.

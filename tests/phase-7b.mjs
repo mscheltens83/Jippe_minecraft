@@ -1,7 +1,6 @@
 // Fase 7B: Boerderij in Gevaar. Een wereld waarin roofdieren dieren van je boerderij komen halen:
 // ze sluipen aan, pakken een dier, gaan weg en komen later terug; opgegeten dieren komen terug;
 // een hek houdt ze tegen; Jippe jaagt ze weg; dieren volgen eten. Beeldje voor beeldje.
-import { waitTrue } from './helpers.mjs';
 
 export async function testPhase7B({ newPage, check, out }) {
   const { context, page } = await newPage();
@@ -116,7 +115,7 @@ export async function testPhase7B({ newPage, check, out }) {
   // Lokken: dieren die het eten lusten lopen achter Jippe aan
   const lure = await run(async () => {
     const { ITEM } = await import('./js/blocks.js');
-    const j = window.__jippecraft, f = j.farm, p = j.player, w = j.world;
+    const j = window.__jippecraft, p = j.player, w = j.world;
     window.__reset();
     const sp = w.spawnPoint(), x = Math.floor(sp.x), z = Math.floor(sp.z);
     p.setPos({ x: sp.x, y: w.surfaceY(x, z) + 1, z: sp.z });
