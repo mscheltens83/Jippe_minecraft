@@ -64,6 +64,40 @@ export function isPreyFor(type, b) {
 
 const alive = (g, a) => g.animals.list.includes(a);
 
+// ---------- gesproken tekst en tips ----------
+// De naam van een dier om uit te spreken, met het goede lidwoord: "de kip", "het varken", "de T-rex"
+const HET = new Set(['pig', 'sheep', 'rabbit']);
+export const spoken = (type) => (type === 'trex' ? 'T-rex' : SPECIES[type].naam.toLowerCase());
+export const de = (type, hoofdletter = false) => { const w = HET.has(type) ? 'het' : 'de'; return hoofdletter ? w[0].toUpperCase() + w.slice(1) : w; };
+
+// Wat elk roofdier kan, en wat je er dan aan doet: dit zegt het spel erbij als hij eraan komt
+export const RAIDER_TIPS = {
+  fox: 'Een vos kan graven door aarde. Maak je muur van hout of steen, of zet een fakkel neer.',
+  lioness: 'Een leeuwin springt over een laag hek. Maak je hek twee hoog!',
+  lion: 'Een leeuw springt over een laag hek. Maak je hek twee hoog!',
+  cheetah: 'De cheetah is supersnel en springt over een laag hek. Maak je hek twee hoog!',
+  tiger: 'De tijger springt heel hoog. Bouw een dubbel hek, of een muur van drie hoog.',
+  raptor: 'Raptors springen over een laag hek, maar ze zijn bang voor een fakkel.',
+  pteranodon: 'De pteranodon vliegt! Bouw een dak boven je dieren.',
+  trex: 'De T-rex slaat hout en steen kapot! Alleen een muur van ijzer houdt hem tegen. Of roep BOE!',
+};
+// Wat je doet als een dier wil ontsnappen, per manier waarop hij het probeert
+export const ESCAPE_TIPS = {
+  jump: 'Maak het hek hoger, dan kan hij er niet overheen.',
+  dig: 'Hij graaft! Maak de muur van hout of steen.',
+  bash: 'Hij beukt de muur kapot! Maak de muur van planken of steen.',
+};
+// Af en toe een tip als het rustig is, in deze volgorde
+export const CALM_TIPS = [
+  ['hek', 'Tip: bouw een hok van hekken om je dieren. Roofdieren kunnen er niet doorheen.'],
+  ['lok', 'Tip: houd zaadjes of een wortel vast. Dan lopen de dieren achter je aan, het hok in.'],
+  ['fakkel', 'Tip: een fakkel houdt de vos weg.'],
+  ['boe', 'Tip: tik op de BOE knop om een roofdier weg te jagen.'],
+  ['dubbel', 'Tip: maak je hek twee hoog, dan springen de katten er niet overheen.'],
+  ['dak', 'Tip: bouw een dak boven je hok. Dan kunnen vliegers er niet in.'],
+  ['poort', 'Tip: doe de poort dicht. Een open poort is een gat.'],
+];
+
 function el(tag, cls, html) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -87,6 +121,7 @@ export class Farm {
     this.goldCool = 200 + Math.random() * 120;
     this.newCool = 120 + Math.random() * 60; // volgende nieuwe dier uit het bos
     this.joined = 0;
+    this.tipNo = saved.tipNo | 0;           // welke rustige tip de volgende is
     this.force = null;                      // (voor de tests: dit roofdier laten komen)
     this.hint = saved.raids === undefined;  // een nieuwe boerderij: één keer uitleggen
     this.escapeCool = 45 + Math.random() * 30;
@@ -99,7 +134,7 @@ export class Farm {
   }
 
   save() {
-    return { raids: this.raids, eaten: this.eaten, repelled: this.repelled, cool: Math.round(this.cool),
+    return { raids: this.raids, eaten: this.eaten, repelled: this.repelled, cool: Math.round(this.cool), tipNo: this.tipNo,
       pending: this.pending.map((e) => ({ type: e.type, variant: e.variant, left: Math.round(e.left), golden: e.golden || undefined })) };
   }
 
@@ -228,8 +263,10 @@ export class Farm {
     const a = made[0].a, naam = SPECIES[type].naam, many = made.length > 1;
     g.sounds.growl(this.pan(a.x, a.z), 1);
     if (def.boss) g.sounds.roar(this.pan(a.x, a.z), 1);
-    const text = def.boss ? `De ${naam} komt eraan!` : many ? `Pas op! ${made.length} ${naam.toLowerCase()}s komen eraan!` : `Pas op! Een ${naam.toLowerCase()} komt eraan!`;
+    const text = def.boss ? `De ${naam} komt eraan!` : many ? `Pas op! ${made.length} ${spoken(type)}s komen eraan!` : `Pas op! Een ${spoken(type)} komt eraan!`;
     speech.say(text);
+    speech.tip(RAIDER_TIPS[type], 'raider-' + type, 150);       // wat hij kan, en wat je dan bouwt
+    if (this.raids === 0) speech.tip('Tik op de BOE knop, of loop erheen, om hem weg te jagen.', 'boe-eerst', 900);
     g.ui.say(many ? `${made.length} ${naam}s komen eraan!` : `${naam} komt eraan!`, type);
     g.note('farmRaid', { type });
     return made[0];
@@ -367,9 +404,10 @@ export class Farm {
     this.eaten++; r.bites++;
     a.hunt = null; a.walking = false; a.chaseSpeed = 0.0001; a.eatTime = 1.4;
     r.phase = 'eten'; r.t = 0;
-    const naam = SPECIES[prey.type].naam.toLowerCase();
-    g.ui.say(`Oei, de ${naam} is weg! Hij komt straks terug.`, prey.type);
-    speech.say(`Oei, de ${naam} is weg! Hij komt straks terug.`);
+    const naam = spoken(prey.type);
+    g.ui.say(`Oei, ${de(prey.type)} ${naam} is weg! ${HET.has(prey.type) ? 'Het' : 'Hij'} komt straks terug.`, prey.type);
+    speech.say(`Oei, ${de(prey.type)} ${naam} is opgegeten! Maar ${HET.has(prey.type) ? 'het' : 'hij'} komt straks terug.`);
+    speech.tip('Snel, bouw een hek om de andere dieren!', 'na-eten', 120);
     g.note('farmEaten', { type: prey.type });
     g.markDirty();
   }
@@ -378,7 +416,7 @@ export class Farm {
   giveUp(r) {
     const g = this.g;
     if (r.target) r.target.fleeFrom = null;
-    if (!r.bites) { this.repelled++; g.ui.say('Het roofdier geeft het op!', r.type); speech.say('Het roofdier geeft het op! Goed gedaan!'); g.note('farmRepel', { type: r.type }); }
+    if (!r.bites) { this.repelled++; g.ui.say('Het roofdier geeft het op!', r.type); speech.say('Het roofdier geeft het op! Goed gedaan, je hek werkt!'); g.note('farmRepel', { type: r.type }); }
     this.leave(r);
   }
 
@@ -403,7 +441,7 @@ export class Farm {
     r.exit = { x: a.x + dx / d * 60, z: a.z + dz / d * 60 };
     this.repelled += r.bites ? 0 : 1;
     g.sounds.animal(r.type);
-    if (why === 'licht') { g.ui.say('Bang voor het licht!', 'torch'); speech.say('Het roofdier is bang voor het licht!'); g.note('farmLicht', { type: r.type }); }
+    if (why === 'licht') { g.ui.say('Bang voor het licht!', 'torch'); speech.say('Het roofdier is bang voor het licht! Zet meer fakkels neer.'); g.note('farmLicht', { type: r.type }); }
     else if (!r.bites) { g.ui.say('Weggejaagd!', r.type); speech.say('Weggejaagd!'); }
     g.note('farmScare', { type: r.type, why });
   }
@@ -551,10 +589,11 @@ export class Farm {
         if (!best) continue;
         this.escape = { a, type: a.type, enc, best, phase: 'wachten', t: 0, marked: false };
         g.particles.warnAt(a, true); this.escape.marked = true;
-        const naam = SPECIES[a.type].naam.toLowerCase();
+        const naam = spoken(a.type);
         g.sounds.animal(a.type);
-        speech.say(`Pas op! De ${naam} wil ontsnappen!`);
-        g.ui.say(`De ${naam} wil ontsnappen!`, a.type);
+        speech.say(`Pas op! ${de(a.type, true)} ${naam} wil ontsnappen!`);
+        speech.tip(ESCAPE_TIPS[best.kind], 'uitbreker-' + best.kind, 90);
+        g.ui.say(`${de(a.type, true)} ${naam} wil ontsnappen!`, a.type);
         g.note('farmUitbreker', { type: a.type, kind: best.kind });
         return;
       }
@@ -572,7 +611,7 @@ export class Farm {
         const col = column(w, bx, bz, e.enc.y, a.def.h), kind = passKind(abilityOf(e.type), col);
         if (!kind || kind === 'free') {
           const free = kind === 'free'; // niets meer in de weg: dan staat er een gat (gelukkig niet erg)
-          if (!free) { g.ui.say('Gelukkig, het hok is dicht!', e.type); speech.say('Gelukkig, het hok is dicht!'); g.note('farmDicht', { type: e.type }); }
+          if (!free) { g.ui.say('Gelukkig, het hok is dicht!', e.type); speech.say('Gelukkig, het hok is dicht! Goed gedaan!'); g.note('farmDicht', { type: e.type }); }
           this.endEscape(); this.escapeCool = 30 + Math.random() * 30;
           return;
         }
@@ -586,8 +625,9 @@ export class Farm {
     } else {
       this.steer(e, ex + 0.5 + (ex - fx) * 8, ez + 0.5 + (ez - fz) * 8, 2.4, dt);
       if (e.t > 4) {
-        const naam = SPECIES[e.type].naam.toLowerCase();
-        g.ui.say(`De ${naam} is ontsnapt!`, e.type); speech.say(`Oei, de ${naam} is ontsnapt! Lok hem terug met eten.`);
+        const naam = spoken(e.type);
+        g.ui.say(`${de(e.type, true)} ${naam} is ontsnapt!`, e.type); speech.say(`Oei, ${de(e.type)} ${naam} is ontsnapt!`);
+        speech.tip('Lok hem terug: houd zaadjes of een wortel vast, en loop naar je hok. Maak daarna de zwakke plek dicht.', 'ontsnapt', 90);
         this.escaped = (this.escaped || 0) + 1;
         this.endEscape(); this.escapeCool = 45 + Math.random() * 40;
       }
@@ -609,7 +649,14 @@ export class Farm {
     if (this.hint && this.t > 4) {
       this.hint = false;
       speech.say('Bescherm je dieren! Bouw een hok met hekken.');
+      speech.tip('Houd zaadjes of een wortel vast, dan lopen de dieren achter je aan, het hok in.', 'start-lok', 900);
       g.ui.say('Bescherm je dieren! Bouw een hok.', 'farm');
+    }
+    // Af en toe een tip als het rustig is
+    if (!this.active.length && this.cool > 20 && (this.tipCool = (this.tipCool ?? 150) - dt) <= 0) {
+      this.tipCool = 150 + Math.random() * 60;
+      const [key, text] = CALM_TIPS[this.tipNo++ % CALM_TIPS.length];
+      speech.tip(text, 'rustig-' + key, 100);
     }
     // Af en toe loopt er een nieuw dier uit het bos naar je boerderij toe
     if ((this.newCool -= dt) <= 0) { this.newCool = 150 + Math.random() * 90; this.newcomer(); }
@@ -648,9 +695,9 @@ export class Farm {
     a.goal = { x: this.home.x + (Math.random() - 0.5) * 10, z: this.home.z + (Math.random() - 0.5) * 10 };
     this.joined++;
     g.particles.sparkle(a.x - 0.5, a.y, a.z - 0.5, a.x + 0.5, a.y + a.def.h + 0.5, a.z + 0.5, 16);
-    const naam = SPECIES[type].naam.toLowerCase();
+    const naam = spoken(type);
     g.ui.say(`Een ${naam} komt naar je boerderij!`, type);
-    speech.say(`Een ${naam} komt naar je boerderij!`);
+    speech.say(`Kijk, een ${naam} komt naar je boerderij!`);
     g.note('farmNieuw', { type });
   }
 
@@ -668,9 +715,10 @@ export class Farm {
     this.gold = { a, left: GOLD_TIME, sparkT: 0 };
     g.particles.firework(a.x, a.y + 2, a.z);
     g.sounds.magic();
-    const naam = SPECIES[type].naam.toLowerCase();
+    const naam = spoken(type);
     g.ui.say(`Een gouden ${naam}! Houd hem veilig.`, 'star');
     speech.say(`Kijk, een gouden ${naam}! Houd hem veilig, dan krijg je een schat.`);
+    speech.tip('Roofdieren vinden hem extra lekker. Bouw een sterk hok om hem heen!', 'goud-tip', 300);
     g.note('farmGastGoud', { type });
   }
 
@@ -688,9 +736,9 @@ export class Farm {
     g.particles.sparkle(a.x - 0.5, a.y, a.z - 0.5, a.x + 0.5, a.y + a.def.h + 0.5, a.z + 0.5, 30);
     g.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, 1.3);
     g.sounds.magic(); g.sounds.animal(e.type);
-    const naam = SPECIES[e.type].naam.toLowerCase();
-    g.ui.say(`Daar is de ${naam} weer!`, e.type);
-    speech.say(`Daar is de ${naam} weer!`);
+    const naam = spoken(e.type);
+    g.ui.say(`Daar is ${de(e.type)} ${naam} weer!`, e.type);
+    speech.say(`Daar is ${de(e.type)} ${naam} weer!`);
     g.note('farmBack', { type: e.type });
     g.markDirty();
     return true;

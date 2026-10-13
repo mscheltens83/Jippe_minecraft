@@ -65,6 +65,13 @@ export async function testPhase7B({ newPage, check, out }) {
   });
   check(back.more === 1 && back.pending === 0, 'het opgegeten dier komt weer terug');
   check(back.sticker, 'er is een sticker voor een dier dat terugkomt');
+  // Het spel zegt het hardop, met een tip erbij (de gesproken tekst staat in speech.log)
+  const said = await run(async () => (await import('./js/speech.js')).speech.log.slice());
+  check(said.some((t) => /^Pas op! Een vos komt eraan!$/.test(t)), 'het spel roept hardop dat er een vos aankomt');
+  check(said.some((t) => /graven/.test(t) && /fakkel/.test(t)), 'en vertelt wat een vos kan en wat je dan bouwt');
+  check(said.some((t) => /^Oei, (de kip|het konijn) is opgegeten! Maar (hij|het) komt straks terug\.$/.test(t) && (t.includes('kip') ? t.includes('hij') : t.includes('het komt'))), 'hij zegt dat het dier is opgegeten, met het goede lidwoord, en dat het terugkomt');
+  check(said.some((t) => /bouw een hek/i.test(t)), 'en geeft de tip: bouw een hek');
+  check(said.some((t) => /^Daar is (de kip|het konijn) weer!$/.test(t)), 'als het dier terugkomt, zegt hij dat ook');
 
   // Een hek houdt hem tegen: hij loopt rondjes en geeft het op
   const fence = await run(async () => {

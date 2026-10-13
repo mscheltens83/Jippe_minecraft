@@ -64,3 +64,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 7B | Boerderij in Gevaar: een bewaarde wereld waarin roofdieren (vos, leeuwin, leeuw, cheetah, tijger) dieren pakken en weer weggaan, opgegeten dieren komen terug, lokken met eten, BOE, hekken houden ze tegen ([plan](fase-7-plan.md)) | Klaar (versie 7.1.0) |
 | 7C | Roofdieren springen over hekken en graven door aarde, zijn bang voor fakkels; dieren breken uit een zwak hok ([plan, §6](fase-7-plan.md)) | Klaar (versie 7.2.0) |
 | 7D | Boerderij afgewerkt: nieuwe dieren uit het bos, een gouden gast met een schat, velociraptors, pteranodon en de T-rex als baas ([plan, §7](fase-7-plan.md)) | Klaar (versie 7.3.0) |
+| 7E | Gesproken tips: het spel zegt wat er gebeurt (opgegeten, ontsnapt, roofdier komt) en wat je dan bouwt ([plan, §8](fase-7-plan.md)) | Klaar (versie 7.4.0) |

@@ -27,6 +27,8 @@ export async function testPhase6A({ newPage, check, out }) {
       hearts: s.hearts, left: s.left, far: s.animals().every((a) => Math.hypot(a.x - j.player.x, a.z - j.player.z) > 18) };
   });
   check(day.bar && day.home && day.hearts === 5 && day.left > 60, 'balk met klok en 5 hartjes; geen huisknop');
+  check(await run(async () => { const l = (await import('./js/speech.js')).speech.log; return l.some((t) => /dak/.test(t) && /deur/.test(t)) && l.some((t) => /BOE/.test(t)); }),
+    'nacht 1: het spel zegt hardop wat je moet bouwen (dak en deur) en dat er een BOE knop is');
   check(day.animals >= 3 && day.far, `nacht 1: de eerste golf dieren (${day.animals}) staat ver weg in een kring`);
   await page.screenshot({ path: out + '/6a-dag.png' });
 

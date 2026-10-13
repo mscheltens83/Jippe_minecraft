@@ -145,3 +145,17 @@ Wat een dier kan staat in `siege.js` (`ABILITIES`); dezelfde regels gelden voor 
 - Een nieuwe boerderij legt één keer uit: "Bescherm je dieren! Bouw een hok met hekken."
 - Nieuwe stickers: Zie een nieuw dier naar je boerderij lopen, Houd een gouden dier veilig, Houd een pteranodon tegen met een dak, Houd de T-rex tegen met een sterke muur.
 - Tests: `FASE=7d npm run test:browser`.
+
+## 8. Zo is 7E gebouwd (versie 7.4.0): gesproken tips
+
+Jippe kan nog niet alles lezen, dus het spel zegt het hardop (Nederlandse stem van het toestel, zoals de opdrachtjes). `speech.js` heeft nu twee manieren van praten:
+
+- `say(tekst)`: meteen, en kapt af wat er nog gezegd werd (voor wat nu gebeurt: "Oei, de kip is opgegeten!").
+- `tip(tekst, sleutel, elke)`: een tip. Komt in een wachtrij na wat er nu gezegd wordt (hoogstens twee wachten, de oudste valt af) en wordt niet vaker herhaald dan om de `elke` seconden, zodat het niet gaat zeuren. Een nieuwe `say` wist de wachtrij.
+- Alles wat gezegd wordt staat in `speech.log` (ook als `?stil` aanstaat), zodat de tests het kunnen controleren.
+
+**Boerderij** (`farm.js`): bij een roofdier hoor je eerst "Pas op! Een vos komt eraan!" en dan wat hij kan en wat je bouwt (`RAIDER_TIPS`: vos graaft, leeuw/cheetah springen en wil je hek twee hoog, tijger een dubbel hek of muur van drie, raptors zijn bang voor een fakkel, de pteranodon vliegt en wil een dak, de T-rex beukt alles kapot en wil ijzer of BOE). Verder: "Oei, de kip is opgegeten! Maar hij komt straks terug." met de tip "Snel, bouw een hek"; een dier dat wil ontsnappen met de tip per manier (`ESCAPE_TIPS`: springen, graven, beuken); ontsnapt ("lok hem terug"); het roofdier geeft het op of is bang voor het licht; nieuwe en gouden dieren; en af en toe een rustige tip (`CALM_TIPS`: hek, lokken, fakkel, BOE, dubbel hek, dak, poort). Het lidwoord klopt (het varken, het schaap, het konijn; de kip, de koe, de T-rex).
+
+**Wilde Nacht en Dag** (`storm.js`): bij elke ronde een tip over wat nu komt (`NIGHT_TIPS`: 1 dak en deur, 2 geiten en apen, 3 vliegers, 4 olifant en triceratops: bouw met keien, 5 en verder de T-rex: alleen ijzer en obsidiaan), de BOE-knop in ronde 1, en onderweg "Ze slaan je muur kapot!", "Ze graven naar je toe!" en "Nog maar twee hartjes!" (elk één keer per ronde of na een minuut).
+
+Tests: `spraak.test.mjs` (wachtrij, afkappen, niet zeuren, tipteksten, lidwoorden) en gesproken tekst in `FASE=6a` en `FASE=7b`.

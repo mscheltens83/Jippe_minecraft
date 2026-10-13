@@ -67,6 +67,16 @@ export function gainFor(id) {
   return null;
 }
 
+// Wat het spel zegt als een nieuwe ronde begint: wat de dieren nu kunnen, en wat je dan bouwt
+export const NIGHT_TIPS = {
+  1: 'Bouw een dak op je huis en doe de deur dicht. Dieren kunnen niet door een dichte deur.',
+  2: 'Geiten springen over muren en apen klimmen erop. Maak je muur hoog en bouw een dak.',
+  3: 'Nu komen er vliegers! Bouw een dak boven je huis.',
+  4: 'De olifant en de triceratops slaan hout kapot. Bouw met keien.',
+  5: 'De T-rex komt! Hij slaat bijna alles kapot. Alleen ijzer en obsidiaan houden hem tegen.',
+};
+export const nightTip = (n) => NIGHT_TIPS[Math.max(1, Math.min(5, n))];
+
 // Hoe vaak je erop moet beuken voordat een blok kapot is (Infinity = nooit)
 export function blockStrength(id) {
   const b = BLOCKS[id];
@@ -394,6 +404,8 @@ export class Storm {
     const text = this.night === 1 ? 'Bouw snel een huis! Als het donker wordt, komen de dieren.'
       : deep ? `${this.word} ${this.night}. Pas op: nu graven ze ook door steen! Bouw met keien of ijzer.` : `${this.word} ${this.night}. Maak je huis sterker!`;
     speech.say(text);
+    speech.tip(nightTip(this.night), `ronde-${this.word}-${this.night}`, 20);
+    if (this.night === 1) speech.tip('Tik op de BOE knop om de dieren weg te jagen.', 'storm-boe', 600);
     g.ui.say(this.night === 1 ? 'Bouw snel een huis!' : deep ? `${this.word} ${this.night}: ze graven nu ook door steen!` : `${this.word} ${this.night}: maak je huis sterker!`, 'home');
     this.setTime(DUSK_FROM);
     this.render();
@@ -406,6 +418,7 @@ export class Storm {
     this.setTime(NIGHT);
     g.sounds.animal('lion');
     speech.say('Daar komen ze!');
+    this.warnedBreak = false; this.warnedDig = false;
     const house = this.checkHouse();
     g.ui.say(house.closed ? 'Daar komen ze!' : 'Daar komen ze! Je huis is nog open!', this.sunny ? 'wildDay' : 'wildNight');
     this.render();
@@ -817,7 +830,10 @@ export class Storm {
     if (!d || d.id !== id) { if (d) this.dropCrack(d); d = { x, y, z, id, hits: 0, mesh: null }; this.damage.set(key, d); }
     d.hits++;
     const p = g.player, near = Math.hypot(x + 0.5 - p.x, z + 0.5 - p.z);
-    if (dig) g.sounds.scratch(this.pan(x + 0.5, z + 0.5), Math.max(0.4, 1 - near / 12)); // graven: krabbelen
+    if (dig) {
+      g.sounds.scratch(this.pan(x + 0.5, z + 0.5), Math.max(0.4, 1 - near / 12)); // graven: krabbelen
+      if (!this.warnedDig) { this.warnedDig = true; speech.tip('Ze graven naar je toe! Maak je dak en je vloer van keien of ijzer.', 'storm-graaf', 60); }
+    }
     else g.sounds.bonk(this.pan(x + 0.5, z + 0.5), Math.max(0.3, 1 - near / 16));
     if (near < 7) this.shake = Math.max(this.shake, 0.15);
     g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 5);
@@ -834,6 +850,7 @@ export class Storm {
     g.sounds.break(b.sound);
     g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 16);
     this.broken = (this.broken || 0) + 1;
+    if (!this.warnedBreak) { this.warnedBreak = true; speech.tip('Ze slaan je muur kapot! Plak hem snel dicht met een blok.', 'storm-kapot', 45); }
     this.collapse(x, y + 1, z, ux, uz);
   }
 
@@ -943,6 +960,8 @@ export class Storm {
     const g = this.g, p = g.player;
     if (this.phase !== 'dag' && this.phase !== 'nacht') return;
     this.hearts = Math.max(0, this.hearts - 1);
+    if (this.hearts === 2) speech.tip('Nog maar twee hartjes! Ga snel je huis in.', 'hartjes2', 60);
+    else if (this.hearts === 1) speech.tip('Nog maar één hartje! Pas op!', 'hartjes1', 60);
     this.invuln = 1;
     this.shake = 0.35;
     if (a) {
