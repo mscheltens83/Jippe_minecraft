@@ -50,9 +50,9 @@ export async function testPhaseA({ newPage, check, out, phase2Save }) {
   });
   check(grid, 'zes wereldplekken staan in drie kolommen en twee rijen');
   await page.locator('.slot-card[aria-label="Wereld 6"]').tap();
-  check(await page.locator('.choice').count() === 8 && await page.locator('.choice[aria-label="Grote wereld"]').isVisible() &&
-    await page.locator('.choice[aria-label="Dinowereld"]').isVisible() &&
-    !(await page.locator('.choice[aria-label="Avontuur"]').count()), 'acht wereldsoorten om uit te kiezen, met de Grote wereld en de Dinowereld, zonder Avontuur');
+  check(await page.locator('.choice').count() === 9 && await page.locator('.choice[aria-label="Grote wereld"]').isVisible() &&
+    await page.locator('.choice[aria-label="Dinowereld"]').isVisible() && await page.locator('.choice[aria-label="Boerderij"]').isVisible() &&
+    !(await page.locator('.choice[aria-label="Avontuur"]').count()), 'negen wereldsoorten om uit te kiezen, met de Grote wereld, de Dinowereld en de Boerderij, zonder Avontuur');
   const touchTargets = await run(() => [...document.querySelectorAll('.choice')].every((e) => {
     const r = e.getBoundingClientRect(); return r.width >= 60 && r.height >= 60 && !!e.querySelector('svg');
   }));
