@@ -16,6 +16,7 @@ export const QUEST_GROUPS = [
   { key: 'rijden', title: 'Rails en water', icon: 'minecart' },
   { key: 'knoppen', title: 'Knoppen', icon: 'lever' },
   { key: 'wildeNacht', title: 'Wilde Nacht', icon: 'wildNight' },
+  { key: 'wildeDag', title: 'Wilde Dag', icon: 'wildDay' },
 ];
 
 const THEMES = ['jungle', 'desert', 'tundra', 'savanna', 'dino'];
@@ -76,6 +77,10 @@ export const QUESTS = [
   { id: 'nacht5', groep: 'wildeNacht', icon: 'trex', tekst: 'Overleef vijf Wilde Nachten: de nacht van de T-rex!', on: 'stormNight', match: (d) => d.night >= 5 },
   { id: 'boe', groep: 'wildeNacht', icon: 'torch', tekst: 'Jaag een dier weg met de BOE-knop.', on: 'boo' },
   { id: 'repareren', groep: 'wildeNacht', icon: 'build', tekst: 'Vervang een kapot geslagen blok in de Wilde Nacht.', on: 'stormRepair' },
+  // Wilde Dag (fase 7A)
+  { id: 'dag1', groep: 'wildeDag', icon: 'wildDay', tekst: 'Overleef je eerste Wilde Dag.', on: 'stormDay', match: (d) => d.night >= 1 },
+  { id: 'dag3', groep: 'wildeDag', icon: 'wildDay', tekst: 'Overleef drie Wilde Dagen achter elkaar.', on: 'stormDay', match: (d) => d.night >= 3 },
+  { id: 'dag5', groep: 'wildeDag', icon: 'trex', tekst: 'Overleef vijf Wilde Dagen: de dag van de T-rex!', on: 'stormDay', match: (d) => d.night >= 5 },
 ];
 export const QUEST_BY_ID = new Map(QUESTS.map((q) => [q.id, q]));
 

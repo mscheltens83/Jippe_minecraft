@@ -1,4 +1,5 @@
-// De Wilde Nacht (fase 6): overdag heb je even de tijd om een huis te bouwen, want als het donker
+// De Wilde Nacht (fase 6) en de Wilde Dag (fase 7A, dezelfde ronde maar in de zon, opts.mode = 'dag'):
+// overdag heb je even de tijd om een huis te bouwen, want als het donker
 // wordt, komen alle dieren op je af. Raken ze je, dan ben je een hartje kwijt; alle hartjes op is
 // "gepakt". Overleef je de nacht, dan komt de volgende nacht (steeds moeilijker).
 // Het is een losse spelstand op een eigen eiland: van deze wereld wordt niets bewaard.
@@ -7,6 +8,7 @@ import { B, BLOCKS, blockBoxes } from './blocks.js';
 import { ICONS } from './icons.js';
 import { speech } from './speech.js';
 import { merge } from './models.js';
+import { NOON } from './daynight.js';
 
 export const HEARTS = 5;          // zoveel hartjes heb je
 export const ARENA = 44;          // zo ver mag je van het midden (daarna is de mist te dik)
@@ -179,8 +181,8 @@ function eyeBox(color, sx, sy, sz, x, y, z, rz = 0) {
 }
 
 // Waar de ogen zitten en hoe groot ze zijn, in de ruimte van de kop (de kop draait en knikt, de ogen gaan mee)
-function eyeShape(a) {
-  const key = a.type + ':' + a.variant;
+function eyeShape(a, color) {
+  const key = a.type + ':' + a.variant + ':' + color;
   if (EYE_SHAPES.has(key)) return EYE_SHAPES.get(key);
   const head = a.head;
   head.geometry.computeBoundingBox();
@@ -191,7 +193,7 @@ function eyeShape(a) {
   const apart = Math.max(s * 0.9, w * 0.24), parts = [];
   for (const side of [-1, 1]) {
     const x = cx + side * apart;
-    parts.push(eyeBox(0xff2a12, s, s * 0.75, 0.03, x, y, z));
+    parts.push(eyeBox(color, s, s * 0.75, 0.03, x, y, z));
     // wenkbrauw: naar binnen omlaag, boos
     parts.push(eyeBox(0x120404, s * 1.5, s * 0.32, 0.04, x - side * s * 0.1, y + s * 0.62, z - 0.005, side * 0.45));
   }
@@ -202,14 +204,18 @@ function eyeShape(a) {
 
 // De ogen zitten aan de kop, dus ze draaien en knikken mee. Ver weg wordt het dier als één stuk
 // getekend (zonder losse kop): dan staat er een tweede setje ogen op de plek van de kop.
-export function addEyes(a) {
+// Wilde Nacht: rood en gloeiend; Wilde Dag (sunny): geel, zonder gloed (boos, niet eng).
+export function addEyes(a, sunny = false) {
   if (a.eyes || !a.head?.geometry) return;
-  const E = eyeParts(), sh = eyeShape(a);
+  const E = eyeParts(), sh = eyeShape(a, sunny ? 0xffd23a : 0xff2a12);
   const make = () => {
     const eyes = new THREE.Group();
-    const glow = new THREE.Sprite(E.glow);
-    glow.scale.set(sh.apart * 2 + sh.s * 6, sh.s * 6, 1); glow.position.set(sh.cx, sh.y, sh.z - 0.05);
-    eyes.add(new THREE.Mesh(sh.geo, E.mat), glow);
+    eyes.add(new THREE.Mesh(sh.geo, E.mat));
+    if (!sunny) {
+      const glow = new THREE.Sprite(E.glow);
+      glow.scale.set(sh.apart * 2 + sh.s * 6, sh.s * 6, 1); glow.position.set(sh.cx, sh.y, sh.z - 0.05);
+      eyes.add(glow);
+    }
     return eyes;
   };
   a.eyes = make();
@@ -234,6 +240,9 @@ export class Storm {
   constructor(game, opts = {}) {
     this.g = game;
     this.opts = opts;
+    this.sunny = opts.mode === 'dag'; // Wilde Dag: dezelfde ronde, maar in de zon
+    this.word = this.sunny ? 'Dag' : 'Nacht';
+    this.recordKey = this.sunny ? 'wildeDag' : 'wildeNacht';
     this.night = 1;
     this.hearts = HEARTS;
     this.phase = 'dag';
@@ -292,9 +301,10 @@ export class Storm {
   }
 
   render() {
-    const phase = this.phase === 'dag' ? `${ICONS.sun}<b>Nacht ${this.night}</b> bouw een huis!`
-      : this.phase === 'nacht' ? `${ICONS.wildNight}<b>Nacht ${this.night}</b> golf ${this.wave}/${this.plan.waves}`
-        : this.phase === 'gepakt' ? `${ICONS.wildNight}<b>Nacht ${this.night}</b>` : `${ICONS.sun}<b>Nacht ${this.night}</b>`;
+    const wild = this.sunny ? ICONS.wildDay : ICONS.wildNight, w = this.word;
+    const phase = this.phase === 'dag' ? `${ICONS.sun}<b>${w} ${this.night}</b> bouw een huis!`
+      : this.phase === 'nacht' ? `${wild}<b>${w} ${this.night}</b> golf ${this.wave}/${this.plan.waves}`
+        : this.phase === 'gepakt' ? `${wild}<b>${w} ${this.night}</b>` : `${ICONS.sun}<b>${w} ${this.night}</b>`;
     const secs = Math.max(0, Math.ceil(this.left));
     const time = this.phase === 'dag' || this.phase === 'nacht' ? `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}` : '';
     if (this.shown.phase !== phase) { this.phaseEl.innerHTML = phase; this.shown.phase = phase; }
@@ -312,8 +322,8 @@ export class Storm {
     g.playing = false; g.input.enabled = false; g.input.releaseAll();
     const caught = kind === 'gepakt';
     this.endEl.className = 'storm-end ' + kind;
-    this.endEl.innerHTML = `<div class="storm-card"><h2>${caught ? 'Je bent gepakt!' : `Je hebt nacht ${this.night} overleefd!`}</h2>
-      <p>${caught ? `Je hield het vol tot nacht ${this.night}.` : 'De zon komt op. De dieren rennen weg.'}</p>
+    this.endEl.innerHTML = `<div class="storm-card"><h2>${caught ? 'Je bent gepakt!' : `Je hebt ${this.word.toLowerCase()} ${this.night} overleefd!`}</h2>
+      <p>${caught ? `Je hield het vol tot ${this.word.toLowerCase()} ${this.night}.` : this.sunny ? 'De dieren rennen weg.' : 'De zon komt op. De dieren rennen weg.'}</p>
       <div class="storm-stars">${Array.from({ length: HEARTS }, (_, i) => `<i class="${i < this.hearts ? 'full' : 'empty'}">${ICONS.heart}</i>`).join('')}</div>
       ${!caught && this.reward ? `<p class="storm-reward-title">Je verdient nieuwe bouwstenen:</p><div class="storm-reward">${Object.entries(this.reward)
     .map(([id, n]) => `<span><img src="${g.ui.icons[id]}" alt="">+${n}</span>`).join('')}</div>` : ''}
@@ -326,7 +336,7 @@ export class Storm {
       buttons.appendChild(b);
     };
     if (caught) add('again', 'restore', 'Nog een keer', () => g.startStorm(this.opts));
-    else add('next', 'wildNight', 'Volgende nacht', () => this.nextNight());
+    else add('next', this.sunny ? 'wildDay' : 'wildNight', this.sunny ? 'Volgende dag' : 'Volgende nacht', () => this.nextNight());
     add('stop', 'close', 'Stoppen', () => g.stopStorm());
     this.endEl.hidden = false;
     this.phase = kind;
@@ -382,10 +392,10 @@ export class Storm {
     this.spawnRing();
     const deep = this.night === DEEP_NIGHT; // vanaf nu graven ze ook door steen: even waarschuwen
     const text = this.night === 1 ? 'Bouw snel een huis! Als het donker wordt, komen de dieren.'
-      : deep ? `Nacht ${this.night}. Pas op: nu graven ze ook door steen! Bouw met keien of ijzer.` : `Nacht ${this.night}. Maak je huis sterker!`;
+      : deep ? `${this.word} ${this.night}. Pas op: nu graven ze ook door steen! Bouw met keien of ijzer.` : `${this.word} ${this.night}. Maak je huis sterker!`;
     speech.say(text);
-    g.ui.say(this.night === 1 ? 'Bouw snel een huis!' : deep ? `Nacht ${this.night}: ze graven nu ook door steen!` : `Nacht ${this.night}: maak je huis sterker!`, 'home');
-    g.daynight.set(DUSK_FROM);
+    g.ui.say(this.night === 1 ? 'Bouw snel een huis!' : deep ? `${this.word} ${this.night}: ze graven nu ook door steen!` : `${this.word} ${this.night}: maak je huis sterker!`, 'home');
+    this.setTime(DUSK_FROM);
     this.render();
   }
 
@@ -393,11 +403,11 @@ export class Storm {
     const g = this.g;
     this.phase = 'nacht';
     this.left = this.opts.night ?? this.plan.night;
-    g.daynight.set(NIGHT);
+    this.setTime(NIGHT);
     g.sounds.animal('lion');
     speech.say('Daar komen ze!');
     const house = this.checkHouse();
-    g.ui.say(house.closed ? 'Daar komen ze!' : 'Daar komen ze! Je huis is nog open!', 'wildNight');
+    g.ui.say(house.closed ? 'Daar komen ze!' : 'Daar komen ze! Je huis is nog open!', this.sunny ? 'wildDay' : 'wildNight');
     this.render();
   }
 
@@ -408,14 +418,14 @@ export class Storm {
     this.left = 3;
     for (let i = 0; i < 5; i++) setTimeout(() => g.particles.firework(p.x + (Math.random() - 0.5) * 8, p.y + 2, p.z + (Math.random() - 0.5) * 8), i * 350);
     g.sounds.magic();
-    speech.say(`Hoera! Je hebt nacht ${this.night} overleefd!`);
+    speech.say(`Hoera! Je hebt ${this.word.toLowerCase()} ${this.night} overleefd!`);
     // Beloning: nieuwe bouwstenen
     this.reward = nightReward(this.night);
     for (const [id, n] of Object.entries(this.reward)) this.stock[id] = (this.stock[id] || 0) + n;
     g.ui.setCounts?.(this.counts());
-    g.note('stormNight', { night: this.night });
-    const best = g.settings.wildeNacht?.record || 0;
-    if (this.night > best) { g.settings.wildeNacht = { ...(g.settings.wildeNacht || {}), record: this.night }; g.saveSettings(); }
+    g.note(this.sunny ? 'stormDay' : 'stormNight', { night: this.night });
+    const best = g.settings[this.recordKey]?.record || 0;
+    if (this.night > best) { g.settings[this.recordKey] = { ...(g.settings[this.recordKey] || {}), record: this.night }; g.saveSettings(); }
   }
 
   caught(a) {
@@ -454,7 +464,7 @@ export class Storm {
       if (!a) break;
       if (!a.clearAt(w, a.x, a.y, a.z) || w.get(x, y, z) !== 0) { g.animals.remove(a); continue; }
       a.storm = true; a.wild = false; a.waveBoost = 1 + 0.12 * (this.wave - 1);
-      addEyes(a);
+      addEyes(a, this.sunny);
       made.push(a);
       i++;
     }
@@ -470,7 +480,7 @@ export class Storm {
     g.sounds.roar(0, 0.9);
     this.shake = Math.max(this.shake, 0.3);
     speech.say(this.wave === this.plan.waves ? 'De laatste golf! Hou vol!' : 'Er komen er meer aan!');
-    g.ui.say(`Golf ${this.wave}!`, 'wildNight');
+    g.ui.say(`Golf ${this.wave}!`, this.sunny ? 'wildDay' : 'wildNight');
     for (const a of made) this.stare(a, p);
     this.render();
     return made.length;
@@ -498,7 +508,7 @@ export class Storm {
     if (this.t >= this.checkAt) { this.checkAt = this.t + 0.5; this.checkDamage(); }
     if (this.phase === 'dag') {
       this.left -= dt;
-      g.daynight.set(DUSK_FROM + (1 - Math.max(0, this.left) / this.total) * (DUSK_TO - DUSK_FROM)); // de zon zakt
+      this.setTime(DUSK_FROM + (1 - Math.max(0, this.left) / this.total) * (DUSK_TO - DUSK_FROM)); // de zon zakt (Wilde Dag: de zon blijft hoog)
       for (const a of this.animals()) this.stare(a, p);
       this.setLook(0.35 * (1 - Math.max(0, this.left) / this.total));
       this.growls(p, 14, 4, 0.45); // af en toe gromt er een in de verte
@@ -511,7 +521,7 @@ export class Storm {
       if (this.left <= 0) this.beginNight();
     } else if (this.phase === 'nacht') {
       this.left -= dt;
-      g.daynight.set(NIGHT);
+      this.setTime(NIGHT);
       const total = this.opts.night ?? this.plan.night;
       if (this.wave < this.plan.waves && total - this.left >= total * this.wave / this.plan.waves) this.nextWave();
       for (const a of this.animals()) this.chase(a, dt, p);
@@ -520,7 +530,7 @@ export class Storm {
       if (this.left <= 0) this.survived();
     } else if (this.phase === 'ochtend') {
       this.left -= dt;
-      g.daynight.set(DAWN + (1 - Math.max(0, this.left) / 3) * 0.06);
+      this.setTime(DAWN + (1 - Math.max(0, this.left) / 3) * 0.06);
       for (const a of this.animals()) this.flee(a, p);
       this.setLook(Math.max(0, this.left) / 3);
       if (this.left <= 0) this.showEnd('overleefd');
@@ -530,7 +540,11 @@ export class Storm {
 
   // ---------- eng (fase 6B) ----------
 
+  // De tijd van de dag: in de Wilde Dag blijft het de hele ronde middag
+  setTime(t) { this.g.daynight.set(this.sunny ? NOON : t); }
+
   setLook(v) {
+    if (this.sunny) return; // geen donker, rood, mist of rand om het beeld
     if (Math.abs(v - this.look) < 0.01 && v !== 0) return;
     this.look = v;
     this.g.scene.setStorm(v);
@@ -560,7 +574,7 @@ export class Storm {
     const g = this.g, all = this.animals();
     let nearest = Infinity;
     for (const a of all) nearest = Math.min(nearest, Math.hypot(a.x - p.x, a.z - p.z));
-    if (nearest < 10 && this.t >= this.beatAt) {
+    if (!this.sunny && nearest < 10 && this.t >= this.beatAt) {
       const k = nearest / 10;
       g.sounds.heartbeat(0.3 + 0.7 * (1 - k));
       this.beatAt = this.t + 0.35 + k * 0.75;
@@ -575,12 +589,12 @@ export class Storm {
         if (Math.random() < 0.45) { g.sounds.bonk(pan); this.shake = Math.max(this.shake, 0.1); } else g.sounds.scratch(pan);
       }
     }
-    if (this.t >= this.droneAt) {
+    if (!this.sunny && this.t >= this.droneAt) {
       this.droneAt = this.t + 1;
       const total = this.opts.night ?? this.plan.night;
       g.sounds.drone(0.5 + 0.5 * (1 - Math.max(0, this.left) / total));
     }
-    if (this.t >= this.scareAt) { this.scareAt = this.t + 22 + Math.random() * 18; this.jumpScare(p); }
+    if (!this.sunny && this.t >= this.scareAt) { this.scareAt = this.t + 22 + Math.random() * 18; this.jumpScare(p); }
   }
 
   // Schrikmoment: zit je in je huis en kijk je naar een raam? Dan staat er ineens een dier voor
@@ -969,7 +983,7 @@ export class Storm {
     p.x = this.center.x + dx / d * ARENA; p.z = this.center.z + dz / d * ARENA;
     p.vx = p.vz = 0;
     const now = performance.now();
-    if (now > this.mistAt) { this.g.ui.say('De mist is te dik. Hier kun je niet verder!', 'wildNight'); this.mistAt = now + 4000; }
+    if (now > this.mistAt) { this.g.ui.say(this.sunny ? 'Hier is de rand van het eiland. Verder kun je niet!' : 'De mist is te dik. Hier kun je niet verder!', 'wildNight'); this.mistAt = now + 4000; }
   }
 
   // Is je huis dicht? Zo niet: zeggen en het gat laten glinsteren

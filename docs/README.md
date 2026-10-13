@@ -8,6 +8,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 |---|---|
 | [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad en op de testcomputer |
 | [`analyse-code.md`](analyse-code.md) | Code-analyse na fase 5: foutencheck, metingen en wat er sneller en beter is gemaakt |
+| [`fase-7-plan.md`](fase-7-plan.md) | Het plan voor fase 7: de Wilde Dag (de Wilde Nacht in de zon) en Boerderij in Gevaar (roofdieren eten dieren, Jippe beschermt ze met een boerderij) |
 | [`fase-6-plan.md`](fase-6-plan.md) | Het plan voor fase 6: de Wilde Nacht, een enge spelstand waarin je overdag een huis bouwt en 's nachts alle dieren op je af komen |
 | [`fase-5-plan.md`](fase-5-plan.md) | Het plan voor fase 5: de Dinowereld, opdrachtjes met stickers, schatkisten en verkleden, rails met karretje, bootje, knoppen en hendels |
 | [`fase-4-plan.md`](fase-4-plan.md) | Het plan voor fase 4: van blokkenspel naar echte Minecraft-kloon. Eindeloze wereld met biomen, grotten, licht en dag en nacht, veel meer blokken, Minecraft-dieren en dorpen, en de themawerelden als extra werelden via portalen |
@@ -59,3 +60,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | Slopen en vlotter | Slopers beuken een gat waar ze helemaal doorheen passen, gravers graven ook opzij, alles sneller; Wilde Nacht vlotter op een oudere tablet ([plan, §15](fase-6-plan.md)) | Klaar (versie 6.5.0) |
 | Dieper graven | Elke nacht sneller graven, vanaf nacht 3 ook door de steen in de grond (niet door wat je zelf bouwt) ([plan, §16](fase-6-plan.md)) | Klaar (versie 6.6.0) |
 | Controle | Ogen aan de kop, een vraag voor je de Wilde Nacht stopt ([plan, §17](fase-6-plan.md)) | Klaar (versie 6.6.1) |
+| 7A | Wilde Dag: de Wilde Nacht in de zon, met gele ogen, eigen record en stickers ([plan](fase-7-plan.md)) | Klaar (versie 7.0.0) |

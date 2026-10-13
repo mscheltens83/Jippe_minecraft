@@ -299,8 +299,11 @@ export class UI {
     // De Wilde Nacht (fase 6): bouw een huis voordat de dieren komen
     this.stormBtn = button('small storm-menu-btn', 'wildNight', 'Wilde Nacht');
     onPress(this.stormBtn, () => h.onStorm());
+    // De Wilde Dag (fase 7A): dezelfde ronde, maar in de zon
+    this.dayBtn = button('small day-menu-btn', 'wildDay', 'Wilde Dag');
+    onPress(this.dayBtn, () => h.onDay());
     const row2 = el('div', 'menu-row');
-    row2.append(labeled(this.predatorsBtn, 'Roofdieren jagen'), labeled(this.stormBtn, 'Wilde Nacht'));
+    row2.append(labeled(this.predatorsBtn, 'Roofdieren jagen'), labeled(this.stormBtn, 'Wilde Nacht'), labeled(this.dayBtn, 'Wilde Dag'));
     main.append(this.playBtn, row, row2, this.versionBtn);
 
     const worlds = this.panels.worlds = el('div', 'panel');

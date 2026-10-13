@@ -52,6 +52,7 @@ const MAX_UNDO = 300;
 const BREAK_TIME = 0.5;
 const STORM_VIEW = 3;      // zichtafstand (chunks) in de Wilde Nacht: verder zie je door de mist toch niet
 const STORM_LOD = 14;      // in de Wilde Nacht: dieren verder dan dit (blokken) als één stuk tekenen
+const DAY_VIEW = 4, DAY_LOD = 22; // de Wilde Dag heeft geen mist: iets verder kijken
 const ANIMAL_HOLD = 1.2;   // zo lang een dier vasthouden (sloop-stand) om het naar huis te sturen    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
@@ -130,6 +131,7 @@ class Game {
       onAlbum: () => this.album.open(),
       onGoHome: () => this.goHome(),
       onStorm: () => this.startStorm(),
+      onDay: () => this.startStorm({ mode: 'dag' }),
       getSlots: () => this.slotInfo(),
       onSlot: (n) => this.switchSlot(n),
       onNewWorld: (n, type) => this.newWorld(n, type),
@@ -618,7 +620,7 @@ class Game {
   }
 
   openChest() {
-    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht heb je alleen je eigen bouwstenen.', 'chest'); return; }
+    if (this.storm) { this.sounds.nope(); this.ui.say(`In de ${this.stormName()} heb je alleen je eigen bouwstenen.`, 'chest'); return; }
     this.input.releaseAll();
     this.ui.openPalette(this.hotbar[this.sel]);
     this.sounds.pop();
@@ -691,7 +693,7 @@ class Game {
 
   toggleFly() {
     const p = this.player;
-    if (this.storm && !p.flying) { this.sounds.nope(); this.ui.say('In de Wilde Nacht kun je niet vliegen!', 'wildNight'); return; }
+    if (this.storm && !p.flying) { this.sounds.nope(); this.ui.say(`In de ${this.stormName()} kun je niet vliegen!`, 'wildNight'); return; }
     p.flying = !p.flying;
     if (p.flying) p.vy = 4;
     this.ui.setFlying(p.flying);
@@ -1131,7 +1133,7 @@ class Game {
   }
 
   placeStamp(hit, kind) {
-    if (this.storm) { this.sounds.nope(); this.ui.say('Stempels doen niet mee in de Wilde Nacht. Bouw zelf!', 'wildNight'); return; }
+    if (this.storm) { this.sounds.nope(); this.ui.say(`Stempels doen niet mee in de ${this.stormName()}. Bouw zelf!`, 'wildNight'); return; }
     const [x, y, z] = this.targetCell(hit, -1);
     const changes = buildStamp(kind, this.world, x, y, z, this.facing());
     if (!changes.length) { this.sounds.nope(); return; }
@@ -1358,7 +1360,7 @@ class Game {
 
   placeAnimal(hit, type) {
     const w = this.world, p = this.player;
-    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht zet je geen dieren neer!', 'wildNight'); return; }
+    if (this.storm) { this.sounds.nope(); this.ui.say(`In de ${this.stormName()} zet je geen dieren neer!`, 'wildNight'); return; }
     const [x, y, z] = this.targetCell(hit, -1);
     if (!w.inside(x, y, z) || BLOCKS[w.get(x, y, z)].solid) { this.sounds.nope(); return; }
     // Vissen, dolfijnen en inktvissen alleen in het water
@@ -1691,7 +1693,7 @@ class Game {
   }
 
   undo() {
-    if (this.storm) { this.sounds.nope(); this.ui.say('In de Wilde Nacht kun je niets terugdoen!', 'wildNight'); return; }
+    if (this.storm) { this.sounds.nope(); this.ui.say(`In de ${this.stormName()} kun je niets terugdoen!`, 'wildNight'); return; }
     const changes = this.undoStack.pop();
     if (!changes) { this.sounds.nope(); return; }
     if (changes.snowman) this.snowmen.remove(changes.snowman);
@@ -1818,7 +1820,9 @@ class Game {
 
   // ---------- de Wilde Nacht (fase 6) ----------
 
-  // Een nieuwe Wilde Nacht op een eigen eiland. Eerst de echte wereld bewaren; van deze wereld
+  stormName() { return this.storm?.sunny ? 'Wilde Dag' : 'Wilde Nacht'; }
+
+  // Een nieuwe Wilde Nacht (of Wilde Dag, opts.mode = 'dag') op een eigen eiland. Eerst de echte wereld bewaren; van deze wereld
   // wordt niets bewaard (zie saveNow). opts: andere tijden voor de tests.
   async startStorm(opts = {}) {
     if (this.switching) return;
@@ -1832,8 +1836,9 @@ class Game {
       this.storm = new Storm(this, opts);
       // In de dichte mist zie je toch niet ver: minder wereld tekenen, en dieren verder dan
       // een paar blokken als één stuk (dat scheelt veel op een oudere tablet)
-      this.setViewDistance(Math.min(this.viewDistance, STORM_VIEW));
-      this.animals.lodDist = STORM_LOD;
+      const sunny = opts.mode === 'dag';
+      this.setViewDistance(Math.min(this.viewDistance, sunny ? DAY_VIEW : STORM_VIEW));
+      this.animals.lodDist = sunny ? DAY_LOD : STORM_LOD;
       this.dismount();
       this.freshWorld('island', 1 + Math.floor(Math.random() * 1e6));
       this.animals.clear();
@@ -2075,7 +2080,7 @@ class Game {
     } else if (avg < 1 / 57 && !this.lowered) {
       // Snel genoeg: eerst scherper, daarna verder kijken
       if (sc.pixelRatio < sc.maxPixelRatio) { sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25)); this.resize(); }
-      else if (this.viewDistance < (this.storm ? Math.min(this.maxView, STORM_VIEW) : this.maxView)) this.setViewDistance(this.viewDistance + 1);
+      else if (this.viewDistance < (this.storm ? Math.min(this.maxView, this.storm.sunny ? DAY_VIEW : STORM_VIEW) : this.maxView)) this.setViewDistance(this.viewDistance + 1);
     }
   }
 }

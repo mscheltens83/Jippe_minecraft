@@ -735,6 +735,7 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
 .storm-btn svg { width: 40px; height: 40px; }
 .storm-btn.again, .storm-btn.next { background: var(--grass); color: #fff; }
 .storm-menu-btn { background: #1d1b3a; }
+.day-menu-btn { background: #2f7fd0; }
 
 /* Wilde Nacht (6B): donkere rand om het beeld; bij elke hartslag even rood */
 .storm-vignette {
