@@ -21,8 +21,12 @@ export function buildStamp(kind, world, ox, oy, oz, dir) {
     if (!force && !BLOCKS[cur].replaceable) return;
     cells.set(key(x, y, z), { x, y, z, to: id });
   };
+  // Staat de vloer van de stempel al op iets stevigs (de grond, of het dak van je eigen huis)? Dan hoeft er
+  // niets onder (anders vul je het holle huis eronder met keien)
+  const sitsOnSolid = (x, y, z) => { const cur = world.get(x, y, z); return BLOCKS[cur].solid && cur !== B.LEAVES; };
   // fundering: vul gaten onder een vakje op tot op de grond
   const foundation = (lx, lz, id) => {
+    if (sitsOnSolid(...at(lx, -1, lz))) return;
     for (let ly = -2; ly >= -8; ly--) {
       const [x, y, z] = at(lx, ly, lz);
       const cur = world.get(x, y, z);
@@ -100,9 +104,10 @@ export function buildStamp(kind, world, ox, oy, oz, dir) {
     };
     if (kind === 'well') well(putWorld, VILLAGE_STYLES.plains);
     else house(putWorld, VILLAGE_STYLES.plains, 0, 0, (dir + 2) % 4, { bed: 0 });
-    // fundering onder de vloer tot op de grond
+    // fundering onder de vloer tot op de grond (niet als de vloer al op iets stevigs staat, zoals een dak)
     for (const c of cols) {
       const [wx, wz] = c.split(',').map(Number);
+      if (sitsOnSolid(wx, oy - 1, wz)) continue;
       for (let y = oy - 2; y >= oy - 8; y--) {
         const cur = world.get(wx, y, wz);
         if (BLOCKS[cur].solid && cur !== B.LEAVES) break;

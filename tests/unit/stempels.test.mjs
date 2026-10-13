@@ -25,3 +25,25 @@ for (const kind of ['house', 'tree', 'tower', 'bridge', 'igloo', 'pyramid', 'tem
     }
   });
 }
+
+// Een stempel op het dak van een hol huis (een kubus) mag niet door het dak heen zakken:
+// onder het dak blijft alles zoals het was.
+for (const kind of ['house', 'tower', 'villageHouse', 'igloo', 'pyramid', 'temple', 'lionRock']) {
+  test(`stempel '${kind}' op het dak van een holle kubus laat de kamer eronder met rust`, () => {
+    const w = new World();
+    w.generate('flat', 7);
+    const x0 = 44, z0 = 44, y0 = w.surfaceY(x0, z0) + 1;
+    // kubus van 11 x 11 x 5 met een dak van 1 dik, binnenin lucht
+    for (let dx = 0; dx < 11; dx++) for (let dz = 0; dz < 11; dz++) for (let dy = 0; dy < 5; dy++) {
+      const wall = dx === 0 || dz === 0 || dx === 10 || dz === 10 || dy === 4;
+      w.set(x0 + dx, y0 + dy, z0 + dz, wall ? 4 : 0);
+    }
+    const roofTop = y0 + 4;
+    for (let dir = 0; dir < 4; dir++) {
+      const changes = buildStamp(kind, w, x0 + 5, roofTop + 1, z0 + 5, dir);
+      assert.ok(changes.length > 5, `${kind}: er wordt niets gebouwd`);
+      const inside = changes.filter((c) => c.x > x0 && c.x < x0 + 10 && c.z > z0 && c.z < z0 + 10 && c.y < roofTop);
+      assert.equal(inside.length, 0, `${kind} richting ${dir}: ${inside.length} blokken in de kamer onder het dak`);
+    }
+  });
+}

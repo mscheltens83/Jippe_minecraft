@@ -176,3 +176,7 @@ Gedaan: strenge ESLint-regels (geen fouten), TypeScript-controle op de JavaScrip
 
 - **De rode ogen zaten niet aan de kop.** Sinds 6.4.0 draait en knikt de kop (kijken naar Jippe, rondkijken), maar de ogen zaten aan het hele dier vast en bleven dus staan. Nu zitten ze aan de kop. Ver weg, als het dier één stuk is en de losse kop niet getekend wordt, staat er een tweede setje ogen op de plek van de kop (`eyesFar`).
 - **Per ongeluk stoppen.** Tikken op het menu (of het dierenboek) midden in de Wilde Nacht stopte de ronde meteen. Nu staat het spel stil en vraagt een bord "Stoppen?" met twee grote knoppen: Doorgaan en Stoppen. Het boek is tijdens de Wilde Nacht niet te zien (het opent via het menu).
+
+## 18. Stempel op het dak van een hol huis (versie 6.6.2)
+
+Een huis-stempel op het platte dak van een holle kubus zakte "door het dak". De fundering van een stempel (`foundation` in `stamps.js`) vult de ruimte onder de vloer met keien tot op de grond, zodat een stempel op een helling niet zweeft. Onder het dak van een hol huis zit lucht, dus de fundering vulde de hele kamer eronder met keien (tot 7 blokken diep). Nu wordt alleen gefundeerd als het vakje onder de vloer zelf nog open is; staat de vloer op iets stevigs (de grond of een dak), dan blijft alles eronder zoals het was. Dit geldt voor alle stempels met fundering: huis, toren, dorpshuis, iglo, piramide, tempel en leeuwenrots. Test: `npm run test:unit` (stempels op een holle kubus).
