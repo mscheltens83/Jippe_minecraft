@@ -42,7 +42,7 @@ export async function testPhase7B({ newPage, check, out }) {
     for (const a of [...j.animals.list]) if (['cow', 'pig', 'sheep'].includes(a.type)) j.animals.remove(a); // een vos pakt kippen en konijnen
     const before = j.animals.list.length;
     const sp = j.world.spawnPoint();
-    p.setPos({ x: sp.x, y: j.world.surfaceY(Math.floor(sp.x), Math.floor(sp.z) - 45) + 1, z: sp.z - 45 }); // ver weg, zodat hij niet schrikt
+    p.setPos({ x: sp.x, y: j.world.surfaceY(Math.floor(sp.x), Math.floor(sp.z) - 62) + 1, z: sp.z - 62 }); // ver weg, zodat hij niet schrikt (ook niet als zijn prooi die kant op rent)
     const r = window.__raid();
     const first = { type: r?.type, phase: r?.phase, far: r && Math.hypot(r.a.x - p.x, r.a.z - p.z) };
     f.render();

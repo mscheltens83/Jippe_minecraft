@@ -19,8 +19,10 @@ export const FARM_PREY = new Set(['pig', 'chicken', 'sheep', 'cow', 'rabbit', 'g
 export const BOO_COOL = 15;       // zo lang moet de BOE-knop opladen (seconden)
 const BOO_RANGE = 12;             // zo ver rennen roofdieren weg voor een BOE
 const SCARE_DIST = 6;             // komt Jippe zo dichtbij, dan rent het roofdier weg
+const GOLD_TIME = 150;             // zo lang moet een gouden dier veilig blijven voor de schat
 const FIRST_RAID = 70;            // het eerste roofdier komt na zoveel seconden
-const SCARED_OF_LIGHT = new Set(['fox']); // durft niet binnen 4 blokken van een fakkel
+const SCARED_OF_LIGHT = new Set(['fox', 'raptor']); // durft niet binnen 4 blokken van een fakkel
+const FARM_CAP = 24;               // zoveel boerderijdieren komen er hoogstens vanzelf bij
 const DIG_STEP = 0.5, BASH_STEP = 0.55; // zoveel seconden per blok graven of beuken
 const WARN_DIST = 14;             // zo dichtbij sluipt het roofdier voordat de jacht begint
 
@@ -32,6 +34,9 @@ export const RAIDERS = {
   lion: { from: 4, eats: ['pig', 'sheep', 'cow'], bites: 1, speed: 6, weight: 2 },
   cheetah: { from: 8, eats: ['rabbit', 'chicken', 'sheep', 'goat'], bites: 2, speed: 8.5, weight: 2 },
   tiger: { from: 10, eats: ['cow', 'pig', 'sheep', 'goat'], bites: 2, speed: 6.3, weight: 2 },
+  raptor: { from: 12, eats: ['chicken', 'rabbit', 'sheep'], bites: 1, speed: 7, weight: 2, pack: 2 },           // komen met z'n tweeën
+  pteranodon: { from: 16, eats: ['chicken', 'rabbit', 'sheep'], bites: 1, speed: 6, weight: 2, flyer: true },   // vliegt: bouw een dak
+  trex: { from: 22, eats: ['cow', 'pig', 'sheep', 'goat'], bites: 2, speed: 5.5, weight: 1, boss: true },       // de baas
 };
 
 // Welke roofdieren kunnen er na `raids` bezoeken komen?
@@ -72,12 +77,18 @@ export class Farm {
     this.raids = saved.raids | 0;           // hoeveel roofdier-bezoeken er al geweest zijn
     this.eaten = saved.eaten | 0;
     this.repelled = saved.repelled | 0;     // bezoeken zonder dat er een dier is gepakt
-    this.pending = (saved.pending || []).filter((e) => SPECIES[e.type]).map((e) => ({ type: e.type, variant: e.variant ?? null, left: Number(e.left) || 20 }));
+    this.pending = (saved.pending || []).filter((e) => SPECIES[e.type]).map((e) => ({ type: e.type, variant: e.variant ?? null, left: Number(e.left) || 20, golden: !!e.golden }));
     this.cool = Number.isFinite(saved.cool) ? saved.cool : FIRST_RAID;
     this.active = [];                       // roofdieren die nu op bezoek zijn
     this.booLeft = 0;
     this.t = 0;
     this.escape = null;                     // een dier dat uit zijn hok wil
+    this.gold = null;                       // een gouden gast die je veilig moet houden: { a, left }
+    this.goldCool = 200 + Math.random() * 120;
+    this.newCool = 120 + Math.random() * 60; // volgende nieuwe dier uit het bos
+    this.joined = 0;
+    this.force = null;                      // (voor de tests: dit roofdier laten komen)
+    this.hint = saved.raids === undefined;  // een nieuwe boerderij: één keer uitleggen
     this.escapeCool = 45 + Math.random() * 30;
     const sp = game.world.spawnPoint();
     this.home = { x: sp.x, z: sp.z };      // hier komen opgegeten dieren terug
@@ -89,7 +100,7 @@ export class Farm {
 
   save() {
     return { raids: this.raids, eaten: this.eaten, repelled: this.repelled, cool: Math.round(this.cool),
-      pending: this.pending.map((e) => ({ type: e.type, variant: e.variant, left: Math.round(e.left) })) };
+      pending: this.pending.map((e) => ({ type: e.type, variant: e.variant, left: Math.round(e.left), golden: e.golden || undefined })) };
   }
 
   // ---------- scherm ----------
@@ -115,7 +126,7 @@ export class Farm {
   render() {
     const g = this.g;
     const n = g.animals.list.filter((a) => FARM_PREY.has(a.type) && !a.raider).length, back = this.pending.length;
-    const count = `${ICONS.cow}<b>${n}</b>${back ? `<i class="farm-back">+${back}</i>` : ''}`;
+    const count = `${ICONS.cow}<b>${n}</b>${back ? `<i class="farm-back">+${back}</i>` : ''}${this.gold ? ICONS.star : ''}`;
     if (this.shown.count !== count) { this.countEl.innerHTML = count; this.shown.count = count; }
     const first = this.active[0];
     let time;
@@ -169,6 +180,7 @@ export class Farm {
     }
     for (const r of [...this.active]) this.step(r, dt);
     this.updateEscape(dt);
+    this.updateGuests(dt);
     if ((this.lureT = (this.lureT || 0) - dt) <= 0) {
       this.lureT = 1;
       const lured = g.animals.list.filter((a) => a.lured).length;
@@ -181,6 +193,8 @@ export class Farm {
   pickTarget(type, near = null) {
     const g = this.g, p = g.player;
     const all = g.animals.list.filter((b) => isPreyFor(type, b));
+    const gold = this.gold?.a;
+    if (!near && gold && all.includes(gold) && Math.random() < 0.7) return gold; // een gouden dier valt extra op
     const close = all.filter((b) => Math.hypot(b.x - (near?.x ?? p.x), b.z - (near?.z ?? p.z)) < (near ? 16 : 45));
     const list = close.length ? close : near ? [] : all;
     return list[Math.floor(Math.random() * list.length)] || null;
@@ -201,21 +215,35 @@ export class Farm {
   }
 
   startRaid() {
-    const g = this.g, type = pickRaider(this.raids), prey = this.pickTarget(type);
+    const g = this.g, type = this.force || pickRaider(this.raids), prey = this.pickTarget(type);
     if (!prey) { this.cool = 15; return null; }
     const at = this.spot(prey.x, prey.z, 30, 36, 22);
     if (!at) { this.cool = 8; return null; }
-    const a = g.animals.spawn(type, at.x, at.y, at.z, Math.atan2(-(prey.x - at.x), -(prey.z - at.z)));
-    if (!a) { this.cool = 10; return null; }
-    if (!a.clearAt(g.world, a.x, a.y, a.z)) { g.animals.remove(a); this.cool = 5; return null; }
-    a.raider = true; a.wild = false; a.tame = false; a.walking = true; a.timer = 5; a.sleep = 0;
-    const r = { a, type, def: RAIDERS[type], phase: 'aantocht', target: prey, t: 0, age: 0, bites: 0, chaseT: 0, marked: null };
-    this.active.push(r);
-    const naam = SPECIES[type].naam;
+    const def = RAIDERS[type], made = [];
+    for (let i = 0; i < (def.pack || 1); i++) {
+      const r = this.spawnRaider(type, i ? this.pickTarget(type) || prey : prey, { x: at.x + (i ? (i % 2 ? 2 : -2) : 0), y: at.y, z: at.z + (i ? 2 : 0) });
+      if (r) made.push(r);
+    }
+    if (!made.length) { this.cool = 5; return null; }
+    const a = made[0].a, naam = SPECIES[type].naam, many = made.length > 1;
     g.sounds.growl(this.pan(a.x, a.z), 1);
-    speech.say(`Pas op! Een ${naam.toLowerCase()} komt eraan!`);
-    g.ui.say(`${naam} komt eraan!`, type);
+    if (def.boss) g.sounds.roar(this.pan(a.x, a.z), 1);
+    const text = def.boss ? `De ${naam} komt eraan!` : many ? `Pas op! ${made.length} ${naam.toLowerCase()}s komen eraan!` : `Pas op! Een ${naam.toLowerCase()} komt eraan!`;
+    speech.say(text);
+    g.ui.say(many ? `${made.length} ${naam}s komen eraan!` : `${naam} komt eraan!`, type);
     g.note('farmRaid', { type });
+    return made[0];
+  }
+
+  // Eén roofdier neerzetten (een vlieger hoog in de lucht), op weg naar zijn prooi
+  spawnRaider(type, prey, at) {
+    const g = this.g, def = RAIDERS[type];
+    const a = g.animals.spawn(type, at.x, at.y + (def.flyer ? 9 : 0), at.z, Math.atan2(-(prey.x - at.x), -(prey.z - at.z)));
+    if (!a) return null;
+    if (!a.clearAt(g.world, a.x, a.y, a.z)) { g.animals.remove(a); return null; }
+    a.raider = true; a.wild = false; a.tame = false; a.walking = true; a.timer = 5; a.sleep = 0;
+    const r = { a, type, def, phase: 'aantocht', target: prey, t: 0, age: 0, bites: 0, chaseT: 0, marked: null };
+    this.active.push(r);
     return r;
   }
 
@@ -253,6 +281,8 @@ export class Farm {
     const g = this.g, a = r.a, p = g.player;
     r.age += dt; r.t += dt;
     if (!g.animals.list.includes(a)) { this.active.splice(this.active.indexOf(r), 1); this.raids++; this.cool = raidGap(this.raids); return; }
+    // Is Jippe ver weg gegaan (dan staat het roofdier stil in een stuk wereld dat niet geladen is), of duurt het te lang? Dan is dit bezoek voorbij.
+    if (r.age > 160 || !g.world.isLoaded(a.x, a.z)) { this.finish(r); return; }
     a.timer = 5; a.sleep = 0; a.graze = false; a.happy = 0; a.lying = 0; a.sitting = false; // hij laat zich niet afleiden
     const hunting = r.phase === 'aantocht' || r.phase === 'sluipen' || r.phase === 'jacht' || r.phase === 'eten';
     if (hunting && r.age > 2 && Math.hypot(p.x - a.x, p.z - a.z) < SCARE_DIST) { this.scare(r); return; }
@@ -261,7 +291,7 @@ export class Farm {
       r.lightT = 0.4;
       if (nearLight(g.world, a.x, a.y + 0.5, a.z)) { this.scare(r, 'licht'); return; }
     }
-    const prey = r.target;
+    const prey = r.target, flies = !!r.def.flyer;
     if ((r.phase === 'aantocht' || r.phase === 'sluipen' || r.phase === 'jacht') && !alive(g, prey)) {
       const next = this.pickTarget(r.type, a);
       if (next) { r.target = next; r.phase = 'aantocht'; r.t = 0; this.unmark(r); a.hunt = null; } else this.leave(r);
@@ -270,7 +300,8 @@ export class Farm {
     switch (r.phase) {
       case 'aantocht': {
         // Zacht naderen: Jippe heeft even tijd om te reageren
-        if (this.cross(r, prey.x, prey.z, dt)) break;
+        if (flies) this.fly(r, prey.x, prey.y + 9, prey.z);
+        else if (this.cross(r, prey.x, prey.z, dt)) break;
         const d = this.steer(r, prey.x, prey.z, r.def.speed * 0.5, dt);
         if (d < WARN_DIST) {
           r.phase = 'sluipen'; r.t = 0;
@@ -280,7 +311,8 @@ export class Farm {
         break;
       }
       case 'sluipen': {
-        this.steer(r, prey.x, prey.z, 0.8, dt);
+        if (flies) this.fly(r, prey.x, prey.y + 6, prey.z);
+        this.steer(r, prey.x, prey.z, flies ? 2 : 0.8, dt);
         if (r.t >= 2.2) {
           r.phase = 'jacht'; r.t = 0; r.chaseT = 0;
           this.unmark(r);
@@ -290,8 +322,12 @@ export class Farm {
         break;
       }
       case 'jacht': {
+        if (flies) {
+          // Een vlieger duikt alleen naar beneden als er geen dak boven zijn prooi zit
+          const open = this.openAbove(prey), near = Math.hypot(a.x - prey.x, a.z - prey.z) < 1.8;
+          this.fly(r, prey.x, prey.y + (open ? (near ? 0.9 : 4) : 6), prey.z);
+        } else if (this.cross(r, prey.x, prey.z, dt)) break; // bezig met graven (dat telt niet mee voor de tijd)
         r.chaseT += dt;
-        if (this.cross(r, prey.x, prey.z, dt)) break; // bezig met graven
         const d = this.steer(r, prey.x, prey.z, r.def.speed, dt);
         if (d < Math.max(0.95, a.def.d * 0.45 + 0.3) && Math.abs(a.y - prey.y) < 1.6 && reachable(g.world, a, prey, true)) this.devour(r, prey);
         else if (r.chaseT > 22) this.giveUp(r);
@@ -299,6 +335,7 @@ export class Farm {
       }
       case 'eten': {
         a.walking = false; a.chaseSpeed = 0.0001;
+        if (flies) this.fly(r, a.x, a.y, a.z);
         if (r.t >= 1.6) {
           const next = r.bites < r.def.bites ? this.pickTarget(r.type, a) : null;
           if (next) { r.target = next; r.phase = 'sluipen'; r.t = 0; a.hunt = { target: next, phase: 'stalk', elapsed: 0, blocked: 0, sidestep: 0, raid: true }; this.mark(r, next); } else this.leave(r);
@@ -307,6 +344,7 @@ export class Farm {
       }
       case 'weg':
       case 'verjaagd': {
+        if (flies) this.fly(r, a.x, r.climb ?? (r.climb = a.y + 14), a.z);
         const d = this.steer(r, r.exit.x, r.exit.z, r.phase === 'verjaagd' ? Math.max(r.def.speed, 5) : r.def.speed * 0.6, dt);
         const far = Math.hypot(p.x - a.x, p.z - a.z);
         if (d < 2 || far > 46 || r.t > (r.phase === 'verjaagd' ? 9 : 40)) this.finish(r);
@@ -324,7 +362,8 @@ export class Farm {
     g.particles.poofAt(prey.x, prey.y + 0.6, prey.z, prey.type === 'chicken');
     g.animals.remove(prey);
     g.sounds.nom();
-    this.pending.push({ type: prey.type, variant: prey.variant ?? null, left: 40 + Math.random() * 30 });
+    this.pending.push({ type: prey.type, variant: prey.variant ?? null, left: 40 + Math.random() * 30, golden: !!prey.golden });
+    if (prey.golden) { this.gold = null; this.g.ui.say('Het gouden dier is weg! Maar het komt terug.', prey.type); }
     this.eaten++; r.bites++;
     a.hunt = null; a.walking = false; a.chaseSpeed = 0.0001; a.eatTime = 1.4;
     r.phase = 'eten'; r.t = 0;
@@ -407,48 +446,88 @@ export class Farm {
 
   // ---------- over een hek, door de aarde of er doorheen (fase 7C) ----------
 
-  // Staat er een hek of muur tussen dit dier en zijn doel? Dan springt hij erover, of hij gaat graven of
-  // beuken (als hij dat kan). Geeft true terug zolang hij aan het graven of beuken is.
+  // Staat er een hek of muur tussen dit dier en zijn doel? Dan springt hij erover (als hij hoog genoeg springt),
+  // of hij graaft of beukt alles weg waar zijn lijf tegenaan komt (als hij dat kan). Geeft true terug zolang
+  // hij aan het graven of beuken is.
   cross(o, tx, tz, dt) {
-    const g = this.g, w = g.world, a = o.a;
+    const g = this.g, w = g.world, a = o.a, ab = abilityOf(o.type);
     if (o.work) return this.work(o, dt);
     if (!a.onGround) return false;
-    const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d;
-    const probe = Math.max(a.def.w, a.def.d) / 2 + 0.55;
-    const fx = Math.floor(a.x + ux * probe), fz = Math.floor(a.z + uz * probe), y0 = Math.floor(a.y + 0.05);
-    if (fx === Math.floor(a.x) && fz === Math.floor(a.z)) return false;
-    const col = column(w, fx, fz, y0, a.def.h);
-    if (!col.solid || col.top <= 1.05) return false; // een opstapje van één blok doet hij zelf
-    const kind = passKind(abilityOf(o.type), col);
-    if (!kind || kind === 'free') return false;
-    // erachter moet vrij zijn: een dikke muur lukt niet
-    if (column(w, Math.floor(a.x + ux * (probe + 1)), Math.floor(a.z + uz * (probe + 1)), y0, a.def.h).solid) return false;
-    if (kind === 'jump') {
-      a.vy = Math.min(11, Math.sqrt(2 * 20 * (col.top + 0.45))); a.onGround = false;
-      return false;
+    const dx = tx - a.x, dz = tz - a.z, d = Math.hypot(dx, dz) || 1, ux = dx / d, uz = dz / d, y0 = Math.floor(a.y + 0.05);
+    // 1. Springen: het vakje vlak voor zijn neus
+    const probe = Math.max(a.def.w * 0.43, a.def.d * 0.3) + 0.5; // net voorbij waar zijn lijf een muur raakt
+    const fx = Math.floor(a.x + ux * probe), fz = Math.floor(a.z + uz * probe);
+    if (ab.jump && (fx !== Math.floor(a.x) || fz !== Math.floor(a.z))) {
+      const col = column(w, fx, fz, y0, a.def.h);
+      if (col.solid && col.top > 1.05 && passKind(ab, col) === 'jump'
+        && !column(w, Math.floor(a.x + ux * (probe + 1)), Math.floor(a.z + uz * (probe + 1)), y0, a.def.h).solid) { // over een dikke muur springt hij niet
+        a.vy = Math.min(11, Math.sqrt(2 * 20 * (col.top + 0.45))); a.onGround = false;
+        return false;
+      }
     }
-    o.work = { kind, cell: [fx, fz], y0, t: 0 };
+    // 2. Graven of beuken: alle vakjes waar zijn lijf tegenaan komt
+    if (!ab.dig && !ab.bash) return false;
+    const cells = this.blockers(a, ux, uz, ab, y0);
+    if (!cells?.length) return false;
+    o.work = { kind: ab.bash && !cells.every(([cx, cz]) => column(w, cx, cz, y0, a.def.h).soil && ab.dig) ? 'bash' : 'dig', cells, y0, t: 0 };
     return true;
+  }
+
+  // Alle vakjes met iets erin waar het lijf van dit dier tegenaan komt als hij een stapje naar voren zet,
+  // als hij ze allemaal kapot kan krijgen. Anders null (een sterk blok erbij: dan lukt het niet).
+  blockers(a, ux, uz, ab, y0) {
+    const w = this.g.world, nx = a.x + ux * 0.6, nz = a.z + uz * 0.6;
+    const r = a.def.w * 0.43, d = a.def.d * 0.3, sin = Math.sin(a.yaw), cos = Math.cos(a.yaw);
+    const rx = Math.abs(cos * r) + Math.abs(sin * d), rz = Math.abs(sin * r) + Math.abs(cos * d);
+    const cells = [];
+    for (let bx = Math.floor(nx - rx); bx <= Math.floor(nx + rx); bx++) for (let bz = Math.floor(nz - rz); bz <= Math.floor(nz + rz); bz++) {
+      const col = column(w, bx, bz, y0, a.def.h);
+      if (!col.solid || col.top <= 1.05) continue; // een opstapje doet hij zelf
+      if (!((ab.dig && col.soil) || (ab.bash && col.strength <= ab.bash))) return null;
+      cells.push([bx, bz]);
+    }
+    return cells;
   }
 
   // Graven of beuken: het laagste blok van het vakje eerst. Geeft true terug zolang er iets te doen is.
   work(o, dt) {
-    const g = this.g, w = g.world, a = o.a, k = o.work, [x, z] = k.cell;
+    const g = this.g, w = g.world, a = o.a, k = o.work;
     a.walking = false; a.chaseSpeed = 0.0001;
+    const top = k.y0 + Math.ceil(a.def.h) + 3;
+    // het eerste vakje waar nog iets staat, en daarin het laagste blok
+    let x = 0, y = 0, z = 0, found = false;
+    for (const [cx, cz] of k.cells) {
+      for (let yy = k.y0; yy < top; yy++) if (blockBoxes(w, cx, yy, cz, true).length) { x = cx; y = yy; z = cz; found = true; break; }
+      if (found) break;
+    }
+    if (!found) { this.workDone(o); return false; } // er staat niets meer
     a.targetYaw = Math.atan2(-(x + 0.5 - a.x), -(z + 0.5 - a.z));
-    if ((k.t += dt) < (k.kind === 'dig' ? DIG_STEP : BASH_STEP)) return true;
+    if ((k.t += dt) < (k.kind === 'dig' ? DIG_STEP : a.def.h > 2 ? BASH_STEP * 0.55 : BASH_STEP)) return true; // een groot dier beukt sneller
     k.t = 0;
-    let y = k.y0;
-    for (const top = k.y0 + Math.ceil(a.def.h) + 3; y < top; y++) if (blockBoxes(w, x, y, z, true).length) break;
-    if (y >= k.y0 + Math.ceil(a.def.h) + 3) { o.work = null; return false; } // er staat niets meer
     const id = w.get(x, y, z), ab = abilityOf(o.type);
     const can = k.kind === 'dig' ? isSoil(id) : blockStrength(id) <= (ab.bash || 0);
-    if (!can) { o.work = null; return false; } // inmiddels vervangen door iets sterks
+    if (!can) { this.workDone(o); return false; } // inmiddels vervangen door iets sterks
     w.set(x, y, z, 0);
     const near = Math.hypot(x + 0.5 - g.player.x, z + 0.5 - g.player.z);
     if (k.kind === 'dig') g.sounds.scratch(this.pan(x + 0.5, z + 0.5), Math.max(0.4, 1 - near / 14)); else g.sounds.bonk(this.pan(x + 0.5, z + 0.5), Math.max(0.3, 1 - near / 16));
     g.particles.burst(x, y, z, g.atlas?.particleColors?.[id] || [[0.6, 0.5, 0.4]], 8);
     g.markDirty();
+    return true;
+  }
+
+  // Klaar met graven of beuken: weer vers beginnen met lopen (anders denkt hij dat hij vastzit)
+  workDone(o) {
+    o.work = null;
+    o.px = undefined; o.progress = 0; o.stuck = 0; o.detour = 0;
+  }
+
+  // Een vlieger blijft in de lucht op deze plek
+  fly(r, x, y, z) { r.a.flight = { x, y, z, left: 1 }; }
+
+  // Is er boven dit dier open lucht (tot 10 blokken)? Dan kan een vlieger naar beneden duiken.
+  openAbove(prey) {
+    const w = this.g.world, x = Math.floor(prey.x), z = Math.floor(prey.z), y = Math.floor(prey.y);
+    for (let yy = y + Math.ceil(prey.def.h) + 1; yy <= y + 10; yy++) if (blockBoxes(w, x, yy, z, true).length) return false;
     return true;
   }
 
@@ -523,6 +602,78 @@ export class Farm {
     this.escape = null;
   }
 
+  // ---------- gasten: nieuwe dieren en een gouden dier (fase 7D) ----------
+
+  updateGuests(dt) {
+    const g = this.g;
+    if (this.hint && this.t > 4) {
+      this.hint = false;
+      speech.say('Bescherm je dieren! Bouw een hok met hekken.');
+      g.ui.say('Bescherm je dieren! Bouw een hok.', 'farm');
+    }
+    // Af en toe loopt er een nieuw dier uit het bos naar je boerderij toe
+    if ((this.newCool -= dt) <= 0) { this.newCool = 150 + Math.random() * 90; this.newcomer(); }
+    // Een gouden dier: houd hem een poosje veilig, dan krijg je een schat
+    if (this.gold) {
+      const gd = this.gold;
+      if (!alive(g, gd.a)) { this.gold = null; this.goldCool = 120; return; }
+      if ((gd.sparkT = (gd.sparkT || 0) - dt) <= 0) {
+        gd.sparkT = 1.1;
+        g.particles.sparkle(gd.a.x - 0.4, gd.a.y + 0.1, gd.a.z - 0.4, gd.a.x + 0.4, gd.a.y + gd.a.def.h + 0.6, gd.a.z + 0.4, 5);
+      }
+      if ((gd.left -= dt) <= 0) {
+        const a = gd.a;
+        a.golden = false; this.gold = null; this.goldCool = 300 + Math.random() * 120;
+        g.sounds.magic();
+        speech.say(`Het gouden dier is veilig geweest! Je krijgt een schat.`);
+        g.ui.say('Het gouden dier is veilig! Een schat!', 'chest');
+        g.treasureReward({ x: a.x - 0.5, y: a.y, z: a.z - 0.5 });
+        g.note('farmGoud', { type: a.type });
+        g.particles.firework(a.x, a.y + 2, a.z);
+      }
+    } else if (this.raids >= 3 && !this.pending.some((e) => e.golden) && (this.goldCool -= dt) <= 0) this.spawnGold();
+  }
+
+  // Een nieuw dier komt vanaf de rand van de wereld naar je boerderij lopen
+  newcomer() {
+    const g = this.g;
+    if (g.animals.full || g.animals.list.filter((a) => FARM_PREY.has(a.type) && !a.raider).length >= FARM_CAP) return;
+    const types = ['cow', 'pig', 'sheep', 'chicken', 'chicken', 'rabbit', 'goat'], type = types[Math.floor(Math.random() * types.length)];
+    const at = this.spot(this.home.x, this.home.z, 40, 48, 22);
+    if (!at) { this.newCool = 20; return; }
+    const a = g.animals.spawn(type, at.x, at.y, at.z, Math.atan2(-(this.home.x - at.x), -(this.home.z - at.z)));
+    if (!a) return;
+    if (!a.clearAt(g.world, a.x, a.y, a.z)) { g.animals.remove(a); return; }
+    a.wild = false; a.walking = true; a.timer = 60;
+    a.goal = { x: this.home.x + (Math.random() - 0.5) * 10, z: this.home.z + (Math.random() - 0.5) * 10 };
+    this.joined++;
+    g.particles.sparkle(a.x - 0.5, a.y, a.z - 0.5, a.x + 0.5, a.y + a.def.h + 0.5, a.z + 0.5, 16);
+    const naam = SPECIES[type].naam.toLowerCase();
+    g.ui.say(`Een ${naam} komt naar je boerderij!`, type);
+    speech.say(`Een ${naam} komt naar je boerderij!`);
+    g.note('farmNieuw', { type });
+  }
+
+  spawnGold() {
+    const g = this.g;
+    this.goldCool = 60;
+    if (g.animals.full) return;
+    const type = ['chicken', 'cow', 'pig', 'sheep'][Math.floor(Math.random() * 4)];
+    const at = this.spot(this.home.x, this.home.z, 6, 14);
+    if (!at) return;
+    const a = g.animals.spawn(type, at.x, at.y, at.z, Math.random() * Math.PI * 2);
+    if (!a) return;
+    if (!a.clearAt(g.world, a.x, a.y, a.z)) { g.animals.remove(a); return; }
+    a.wild = false; a.golden = true; a.happy = 1.5;
+    this.gold = { a, left: GOLD_TIME, sparkT: 0 };
+    g.particles.firework(a.x, a.y + 2, a.z);
+    g.sounds.magic();
+    const naam = SPECIES[type].naam.toLowerCase();
+    g.ui.say(`Een gouden ${naam}! Houd hem veilig.`, 'star');
+    speech.say(`Kijk, een gouden ${naam}! Houd hem veilig, dan krijg je een schat.`);
+    g.note('farmGastGoud', { type });
+  }
+
   // Een opgegeten dier komt terug: een sterretje en een blij geluid
   restore(e) {
     const g = this.g;
@@ -533,6 +684,7 @@ export class Farm {
     if (!a) return false;
     if (!a.clearAt(g.world, a.x, a.y, a.z)) { g.animals.remove(a); return false; }
     a.wild = false; a.happy = 1.5;
+    if (e.golden) { a.golden = true; this.gold = { a, left: GOLD_TIME, sparkT: 0 }; }
     g.particles.sparkle(a.x - 0.5, a.y, a.z - 0.5, a.x + 0.5, a.y + a.def.h + 0.5, a.z + 0.5, 30);
     g.particles.heartsAt(a.x, a.y + a.def.h + 0.15, a.z, 1.3);
     g.sounds.magic(); g.sounds.animal(e.type);

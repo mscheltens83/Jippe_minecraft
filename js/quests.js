@@ -87,6 +87,10 @@ export const QUESTS = [
   { id: 'farmOpgeven', groep: 'boerderij', icon: 'lion', tekst: 'Houd een roofdier tegen met een hek, zodat hij het opgeeft.', on: 'farmRepel' },
   { id: 'farmTerug', groep: 'boerderij', icon: 'cow', tekst: 'Zie een opgegeten dier terugkomen.', on: 'farmBack' },
   { id: 'farmLok', groep: 'boerderij', icon: 'carrot', tekst: 'Lok vijf dieren tegelijk achter je aan met eten.', on: 'lure' },
+  { id: 'farmNieuw', groep: 'boerderij', icon: 'sheep', tekst: 'Zie een nieuw dier naar je boerderij lopen.', on: 'farmNieuw' },
+  { id: 'farmGoud', groep: 'boerderij', icon: 'gold', tekst: 'Houd een gouden dier veilig, dan krijg je een schat.', on: 'farmGoud' },
+  { id: 'farmDak', groep: 'boerderij', icon: 'pteranodon', tekst: 'Houd een pteranodon tegen: bouw een dak boven je dieren.', on: 'farmRepel', match: (d) => d.type === 'pteranodon' },
+  { id: 'farmRex', groep: 'boerderij', icon: 'trex', tekst: 'Houd de T-rex tegen met een sterke muur.', on: 'farmRepel', match: (d) => d.type === 'trex' },
   { id: 'farmDicht', groep: 'boerderij', icon: 'build', tekst: 'Maak de zwakke plek in een hok dicht, voordat een dier ontsnapt.', on: 'farmDicht' },
   { id: 'farmLicht', groep: 'boerderij', icon: 'fox', tekst: 'Zet een fakkel bij je dieren: een vos durft er niet langs.', on: 'farmLicht' },
 ];

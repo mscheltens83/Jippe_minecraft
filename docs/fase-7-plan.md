@@ -50,9 +50,9 @@ Hoe verder de boerderij (dagen die je volhoudt), hoe groter het roofdier. Elke s
 | dag 1 | **Vos** | kip, konijn | graaft door een muur van aarde, gras of zand | een hek of muur van hout of steen; een fakkel (bang voor licht, binnen 4 blokken) |
 | dag 2 | **Leeuwin** (na 3 bezoeken) | varken, schaap, koe | springt over een laag hek (tot 1,7 hoog) | een dubbel hek (2,5) of een muur van 2 of 3 hoog; BOE |
 | dag 4 | **Tijger** | koe, varken, schaap | springt tot 2 blokken hoog en is snel | een muur van 3 hoog en een dichte poort |
-| dag 6 | **Velociraptor** (twee tegelijk) | kip, konijn, schaap | springt, sluipt door gaatjes (1 blok) | geen gaatjes, een poort die dicht is |
-| dag 8 | **Pteranodon** | kip, schaap | vliegt van boven | een dak (ook van hek of gaas mag niet: een echt dak) |
-| dag 10 en daarna | **T-rex** (de baas) | een koe of paard, dan een extra | slaat hout en aarde kapot | steen, bakstenen of ijzer; BOE |
+| na 12 bezoeken | **Velociraptor** (twee tegelijk) | kip, konijn, schaap | springt tot 1,8; bang voor fakkels | een dubbel hek of hoger; een fakkel |
+| na 16 bezoeken | **Pteranodon** | kip, schaap, konijn | vliegt: duikt van boven | een dak (een echt dak, van een blok) |
+| na 22 bezoeken | **T-rex** (de baas) | koe, varken, schaap, geit (twee) | slaat hout, aarde, keien en bakstenen kapot | een muur van ijzer (of obsidiaan); BOE |
 
 Een gesloten, sterke boerderij houdt een roofdier tegen: dan loopt het een tijdje rondjes, grommend, en geeft het op. Dat is de beloning: een sticker per afgeslagen soort.
 
@@ -134,3 +134,14 @@ Wat een dier kan staat in `siege.js` (`ABILITIES`); dezelfde regels gelden voor 
 - **Uitbrekers** (`Farm.updateEscape`): om de 45 tot 85 seconden kijkt de regie of een dier (binnen 40 blokken van Jippe) in een dicht hok zit (`enclosure`: een vlakke zoektocht van ±10 blokken die nergens uitkomt) met een zwakke plek (`bestExit`). Zo ja: het dier loopt erheen, krijgt een uitroepteken en jij hoort "De kip wil ontsnappen!". Na 4 seconden probeert hij het: springen, graven of beuken. Maakt Jippe de zwakke plek eerst sterker, dan blijft hij erin ("Gelukkig, het hok is dicht!", sticker). Een ontsnapt dier staat buiten het hok: lok hem terug met eten. Een hok zonder zwakke plek (of geen hok) geeft nooit uitbrekers.
 - Nieuwe stickers: Maak de zwakke plek dicht, Zet een fakkel bij je dieren.
 - Tests: `FASE=7c npm run test:browser` en `uitbreken.test.mjs`.
+
+## 7. Zo is 7D gebouwd (versie 7.3.0)
+
+- **Nieuwe dieren uit het bos** (`Farm.newcomer`): elke 150 tot 240 seconden komt er een nieuw dier (koe, varken, schaap, kip, konijn of geit) vanaf de rand naar je boerderij lopen, met een sterretje en een melding. Hoogstens 24 boerderijdieren komen er zo vanzelf bij; fokken (twee dieren hun lievelingseten geven) kan daarboven.
+- **Een gouden gast** (`spawnGold`): na 3 bezoeken verschijnt af en toe een gouden dier (met een sterretjespoor en een ster in de balk). Roofdieren hebben er extra zin in. Blijft hij 150 seconden veilig, dan krijg je een schat uit de schatkist-regels (iets om aan te trekken, of goud) en een sticker. Wordt hij opgegeten, dan komt hij als gouden dier terug.
+- **Raptors** komen met z'n tweeën (na 12 bezoeken), de **pteranodon** vliegt (na 16 bezoeken; zit er een dak boven het dier, dan komt hij er niet bij en geeft hij het op), de **T-rex** (na 22 bezoeken) is de baas: hij beukt alle blokken kapot waar zijn lijf tegenaan komt, tot en met bakstenen; alleen ijzer en obsidiaan houden hem tegen.
+- Graven en beuken (`Farm.blockers`) werkt nu met alles waar het lijf tegenaan komt, niet met één vakje: zo past ook een groot dier door het gat. Tijd die een roofdier aan graven en beuken besteedt, telt niet mee voor zijn 22 seconden jacht.
+- Een bezoek duurt hoogstens 160 seconden, en staat het roofdier stil in een stuk wereld dat niet geladen is (Jippe is ver weg gegaan), dan is het bezoek voorbij.
+- Een nieuwe boerderij legt één keer uit: "Bescherm je dieren! Bouw een hok met hekken."
+- Nieuwe stickers: Zie een nieuw dier naar je boerderij lopen, Houd een gouden dier veilig, Houd een pteranodon tegen met een dak, Houd de T-rex tegen met een sterke muur.
+- Tests: `FASE=7d npm run test:browser`.

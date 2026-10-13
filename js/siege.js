@@ -18,6 +18,8 @@ export const ABILITIES = {
   lion: { jump: 1.8 },
   cheetah: { jump: 1.7 },
   tiger: { jump: 2.3 },
+  raptor: { jump: 1.8 },
+  trex: { bash: 10 },     // de baas: slaat hout, aarde en steen kapot; alleen ijzer en obsidiaan houden hem tegen
 };
 export const abilityOf = (type) => ABILITIES[type] || {};
 

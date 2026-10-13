@@ -1643,7 +1643,16 @@ class Game {
 
   openTreasure(hit) {
     this.apply([{ x: hit.x, y: hit.y, z: hit.z, from: B.TREASURE, to: B.TREASURE_OPEN }]);
-    // In de kist: iets om aan te trekken dat je nog niet had, of goud
+    this.treasureReward(hit);
+    this.particles.sparkle(hit.x - .4, hit.y + .2, hit.z - .4,
+      hit.x + 1.4, hit.y + 2, hit.z + 1.4, 100);
+    this.particles.burst(hit.x, hit.y, hit.z, [[1, .78, .12], [1, .94, .5]], 45, true);
+    this.sounds.magic();
+  }
+
+  // De inhoud van een schat: iets om aan te trekken dat je nog niet had, of goud
+  // (ook voor een bijzondere gast in de Boerderij; `hit` is dan de plek waar hij stond)
+  treasureReward(hit) {
     const found = this.wardrobe.treasure();
     this.settings.wardrobe = this.wardrobe.save();
     this.saveSettings();
@@ -1656,10 +1665,7 @@ class Game {
       this.particles.firework(hit.x + 0.5, hit.y + 1.5, hit.z + 0.5);
     }
     this.note('treasure');
-    this.particles.sparkle(hit.x - .4, hit.y + .2, hit.z - .4,
-      hit.x + 1.4, hit.y + 2, hit.z + 1.4, 100);
-    this.particles.burst(hit.x, hit.y, hit.z, [[1, .78, .12], [1, .94, .5]], 45, true);
-    this.sounds.magic();
+    return found;
   }
 
   // Brokjes van een blok: stukjes van de echte textuur (gras en bladeren in hun eigen kleur)

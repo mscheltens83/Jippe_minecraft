@@ -78,3 +78,14 @@ test('een vakje met een fakkel erin licht ver genoeg om kleine roofdieren weg te
   assert.equal(nearLight(w, 48.5, y, 48.5), true);
   assert.equal(nearLight(w, 40.5, y, 48.5), false, 'ver weg niet');
 });
+
+test('de T-rex beukt hout, aarde en steen kapot, maar geen ijzer; een raptor springt', () => {
+  const rex = abilityOf('trex'), w = flat(), y = w.surfaceY(48, 48) + 1;
+  for (const [block, ok] of [[B.PLANKS, true], [B.DIRT, true], [B.COBBLE, true], [B.BRICK, true], [B.IRON_BLOCK, false], [B.OBSIDIAN, false]]) {
+    w.set(48, y, 48, block);
+    assert.equal(passKind(rex, column(w, 48, 48, y, 3)) === 'bash', ok, `T-rex tegen ${block}`);
+  }
+  w.set(48, y, 48, B.FENCE);
+  assert.equal(passKind(abilityOf('raptor'), column(w, 48, 48, y, 1)), 'jump');
+  assert.equal(passKind(abilityOf('pteranodon'), column(w, 48, 48, y, 1)), null, 'een vlieger heeft geen hek nodig: hij komt van boven');
+});

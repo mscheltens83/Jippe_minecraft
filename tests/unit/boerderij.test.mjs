@@ -13,6 +13,15 @@ test('het eerste roofdier is een vos, later komen er grotere', () => {
   for (const type of Object.keys(RAIDERS)) assert.ok(SPECIES[type], `${type} bestaat als dier`);
 });
 
+test('de grote roofdieren komen pas laat: raptors, pteranodon en de T-rex als baas', () => {
+  assert.ok(!raidersAt(11).includes('raptor') && raidersAt(12).includes('raptor'));
+  assert.ok(!raidersAt(15).includes('pteranodon') && raidersAt(16).includes('pteranodon'));
+  assert.ok(!raidersAt(21).includes('trex') && raidersAt(22).includes('trex'));
+  assert.equal(RAIDERS.raptor.pack, 2, 'raptors komen met z\'n tweeën');
+  assert.ok(RAIDERS.pteranodon.flyer && RAIDERS.trex.boss);
+  for (const type of ['raptor', 'pteranodon', 'trex']) assert.ok(SPECIES[type], `${type} bestaat als dier`);
+});
+
 test('de nieuwste roofdieren komen vaker', () => {
   const rnd = (() => { let i = 0; return () => ((i++ * 0.6180339887) % 1); })();
   const counts = {};
