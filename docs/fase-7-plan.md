@@ -170,3 +170,54 @@ Gemeten in de Boerderij (op een snelle computer, dus op een oude tablet is alles
 - `adaptQuality` (de automatische kwaliteit) zakt twee stappen tegelijk als het spel onder de 20 beeldjes per seconde komt, zodat het niet minuten duurt voor het vlot loopt.
 - Nog te doen: een meetrit op de echte Android-tablet (ouderscherm, Meetrit, Kopieer) om te zien of dit genoeg is.
 
+## 10. Soepeler op een oude Android (versie 7.5.0)
+
+Na 7.4.1 liep het spel op een oude Android-tablet nog steeds te langzaam. Nagebootst op de testcomputer:
+een Android-tablet met een trage processor (4× trager) en een software-beeldkaart, automatische kwaliteit aan.
+De getallen zeggen niets over de echte tablet, maar wel hoeveel het scheelt:
+
+| Waar | 7.4.1 | 7.5.0 |
+|---|---|---|
+| Grote wereld, lopend (eerste 45 s) | 2–9 beelden per seconde; na 45 s nog maar één stap lager (scherpte 1,25, zicht 6), 200–300 tekenopdrachten | binnen 10 s op de zuinige stand, daarna 15–24 beelden per seconde, ±100 tekenopdrachten |
+| Boerderij, stilstaand bij de dieren | ±8 beelden per seconde, 83–89 tekenopdrachten | 35–50 beelden per seconde, 33 tekenopdrachten |
+
+Wat er mis was en wat er veranderd is:
+
+- **De automatische kwaliteit kwam bijna niet in actie.** Hij keek om de 90 beeldjes (bij 5 beelden per
+  seconde is dat 18 seconden) en de eerste twee keer telden niet mee: pas na ruim een halve minuut één
+  stap omlaag. En de "twee stappen tegelijk" van 7.4.1 deed nooit iets, omdat de beeldtijd die hij kreeg
+  bij 20 beelden per seconde werd afgekapt. Nu (`js/quality.js`) kijkt hij om de anderhalve seconde
+  speeltijd naar de echte beeldtijd (haperingen van meer dan een halve seconde en het menu tellen niet
+  mee), zodat een trage tablet binnen 10 seconden op een vlotte stand staat.
+- **Meer stappen omlaag**: minder scherp (tot 1), minder ver (tot 4 chunks), dan **zuinig**, dan scherpte
+  0,75, zicht 3 en als laatste scherpte 0,6. Zuinig betekent: dieren verder dan 12 blokken als één stuk,
+  hoogstens 5 dieren in beeld met alle losse stukjes, geen wolken, geen wazige achtergrond achter het
+  menu en minder vaak een plaatje van de wereld voor het menu. Het ouderscherm en het meetscherm laten de
+  zichtafstand zien en of zuinig aan staat.
+- **Een Android-tablet begint lager**: scherpte 1 (in plaats van 1,5) en zicht 4 (in plaats van 6), en
+  geen wazige achtergrond achter het menu. Een snelle Android-tablet gaat binnen een paar seconden
+  vanzelf omhoog. Een iPad begint zoals altijd.
+- **Wat in de mist ligt, wordt niet meer getekend.** Was de zichtafstand net verlaagd, dan bleven de
+  chunks die al klaarlagen gewoon getekend, helemaal in de mist (`cull` in `scene.js` kijkt nu niet
+  verder dan de zichtafstand). Dieren die helemaal in de mist staan, worden ook niet getekend of
+  geanimeerd (behalve in de Wilde Nacht: daar gloeien hun ogen door de mist).
+- **De BOE-knop werd elk beeldje opnieuw geschilderd** (een bewegende oranje schaduw). Nu gaat alleen de
+  doorzichtigheid van de gloed op en neer; dat doet de beeldkaart zelf. Dat scheelde in de Boerderij en
+  de Wilde Nacht het meest.
+- **Lucht en zee na de wereld tekenen**: eerst werd de hele lucht en de zee-ring gekleurd en daarna de
+  wereld eroverheen geschilderd. Nu slaat de beeldkaart over wat achter bergen en huizen ligt. Het beeld
+  blijft hetzelfde (vergeleken met schermafbeeldingen vanuit vaste camerastanden).
+- **Nieuwe chunks voegt de worker al samen** (per soort: dicht, gaatjes, glas, water). Dat deed het spel
+  zelf bij elke nieuwe chunk, en dat gaf bij het lopen op een trage tablet steeds een hapering. Klaargekomen
+  chunks gaan hoogstens 4 ms per beeldje naar de beeldkaart (op een trage tablet dan één per beeldje).
+- Na een lagere zichtafstand gaan de Boerderij en de Wilde Nacht bij het weggaan niet meer terug naar
+  een verdere zichtafstand dan de tablet aankan (`viewCap`).
+- Minder rekenwerk per beeldje: een dier dat als één stuk getekend wordt, heeft zijn losse stukjes niet
+  meer aan zich hangen (three.js rekende die anders toch elk beeldje uit); een dier dat stilstaat, rekent
+  met grotere stapjes; het zoeken naar fakkels voor de rook blijft per kolom in dezelfde chunk. In de vaste
+  meetrit (zelfde instellingen als vroeger) kost het rekenwerk van het spel ±10% minder.
+- Tests: `kwaliteit.test.mjs` (volgorde van de stappen, hoe snel een trage tablet omlaag gaat, haperingen) en
+  `zuinig.test.mjs` (dieren in de mist, losse stukjes eraf, hoogstens een paar dieren met alle stukjes).
+- De meetrit (ouderscherm) heeft een vijfde extra rondje: **zuinig** (zicht 3, scherpte 0,6, zuinige stand), de
+  laagste stand van de automatische kwaliteit. Zo zie je op de echte tablet wat die haalt.
+- Nog te doen: een meetrit op de echte Android-tablet (ouderscherm, Meetrit, Kopieer).

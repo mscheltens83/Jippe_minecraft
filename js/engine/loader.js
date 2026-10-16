@@ -20,6 +20,7 @@ export class ChunkLoader {
     this.ready = [];
     this.epoch = 0;
     this.applyBudget = 3;   // zoveel chunks per beeldje naar de beeldkaart sturen
+    this.applyMs = 4;       // en niet langer dan zoveel ms (op een trage tablet dan één per beeldje: geen haperingen)
     this.sent = [];         // per worker: welke chunks (uid -> versie) hij al heeft, oudste eerst
   }
 
@@ -96,11 +97,12 @@ export class ChunkLoader {
 
     // 3. Klaar gekomen chunks tekenen (een paar per beeldje)
     this.sortReady(pcx, pcz);
-    for (let n = 0; this.ready.length && n < this.applyBudget; n++) {
+    const t1 = performance.now();
+    for (let n = 0; this.ready.length && n < this.applyBudget && (n === 0 || performance.now() - t1 < this.applyMs); n++) {
       const job = this.ready.shift();
       job.c.meshing = false;
       if (w.chunks.get(job.c.key) !== job.c) continue;
-      this.apply(job.c, job.sections, job.versions, job.light, job.around);
+      this.apply(job.c, job.sections, job.versions, job.light, job.around, job.merged);
     }
   }
 
@@ -142,7 +144,7 @@ export class ChunkLoader {
       this.meshJobs.delete(c.key);
       // c.meshing blijft aan tot de chunk echt getekend is, anders vragen we hem nog eens aan
       c.tints ||= res.tints;
-      this.ready.push({ c, sections: res.sections, versions, light: res.light, around });
+      this.ready.push({ c, sections: res.sections, merged: res.merged, versions, light: res.light, around });
     }, () => {
       if (epoch !== this.epoch) return;
       this.meshJobs.delete(c.key);
@@ -161,7 +163,8 @@ export class ChunkLoader {
     this.apply(c, sections, versions, c.light, null);
   }
 
-  apply(c, sections, versions, light, around) {
+  // merged: de secties al per soort samengevoegd (door de worker), of null
+  apply(c, sections, versions, light, around, merged = null) {
     let mask = 0;
     // Is er in de buurt gebouwd terwijl de worker bezig was? Dan klopt het licht misschien niet meer:
     // opnieuw uitrekenen (hier) en de hele chunk nog eens tekenen.
@@ -170,7 +173,7 @@ export class ChunkLoader {
       mask = (1 << versions.length) - 1;
     }
     c.light = light;
-    this.scene.setChunkSections(c, sections);
+    this.scene.setChunkSections(c, sections, merged);
     c.meshed = true;
     // Veranderd terwijl de worker bezig was? Dan die secties nog eens op de hoofdthread
     for (let s = 0; s < versions.length; s++) if (versions[s] !== c.sectionVersion[s]) mask |= 1 << s;

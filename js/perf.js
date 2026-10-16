@@ -83,6 +83,7 @@ export class PerfMeter {
       `tekenen ${info.calls} · △ ${k(info.triangles)}`,
       `chunks ${info.chunks} · dieren ${info.animals}`,
       `scherpte ${info.pixelRatio} · ${info.width}×${info.height}`,
+      `zicht ${info.view}${info.zuinig ? ' · zuinig' : ''}`,
     ].join('\n');
   }
 }

@@ -1,13 +1,15 @@
 // Meetrit: de camera vliegt een vaste route over een savanne met 60 dieren en meet hoe
 // vlot het spel loopt. Starten met ?meet achter het adres (?meet=10 voor 10 seconden),
 // of met de knop op het ouderscherm. Er wordt niets bewaard aan de werelden van Jippe.
-// Na de gewone meetrit (zonder getal achter ?meet) komen nog vier korte extra rondjes, die laten
-// zien waar het werk zit: gewoon, met minder pixels, zonder dieren en met een kleine zichtafstand.
+// Na de gewone meetrit (zonder getal achter ?meet) komen nog vijf korte extra rondjes, die laten
+// zien waar het werk zit: gewoon, met minder pixels, zonder dieren, met een kleine zichtafstand en
+// helemaal zuinig (de laagste stand van de automatische kwaliteit).
 
 import { CENTER, SEA } from './world.js';
 import { BIOMES } from './biomes.js';
 import { frameStats, deviceInfo } from './perf.js';
 import { VERSION } from './version.js';
+import { MIN_RATIO } from './quality.js';
 
 export const BENCH_SEED = 4242;
 const WARMUP = 2;          // eerst even inlopen (shaders, eerste beeldjes); telt niet mee
@@ -16,6 +18,7 @@ const EXTRA = [            // de extra rondjes: elk 8 seconden (het begin van de
   { key: 'pixels', naam: 'Met minder pixels (scherpte 0,75)' },
   { key: 'dieren', naam: 'Zonder dieren' },
   { key: 'zicht', naam: 'Kleine zichtafstand (3)' },
+  { key: 'zuinig', naam: 'Zuinig (zicht 3, scherpte 0,6)' },
 ];
 const EXTRA_SECONDS = 8, EXTRA_WARMUP = 1.5;
 const KEY = 'jippecraft.metingen.v1';
@@ -136,7 +139,8 @@ export class Bench {
     this.noAnimals = false;
     if (e.key === 'pixels') { this.savedRatio = sc.pixelRatio; sc.setPixelRatio(0.75); g.resize(); }
     if (e.key === 'dieren') { this.noAnimals = true; for (const a of g.animals.list) a.group.visible = false; }
-    if (e.key === 'zicht') g.setViewDistance(3);
+    if (e.key === 'zicht' || e.key === 'zuinig') g.setViewDistance(3);
+    if (e.key === 'zuinig') { this.savedRatio = sc.pixelRatio; sc.setPixelRatio(MIN_RATIO); g.resize(); g.setZuinig(true); }
     this.showLabel(`Meetrit: extra rondje ${this.phase + 1} van ${this.extra.length}`);
   }
 
@@ -153,6 +157,7 @@ export class Bench {
     this.done = true;
     const g = this.game;
     if (this.savedRatio) { g.scene.setPixelRatio(this.savedRatio); this.savedRatio = 0; g.resize(); }
+    if (g.zuinig) g.setZuinig(false);
     this.noAnimals = false;
     this.label?.remove();
     const r = this.result || this.mainResult();

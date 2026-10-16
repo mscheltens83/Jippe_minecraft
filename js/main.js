@@ -38,6 +38,7 @@ import { BIOMES } from './biomes.js';
 import { Weather } from './weather.js';
 import { Snowmen } from './snowman.js';
 import { PerfMeter } from './perf.js';
+import { QualityMeter, lower, raise, isAndroid } from './quality.js';
 import { Bench } from './bench.js';
 import { VERSION } from './version.js';
 import { guardNavigation } from './guard.js';
@@ -58,6 +59,7 @@ const STORM_VIEW = 3;      // zichtafstand (chunks) in de Wilde Nacht: verder zi
 const STORM_LOD = 14;      // in de Wilde Nacht: dieren verder dan dit (blokken) als één stuk tekenen
 const DAY_VIEW = 4, DAY_LOD = 22; // de Wilde Dag heeft geen mist: iets verder kijken
 const FARM_VIEW = 4, FARM_LOD = 24; // de Boerderij is een vlakke weide: op een tablet 4 chunks (64 blokken) kijken is genoeg
+const ZUINIG_LOD = 12, ZUINIG_DETAIL = 5; // zuinige stand (trage tablet): dieren verder dan 12 blokken als één stuk, en hoogstens 5 met alle stukjes
 const ANIMAL_HOLD = 1.2;   // zo lang een dier vasthouden (sloop-stand) om het naar huis te sturen    // zo lang vasthouden om een blok te slopen (seconden)
 const CAM_BACK = 3.8;      // afstand van de camera achter het poppetje
 const CAM_UP = 1.1;        // en zo veel erboven
@@ -144,6 +146,8 @@ class Game {
       parent: {
         renderer: () => this.scene.renderer,
         pixelRatio: () => this.scene.pixelRatio,
+        view: () => this.viewDistance,
+        zuinig: () => this.zuinig,
         bootTime: () => this.bootTime,
         savedWorlds: () => this.slotInfo().filter((s) => !s.empty).length,
         fpsOn: () => this.perf.visible,
@@ -233,8 +237,11 @@ class Game {
     this.world.onChunkRemoved = (c) => this.scene.removeChunk(c.key);
     const touch = window.matchMedia?.('(pointer: coarse)').matches;
     this.touch = !!touch;
+    this.android = isAndroid();
+    document.body.classList.toggle('android', this.android);
     this.maxView = touch ? 7 : 10;
-    this.setViewDistance(touch ? 6 : 8);
+    // Een Android-tablet begint met minder ver kijken (oudere zijn vaak traag); is hij snel, dan gaat het vanzelf omhoog
+    this.setViewDistance(touch ? (this.android ? 4 : 6) : 8);
     // ?zicht=3: vaste zichtafstand (de test-browser zonder videokaart is anders erg traag)
     const zicht = location.search.match(/[?&]zicht=(\d+)/);
     if (zicht) this.setViewDistance(Math.max(2, Math.min(12, Number(zicht[1]))));
@@ -251,9 +258,9 @@ class Game {
       window.addEventListener(type, () => { this.sounds.unlock(); if (this.playing && !this.storm) this.music.start(); }, true);
     }
 
-    this.frameTimes = [];
-    this.warmup = 2;
-    this.lowered = false;
+    this.quality = new QualityMeter(); // automatische kwaliteit (adaptQuality)
+    this.zuinig = false;      // zuinige stand voor een trage tablet (setZuinig)
+    this.viewCap = Infinity;  // zo ver mag er hoogstens gekeken worden sinds het apparaat te traag bleek
   }
 
   // Opstarten: werelden uit de opslag halen (dat gaat in IndexedDB niet in één keer)
@@ -358,7 +365,7 @@ class Game {
     } else {
       this.animals.preyTypes = null; this.animals.setPredators(this.settings.predators);
       this.animals.lodDist = null;
-      if (this.farmBack) { this.setViewDistance(Math.max(this.viewDistance, this.farmBack)); this.farmBack = null; }
+      if (this.farmBack) { this.setViewDistance(Math.min(this.viewCap, Math.max(this.viewDistance, this.farmBack))); this.farmBack = null; }
     }
   }
 
@@ -615,6 +622,7 @@ class Game {
 
   play() {
     this.sounds.unlock();
+    this.quality.warmup = Math.max(this.quality.warmup, 1); // na het menu of een andere wereld eerst even inlopen
     this.ui.hideMenu();
     this.ui.closePalette();
     this.playing = true;
@@ -1907,7 +1915,7 @@ class Game {
       this.daynight.alwaysDay = this.stormBack?.alwaysDay ?? !!this.settings.alwaysDay;
       this.animals.setPredators(this.settings.predators);
       this.animals.lodDist = null;
-      if (this.stormBack?.view) this.setViewDistance(this.stormBack.view);
+      if (this.stormBack?.view) this.setViewDistance(Math.min(this.viewCap, this.stormBack.view));
       this.ui.setStorm(false);
       this.ui.setCounts(null);
       if (!(await this.loadSlot(this.slot))) this.freshWorld('world');
@@ -1971,6 +1979,8 @@ class Game {
     this.scene.updateChunks(this.world, this.scene.pixelRatio < 1.5 ? 2 : 3);
     this.loader.update(p.x, p.z, -Math.sin(p.yaw), -Math.cos(p.yaw));
     this.updateCompass();
+    // Dieren helemaal in de mist niet tekenen (in de Wilde Nacht wel: hun rode ogen gloeien door de mist heen)
+    this.animals.fogFar = this.storm ? Infinity : this.scene.scene.fog.far;
     if (!this.bench?.noAnimals) this.animals.update(this.playing ? dt : 0, this.world, this.player, this.scene.camera, realDt);
     this.snowmen.update(this.playing ? dt : 0, this.world);
     if (!this.readOnly) this.physics.update(realDt, p); // echte tijd: water stroomt even snel op een trage iPad
@@ -1987,7 +1997,8 @@ class Game {
     const tDraw = performance.now();
     this.scene.render();
     if (this.bench) this.bench.after(rawDt, this.scene.renderer.info, { logic: tDraw - t0, draw: performance.now() - tDraw });
-    if (this.playing && !this.readOnly && !this.storm && now - this.lastThumb > 30) { this.thumb = this.grabThumb(); this.lastThumb = now; }
+    // (een plaatje maken laat een trage tablet even op de beeldkaart wachten: in de zuinige stand minder vaak)
+    if (this.playing && !this.readOnly && !this.storm && now - this.lastThumb > (this.zuinig ? 120 : 30)) { this.thumb = this.grabThumb(); this.lastThumb = now; }
 
     // Automatisch bewaren
     if (this.dirty && now - this.dirtyAt > 1.5) this.saveNow();
@@ -1996,14 +2007,14 @@ class Game {
       else this.lastPosSave = now;
     }
 
-    this.adaptQuality(dt);
+    this.adaptQuality(rawDt); // echte tijd: dt houdt op bij 20 beeldjes per seconde
     this.perf.record(rawDt, performance.now() - t0);
     if (this.perf.visible) {
       const info = this.scene.renderer.info.render;
       this.perf.draw(now, {
         calls: info.calls, triangles: info.triangles, chunks: `${this.loader.pending} (${this.world.chunks.size})`,
         animals: this.animals.list.length, pixelRatio: this.scene.pixelRatio,
-        width: this.canvas.width, height: this.canvas.height,
+        width: this.canvas.width, height: this.canvas.height, view: this.viewDistance, zuinig: this.zuinig,
       });
     }
   }
@@ -2075,7 +2086,8 @@ class Game {
       this.nextSmoke = now + 0.35;
       const px = Math.floor(p.x), py = Math.floor(p.y), pz = Math.floor(p.z);
       let fires = 0;
-      for (let y = py - 5; y <= py + 6; y++) for (let x = px - 10; x <= px + 10; x++) for (let z = pz - 10; z <= pz + 10; z++) {
+      // (y binnenin: dan blijft world.get in dezelfde chunk, dat scheelt veel opzoeken)
+      for (let x = px - 10; x <= px + 10; x++) for (let z = pz - 10; z <= pz + 10; z++) for (let y = py - 5; y <= py + 6; y++) {
         const id = w.get(x, y, z);
         if (id === B.CAMPFIRE) {
           this.particles.smokeAt(x + 0.5, y + 0.9, z + 0.5, true);
@@ -2105,30 +2117,31 @@ class Game {
     return this.maxView;
   }
 
-  // Houdt de iPad het niet bij, dan tekenen we minder scherp; is hij snel, dan juist scherper
-  adaptQuality(dt) {
+  // Haalt het apparaat het niet, dan minder scherp, minder ver en zuiniger; is het snel, dan juist
+  // scherper en verder. Om de anderhalve seconde spelen een stap (zie quality.js).
+  adaptQuality(seconds) {
     if (this.fixedQuality) return;
-    this.frameTimes.push(dt);
-    if (this.frameTimes.length < 90) return;
-    const avg = this.frameTimes.reduce((a, b) => a + b, 0) / this.frameTimes.length;
-    this.frameTimes.length = 0;
-    if (this.warmup > 0) { this.warmup--; return; }
+    if (!this.playing || document.hidden) { this.quality.pause(); return; } // in het menu niet meten
+    const steps = this.quality.frame(seconds);
+    if (!steps) return;
     const sc = this.scene;
-    if (avg > 1 / 42) {
-      // Te traag: eerst minder scherp, daarna minder ver kijken. Gaat het echt langzaam (onder de 20 beeldjes
-      // per seconde, een oude tablet), dan twee stappen tegelijk: anders duurt het minuten voor het vlot loopt
-      for (let step = avg > 1 / 20 ? 2 : 1; step > 0; step--) {
-        if (sc.pixelRatio > 1) { sc.setPixelRatio(sc.pixelRatio - 0.25); this.resize(); }
-        else if (this.viewDistance > 4) this.setViewDistance(this.viewDistance - 1);
-        else if (sc.pixelRatio > 0.75) { sc.setPixelRatio(0.75); this.resize(); }
-        else if (this.viewDistance > 3) this.setViewDistance(3);
-      }
-      this.lowered = true;
-    } else if (avg < 1 / 57 && !this.lowered) {
-      // Snel genoeg: eerst scherper, daarna verder kijken
-      if (sc.pixelRatio < sc.maxPixelRatio) { sc.setPixelRatio(Math.min(sc.maxPixelRatio, sc.pixelRatio + 0.25)); this.resize(); }
-      else if (this.viewDistance < this.viewLimit()) this.setViewDistance(this.viewDistance + 1);
-    }
+    let q = { ratio: sc.pixelRatio, view: this.viewDistance, zuinig: this.zuinig };
+    if (steps < 0) q = raise(q, sc.maxPixelRatio, this.viewLimit()) || q;
+    else for (let i = 0; i < steps; i++) q = lower(q) || q;
+    if (q.ratio !== sc.pixelRatio) { sc.setPixelRatio(q.ratio); this.resize(); }
+    if (q.view < this.viewDistance) this.viewCap = q.view; // ook na de Boerderij of de Wilde Nacht niet verder
+    if (q.view !== this.viewDistance) this.setViewDistance(q.view);
+    if (q.zuinig !== this.zuinig) this.setZuinig(q.zuinig);
+  }
+
+  // Zuinige stand voor een trage tablet: dieren verderop als één stuk, geen wolken en geen wazige
+  // achtergrond achter het menu
+  setZuinig(on) {
+    this.zuinig = on;
+    this.animals.lodCap = on ? ZUINIG_LOD : null;
+    this.animals.detailMax = on ? ZUINIG_DETAIL : 0;
+    this.scene.setLowPower(on);
+    document.body.classList.toggle('zuinig', on);
   }
 }
 

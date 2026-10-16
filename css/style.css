@@ -310,6 +310,8 @@ body, #app {
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
 }
+/* Wazig maken over het bewegende spelbeeld kost een (oude) Android-tablet veel: daar niet */
+.android .menu, .zuinig .menu { -webkit-backdrop-filter: none; backdrop-filter: none; }
 .menu-card {
   width: min(520px, 100%);
   max-height: calc(100% - 20px);
@@ -757,8 +759,14 @@ body.warp canvas { animation: warp 0.9s ease-in forwards; }
   font-family: var(--font); font-size: 20px; font-weight: 700; color: #fff; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
 }
 .storm-boo svg { width: 44px; height: 44px; }
-.storm-boo.ready { animation: storm-boo-ready 1.2s ease-in-out infinite alternate; }
-@keyframes storm-boo-ready { from { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28), 0 0 0 rgba(255, 140, 30, 0); } to { box-shadow: 0 4px 0 rgba(0, 0, 0, 0.28), 0 0 22px rgba(255, 140, 30, 0.9); } }
+/* Klaar: een oranje gloed die zacht aan en uit gaat. (Alleen de doorzichtigheid verandert, dat doet de beeldkaart
+   zelf; een bewegende schaduw moest elk beeldje opnieuw geschilderd worden, en dat kost een oudere tablet veel.) */
+.storm-boo::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%; pointer-events: none; opacity: 0; /* (-3px: om de rand heen) */
+  box-shadow: 0 0 22px rgba(255, 140, 30, 0.9);
+}
+.storm-boo.ready::after { animation: storm-boo-ready 1.2s ease-in-out infinite alternate; }
+@keyframes storm-boo-ready { from { opacity: 0; } to { opacity: 1; } }
 
 /* Wilde Nacht (6D): hoeveel bouwstenen je nog hebt; geen kist */
 body.storm .slot.chest { display: none; }

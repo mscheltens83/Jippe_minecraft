@@ -63,12 +63,14 @@ export class Animal {
   }
   has(skill) { return this.def.kunstjes.includes(skill); }
 
-  // Ver weg tekenen we het dier als één stuk (minder werk voor de iPad), dichtbij met alle bewegingen
+  // Ver weg tekenen we het dier als één stuk (minder werk voor de iPad), dichtbij met alle bewegingen.
+  // De losse stukjes gaan er dan helemaal af: anders rekent three.js ze toch elk beeldje uit.
   setFar(on) {
     if (this.lodOn === on) return;
     this.lodOn = on;
     for (const p of this.parts) p.visible = !on;
     for (const l of this.legs) l.visible = !on;
+    if (on) this.group.remove(...this.parts, ...this.legs); else this.group.add(...this.parts, ...this.legs);
     this.lod.visible = on;
     if (this.eyes) { this.eyes.visible = !on; this.eyesFar.visible = on; } // rode ogen (Wilde Nacht): aan de kop, of los als de kop weg is
     if (!on) { // zadel en tong staan alleen aan als dat hoort
@@ -365,8 +367,10 @@ export class Animal {
     this.yaw += turn;
     this.yawRate = dt > 0 ? turn / dt : 0;
     // Verre dieren krijgen vier beeldjes tegelijk: kleine stappen houden botsingen betrouwbaar.
+    // Staat hij stil op de grond, dan zijn grotere stappen genoeg (dat scheelt veel op een trage tablet).
+    const still = this.speedCur <= 0.02 && this.onGround && this.vy === 0 && !this.flight && !this.climbing;
     for (let left = dt; left > 0.00001;) {
-      const step = Math.min(0.025, left); left -= step;
+      const step = Math.min(still ? 0.05 : 0.025, left); left -= step;
       if (this.speedCur > 0.02) {
         const moved = this.move(step, world);
         if (this.hunt?.phase === 'chase') this.hunt.blocked = moved ? 0 : (this.hunt.blocked || 0) + step;

@@ -1,6 +1,6 @@
 // Worker: maakt chunks, rekent hun licht uit en zet ze om in 3D-vlakken, zodat het spel zelf niet hapert.
 import { Generator } from './gen.js';
-import { buildPad, meshChunk } from './mesher.js';
+import { buildPad, meshChunk, mergeSections, KINDS } from './mesher.js';
 import { LightRegion } from './light.js';
 import { tintsFor } from './tint.js';
 
@@ -37,9 +37,13 @@ self.onmessage = (e) => {
       const pad = buildPad({ chunk: (cx, cz) => { const b = at(cx, cz); return b ? { blocks: b } : null; } }, m.cx, m.cz);
       const tints = tintsFor(gen, m.cx, m.cz);
       const sections = meshChunk(pad, region.lightPad(m.cx, m.cz), faceTiles, m.cx, m.cz, tints);
+      // Ook alvast per soort samenvoegen: dan hoeft het spel dat niet meer te doen (dat gaf op een trage tablet
+      // bij elke nieuwe chunk een hapering)
+      const merged = {};
+      for (const k of KINDS) merged[k] = mergeSections(sections, k);
       const transfer = [light.buffer, tints.buffer];
-      for (const s of sections) if (s) for (const k in s) if (s[k]?.pos) transfer.push(s[k].pos.buffer, s[k].uv.buffer, s[k].col.buffer, s[k].tint.buffer, s[k].idx.buffer);
-      self.postMessage({ id: m.id, sections, light, tints }, transfer);
+      for (const s of [...sections, merged]) if (s) for (const k in s) if (s[k]?.pos) transfer.push(s[k].pos.buffer, s[k].uv.buffer, s[k].col.buffer, s[k].tint.buffer, s[k].idx.buffer);
+      self.postMessage({ id: m.id, sections, light, tints, merged }, transfer);
     }
   } catch (err) {
     self.postMessage({ id: m.id, error: String(err?.stack || err) });

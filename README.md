@@ -110,14 +110,16 @@ Op een computer werkt het ook: **WASD** of pijltjes lopen, **slepen** met de mui
 - De werelden worden vanzelf bewaard (in de browser, in IndexedDB; alleen de stukken waar je iets veranderde). Een wereld weggooien vraagt altijd eerst om bevestiging. Op het ouderscherm kun je een reservekopie maken.
 - Geen reclame, geen internet nodig tijdens het spelen, geen gegevens die ergens heen gaan.
 
-### Op een oudere iPad
-Het spel begint op een tablet iets minder scherp en past zich aan: haalt de iPad het niet,
-dan tekent hij nog wat minder scherp; is de iPad snel, dan juist scherper.
+### Op een oudere iPad of Android-tablet
+Het spel begint op een tablet iets minder scherp en past zich aan. Om de anderhalve seconde kijkt het
+hoe vlot het gaat: haalt de tablet het niet, dan tekent hij minder scherp en minder ver, en daarna
+**zuinig** (dieren verderop als één stuk, geen wolken); is hij snel, dan juist scherper en verder.
+Een Android-tablet begint al wat lager (oudere zijn vaak traag), en gaat vanzelf omhoog als hij snel is.
 
 ### Voor ouders: versie, meetscherm en meetrit
 Onderin het menu staat klein het **versienummer**. Zo zie je of de iPad de nieuwste versie heeft.
 **Houd het versienummer 3 seconden vast** voor het ouderscherm. Daar staan:
-- het apparaat, de beeldscherpte, hoeveel werelden er bewaard zijn en hoeveel opslag dat kost;
+- het apparaat, de beeldscherpte en zichtafstand van dat moment (en of de zuinige stand aan staat), hoeveel werelden er bewaard zijn en hoeveel opslag dat kost;
 - de **laatste fouten** (als er iets misging), met een knop om alles te kopiëren;
 - **Meetscherm aan/uit**: een klein kader rechtsboven met beelden per seconde (fps), de traagste
   beeldjes (p95) en hoeveel de iPad moet tekenen. Op een computer kan het ook met `?fps` achter het adres;
@@ -213,6 +215,7 @@ Bij elke pull request en elke push naar de speelbranch draait GitHub dezelfde co
 | `js/version.js` | Het versienummer (hoort bij `CACHE` in `sw.js`) |
 | `js/errors.js` | Foutenlogboek: de laatste 20 fouten |
 | `js/perf.js`, `js/bench.js` | Meetscherm (`?fps`) en meetrit (`?meet`) |
+| `js/quality.js` | De automatische kwaliteit: wanneer en in welke volgorde het spel minder scherp, minder ver en zuiniger tekent |
 | `js/parent.js` | Het ouderscherm |
 | `js/guard.js` | Niet per ongeluk naar de vorige website vegen in Safari |
 | `js/storage.js` | Instellingen en de oude werelden van vóór versie 4 (localStorage) |

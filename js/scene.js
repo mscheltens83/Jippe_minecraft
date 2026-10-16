@@ -7,6 +7,7 @@ import { buildLightPad, regionFor, LIGHT_LINEAR } from './engine/light.js';
 import { tintsFor } from './engine/tint.js';
 import { NIGHT_LIGHT } from './daynight.js';
 import { createCrackCanvases } from './textures.js';
+import { isAndroid } from './quality.js';
 
 const SKY = new THREE.Color('#9ad8ff');
 // Lucht 's nachts en de oranje gloed bij zonsopkomst en zonsondergang
@@ -33,8 +34,9 @@ export class GameScene {
     });
     // Op een tablet beginnen we iets minder scherp: dat scheelt veel rekenwerk
     // en je ziet het bij pixel-art nauwelijks. Is de iPad snel, dan gaat het vanzelf omhoog.
+    // Een Android-tablet begint op 1 (oudere hebben een trage beeldkaart en vaak een scherm met veel pixels).
     this.maxPixelRatio = Math.min(dpr, 2);
-    this.pixelRatio = touch ? Math.min(this.maxPixelRatio, 1.5) : this.maxPixelRatio;
+    this.pixelRatio = touch ? Math.min(this.maxPixelRatio, isAndroid() ? 1 : 1.5) : this.maxPixelRatio;
     this.renderer.setPixelRatio(this.pixelRatio);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
 
@@ -181,7 +183,9 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     }
     geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
     this.sky = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false, depthWrite: false }));
-    this.sky.renderOrder = -10;
+    // Pas na de wereld tekenen (die heeft renderOrder 0): wat achter een berg of huis ligt, slaat de beeldkaart
+    // dan over in plaats van het eerst te kleuren en daarna te overschilderen. Het beeld blijft hetzelfde.
+    this.sky.renderOrder = 0.5;
     this.scene.add(this.sky);
 
     // Zon, maan en sterren draaien samen rond (een hele baan per dag)
@@ -320,7 +324,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     this.sun.material.color.copy(mix.zon);
     // Meer of minder wolken per landschap (wolken: 0 tot 46, zoals vroeger het aantal wolkenblokken)
     this.cloudCut.value = 1 - Math.max(0, Math.min(1, b.wolken / 46)) * 0.5;
-    this.clouds.visible = b.wolken > 1;
+    this.clouds.visible = b.wolken > 1 && !this.lowPower;
     const positions = this.sky.geometry.attributes.position, colors = this.sky.geometry.attributes.color;
     const color = this.biomeColor || (this.biomeColor = new THREE.Color());
     for (let i = 0; i < positions.count; i++) {
@@ -338,7 +342,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     geo.rotateX(-Math.PI / 2);
     this.sea = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: '#3d7fd8' }));
     this.sea.position.y = SEA + 0.7;
-    this.sea.renderOrder = -1;
+    this.sea.renderOrder = 0.4; // (ook na de wereld, zoals de lucht)
     this.scene.add(this.sea);
   }
 
@@ -400,6 +404,14 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     this.scene.add(this.clouds);
   }
 
+  // Zuinige stand (trage tablet): geen wolken. Die liggen als een groot doorzichtig vlak over de
+  // halve lucht, en dat kost een trage beeldkaart veel.
+  setLowPower(on) {
+    this.lowPower = on;
+    if (this.biomeCurrent) this.applyBiome();
+    else this.clouds.visible = !on;
+  }
+
   // Wolken drijven langzaam naar het oosten en blijven boven de speler
   updateClouds(dt) {
     const cam = this.camera.position, size = this.cloudSize, map = this.clouds.material.map;
@@ -424,16 +436,16 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
 
   // ---------- chunks tekenen ----------
 
-  // Een chunk is (opnieuw) helemaal getekend, sectie voor sectie
-  setChunkSections(chunk, sections) {
+  // Een chunk is (opnieuw) helemaal getekend, sectie voor sectie (merged: al samengevoegd door de worker)
+  setChunkSections(chunk, sections, merged = null) {
     let e = this.chunks.get(chunk.key);
     if (!e) { e = { cx: chunk.cx, cz: chunk.cz, sections: [], meshes: [] }; this.chunks.set(chunk.key, e); }
     e.sections = sections;
-    this.rebuildMeshes(e);
+    this.rebuildMeshes(e, merged);
   }
 
   // De secties van één chunk samenvoegen: per soort één mesh (weinig tekenopdrachten)
-  rebuildMeshes(e) {
+  rebuildMeshes(e, merged = null) {
     for (const m of e.meshes) { this.scene.remove(m); m.geometry.dispose(); }
     e.meshes = [];
     e.vis = e.sections.map((s) => (s ? s.vis ?? VIS_ALL : VIS_ALL)); // lege sectie: helemaal open
@@ -444,7 +456,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     const center = new THREE.Vector3(e.cx * CHUNK + CHUNK / 2, (lo + hi) / 2, e.cz * CHUNK + CHUNK / 2);
     const radius = Math.hypot(CHUNK, hi - lo, CHUNK) / 2 + 1;
     for (const kind of KINDS) {
-      const d = mergeSections(e.sections, kind);
+      const d = merged ? merged[kind] : mergeSections(e.sections, kind);
       if (!d) continue;
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(d.pos, 3));
@@ -566,6 +578,8 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
   // Welke secties kun je vanaf de camera zien? Zoeken vanaf de sectie van de camera, alleen door
   // verbonden zijkanten en steeds verder van de camera af (zoals Minecraft). Grotten zonder opening
   // naar je toe vallen zo weg. Alleen opnieuw als de camera een andere sectie in gaat of de wereld verandert.
+  // Chunks verder dan de zichtafstand (die nog van een grotere zichtafstand klaarlagen) liggen helemaal
+  // in de mist: die tekenen we niet (dat scheelt veel als een trage tablet minder ver gaat kijken).
   cull() {
     if (this.cullOff) return;
     const p = this.camera.position;
@@ -574,7 +588,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
     if (!this.visDirty && at === this.cullAt) return;
     this.visDirty = false;
     this.cullAt = at;
-    const NS = SY / SECTION, R = (this.viewDistance || 6) + 2, W = 2 * R + 1;
+    const NS = SY / SECTION, R = (this.viewDistance || 6) + 2, W = 2 * R + 1, far = ((this.viewDistance || 6) + 1) ** 2;
     const seen = new Uint8Array(W * W * NS);
     const visible = this.visibleSections = new Map(); // chunk -> bitmasker van zichtbare secties
     const qx = [], qy = [], qz = [], qf = [], qd = [];
@@ -585,7 +599,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
       qx.push(cx); qy.push(sy); qz.push(cz); qf.push(from); qd.push(dirs);
     };
     // Boven de wereld: van bovenaf in alle chunks binnen bereik; anders vanuit de sectie van de camera
-    if (csy >= NS) { for (let dz = -R + 1; dz < R; dz++) for (let dx = -R + 1; dx < R; dx++) push(ccx + dx, NS - 1, ccz + dz, 3, 1 << 2); }
+    if (csy >= NS) { for (let dz = -R + 1; dz < R; dz++) for (let dx = -R + 1; dx < R; dx++) if (dx * dx + dz * dz <= far) push(ccx + dx, NS - 1, ccz + dz, 3, 1 << 2); }
     else push(ccx, Math.max(0, csy), ccz, -1, 0);
     const DX = [-1, 1, 0, 0, 0, 0], DY = [0, 0, -1, 1, 0, 0], DZ = [0, 0, 0, 0, -1, 1], OPP = [1, 0, 3, 2, 5, 4];
     for (let h = 0; h < qx.length; h++) {
@@ -598,7 +612,7 @@ uniform highp sampler2DArray uTiles;\nuniform float uTime;\nvarying vec3 vTuv;\n
         if (dirs & (1 << OPP[f])) continue;                        // nooit terug naar de camera
         if (from >= 0 && from !== f && !(vis & pairBit(from, f))) continue; // niet verbonden
         const nx = cx + DX[f], ny = sy + DY[f], nz = cz + DZ[f];
-        if (ny < 0 || ny >= NS || Math.abs(nx - ccx) >= R || Math.abs(nz - ccz) >= R) continue;
+        if (ny < 0 || ny >= NS || (nx - ccx) ** 2 + (nz - ccz) ** 2 > far) continue;
         push(nx, ny, nz, OPP[f], dirs | (1 << f));
       }
     }

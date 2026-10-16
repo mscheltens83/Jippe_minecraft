@@ -18,7 +18,11 @@ export class Animals {
     this.preyTypes = null; // welke soorten prooi zijn (null = varken, kip en schaap); de Boerderij-wereld maakt het meer
     this.lure = null;      // Boerderij-wereld: het eten dat Jippe vasthoudt; dieren die dat lusten lopen achter hem aan
     this.lodDist = null; // vanaf welke afstand een dier als één stuk wordt getekend (null = gewoon 28 blokken)
+    this.lodCap = null;  // zuinige stand (trage tablet): nooit verder dan dit met alle losse stukjes
+    this.detailMax = 0;  // zuinige stand: hoogstens zoveel dieren in beeld met alle losse stukjes (0 = geen grens)
+    this.fogFar = Infinity; // verder dan dit (diepte vanaf de camera) zit een dier helemaal in de mist: niet tekenen
     this.tmp = new THREE.Vector3(); this.frustum = new THREE.Frustum(); this.matrix = new THREE.Matrix4();
+    this.look = new THREE.Vector3(); this.center = new THREE.Vector3();
   }
   get full() { return this.list.length >= MAX_ANIMALS; }
   clear() {
@@ -234,21 +238,31 @@ export class Animals {
     if (camera) {
       camera.updateMatrixWorld(); this.matrix.multiplyMatrices(camera.projectionMatrix, camera.matrixWorldInverse);
       this.frustum.setFromProjectionMatrix(this.matrix);
+      camera.getWorldDirection(this.look);
+    }
+    // Verder dan ±28 blokken (in de Wilde Nacht eerder): als één stuk tekenen
+    // (met 2 blokken speling, zodat het niet knippert)
+    let lod = Math.min(this.lodDist || 28, this.lodCap || Infinity), band = 2;
+    if (this.detailMax && viewer) {
+      // Zuinige stand: alleen de dichtstbijzijnde paar dieren in beeld met alle stukjes (vorig beeldje is goed genoeg)
+      const near = [];
+      for (const a of this.list) if (a.group.visible && !a.riding) { const d = Math.hypot(a.x - viewer.x, a.z - viewer.z); if (d < lod + band) near.push(d); }
+      if (near.length > this.detailMax) {
+        near.sort((p, q) => p - q);
+        lod = Math.min(lod, (near[this.detailMax - 1] + near[this.detailMax]) / 2); band = 0.5;
+      }
     }
     for (let i = 0; i < this.list.length; i++) {
       const a = this.list[i];
       // Staat het dier in een stuk wereld dat niet geladen is? Dan slaapt het even (onzichtbaar)
       if (!world.isLoaded(a.x, a.z)) { a.group.visible = false; continue; }
-      const visible = !camera || this.frustum.intersectsBox(a.box);
+      const visible = !camera || (this.frustum.intersectsBox(a.box) && !this.inFog(a, camera));
       if (a.riding) {
         a.elapsed = 0; a.clockElapsed = 0; a.group.visible = true; a.show(dt);
         continue;
       }
       const dist = viewer ? Math.hypot(a.x - viewer.x, a.z - viewer.z) : 0, far = dist > 40;
-      // Verder dan ±28 blokken (in de Wilde Nacht eerder): als één stuk tekenen
-      // (met een beetje speling, zodat het niet knippert)
-      const lod = this.lodDist || 28;
-      if (viewer) a.setFar(a.lodOn ? dist > lod - 2 : dist > lod + 2);
+      if (viewer) a.setFar(a.lodOn ? dist > lod - band : dist > lod + band);
       a.elapsed += dt;
       a.clockElapsed += clockDt;
       // Wie in een dorp woont, blijft in de buurt van de waterput
@@ -281,6 +295,15 @@ export class Animals {
     }
     for (const prey of this.caught) this.remove(prey);
     this.updateLove(clockDt);
+  }
+
+  // Zit het dier helemaal in de mist? Dan zie je het niet en hoeft de beeldkaart het ook niet te tekenen.
+  // (De mist rekent met de diepte vanaf de camera, niet met de afstand.)
+  inFog(a, camera) {
+    if (this.fogFar === Infinity) return false;
+    a.box.getCenter(this.center);
+    const depth = this.center.sub(camera.position).dot(this.look);
+    return depth - Math.max(a.def.w, a.def.d, a.def.h) > this.fogFar;
   }
 
   // Fokken: gevoerde dieren zoeken een maatje van dezelfde soort; samen krijgen ze een jong.

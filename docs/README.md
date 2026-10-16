@@ -65,3 +65,4 @@ Alle plannen en prompts voor JippeCraft op één plek.
 | 7C | Roofdieren springen over hekken en graven door aarde, zijn bang voor fakkels; dieren breken uit een zwak hok ([plan, §6](fase-7-plan.md)) | Klaar (versie 7.2.0) |
 | 7D | Boerderij afgewerkt: nieuwe dieren uit het bos, een gouden gast met een schat, velociraptors, pteranodon en de T-rex als baas ([plan, §7](fase-7-plan.md)) | Klaar (versie 7.3.0) |
 | 7E | Gesproken tips: het spel zegt wat er gebeurt (opgegeten, ontsnapt, roofdier komt) en wat je dan bouwt ([plan, §8](fase-7-plan.md)) | Klaar (versie 7.4.0) |
+| Soepeler | Soepeler op een oude Android-tablet: de automatische kwaliteit werkt binnen seconden, een zuinige stand, niets tekenen wat in de mist ligt ([plan, §10](fase-7-plan.md)) | Klaar (versie 7.5.0) |

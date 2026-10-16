@@ -64,6 +64,7 @@ export class ParentPanel {
       ['Beeldkaart', dev.gpu],
       ['Scherm', dev.screen],
       ['Beeldscherpte nu', String(this.h.pixelRatio())],
+      ['Zichtafstand nu', `${this.h.view()} chunks${this.h.zuinig() ? ' (zuinige stand)' : ''}`],
       ['Opstarten', this.h.bootTime() ? (this.h.bootTime() / 1000).toFixed(1).replace('.', ',') + ' s' : '…'],
       ['Werelden bewaard', String(this.h.savedWorlds())],
       ['Opslag', this.storage || '…'],
