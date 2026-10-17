@@ -220,4 +220,6 @@ Wat er mis was en wat er veranderd is:
   `zuinig.test.mjs` (dieren in de mist, losse stukjes eraf, hoogstens een paar dieren met alle stukjes).
 - De meetrit (ouderscherm) heeft een vijfde extra rondje: **zuinig** (zicht 3, scherpte 0,6, zuinige stand), de
   laagste stand van de automatische kwaliteit. Zo zie je op de echte tablet wat die haalt.
-- Nog te doen: een meetrit op de echte Android-tablet (ouderscherm, Meetrit, Kopieer).
+- **Meetrit op de echte Android-tablet** (Mali-G57, 17 oktober): **60 beelden per seconde**, elk beeldje
+  16,6–16,9 ms, ook in alle extra rondjes. Het rekenwerk is 7 ms per beeldje. De tablet zit in de
+  meetrit tegen het plafond van het scherm aan; zie [`metingen.md`](metingen.md).

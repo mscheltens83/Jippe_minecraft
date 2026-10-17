@@ -29,6 +29,30 @@ gewoon beeldje duurt 26 ms en ook de traagste 5% maar 32 ms, dus geen haperingen
 gaat de beeldscherpte daarom vanzelf van 1,5 naar 1 (dat zag je in het ouderscherm). De nulmeting
 van 4.0.0 is nooit gedaan; dit is het vertrekpunt voor de volgende fases.
 
+## Android-tablet
+
+| Datum | Versie | Apparaat | Beeldkaart | Duur | fps | p50 ms | p95 ms | traagst ms | tekenopdrachten | driehoeken | scherpte · beeld |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-17 11:30 | 7.5.0 | Android-tablet (rechtop) | ANGLE (ARM, Mali-G57, OpenGL ES 3.2) | 30 s | 60,2 | 16,6 | 16,7 | 16,9 | 197 (max 232) | 92.614 | 1 · 686×977 |
+
+Rekenwerk per beeldje: 2,3 ms spel, 4,7 ms tekenen klaarzetten. Extra rondjes: gewoon 60,2 · minder
+pixels (0,75) 58,8 · zonder dieren 60,2 · zicht 3 60,2 · zuinig (zicht 3, scherpte 0,6) 60 fps.
+
+**Eerste meting op de Android-tablet (7.5.0):** 60 fps, het hoogste wat het scherm laat zien. Elk
+beeldje duurt 16,6–16,9 ms: geen enkele hapering, ook niet het traagste beeldje.
+- **Alle extra rondjes halen ook 60.** De meetrit zit dus tegen het plafond van het scherm aan en laat
+  niet zien hoeveel ruimte er nog over is. De 58,8 bij minder pixels is ruis (een paar late beeldjes
+  in een rondje van 8 seconden).
+- Het rekenwerk is 7 ms van de 16,7 ms die een beeldje mag duren: de processor heeft nog ruim de helft
+  van de tijd over.
+- Gemeten op scherpte 1 (zo begint een Android-tablet sinds 7.5.0) en, zoals altijd in de meetrit,
+  zichtafstand 6. In het gewone spel begint de tablet op zicht 4 en gaat de automatische kwaliteit
+  vanzelf omhoog (scherper, dan verder kijken) zolang het boven de 57 beelden per seconde blijft.
+- Ter vergelijking: de iPad (4.6.2, scherpte 1,5) haalde 38 fps met 423 tekenopdrachten en 357.000
+  driehoeken; nu zijn dat er 197 en 93.000 (grotten wegsnijden in 4.7.0, verre dieren als één stuk).
+- De meetrit vliegt over een wereld die al klaar is. Het lopen door nieuwe wereld (chunks maken) en de
+  Boerderij zitten er niet in; dat zie je met het meetscherm tijdens het spelen.
+
 ## Testcomputer (in de cloud, **zonder videokaart**)
 
 De testcomputer tekent met software (SwiftShader). De fps zegt daarom niets over de iPad, maar

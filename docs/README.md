@@ -6,7 +6,7 @@ Alle plannen en prompts voor JippeCraft op één plek.
 
 | Document | Waarvoor |
 |---|---|
-| [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad en op de testcomputer |
+| [`metingen.md`](metingen.md) | Uitslagen van de meetrit per fase, op de iPad, de Android-tablet en de testcomputer |
 | [`analyse-code.md`](analyse-code.md) | Code-analyse na fase 5: foutencheck, metingen en wat er sneller en beter is gemaakt |
 | [`fase-7-plan.md`](fase-7-plan.md) | Het plan voor fase 7: de Wilde Dag (de Wilde Nacht in de zon) en Boerderij in Gevaar (roofdieren eten dieren, Jippe beschermt ze met een boerderij) |
 | [`fase-6-plan.md`](fase-6-plan.md) | Het plan voor fase 6: de Wilde Nacht, een enge spelstand waarin je overdag een huis bouwt en 's nachts alle dieren op je af komen |
